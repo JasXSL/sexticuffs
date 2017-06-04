@@ -341,7 +341,7 @@
                     Jasmop.Page.set('battle');
                 }
                 else{
-                    Jasmop.Page.set('home');
+                    Jasmop.Page.set('home', ['lobby']);
                 }
             });
 
@@ -521,10 +521,20 @@
 
             }
             else if(B.ended && !isHost){
-                $("#abilities").html('<div class="button disconnect">Disconnect</div>');
+
+                var ht = '<div class="button disconnect">Disconnect</div>';
+                if(B.punishment_done){
+                    ht+= '<div class="button lobby">Return to lobby</div>';
+                }
+
+                $("#abilities").html(ht);
                 $("#abilities div.disconnect").on('click', function(){
                     Netcode.disconnect();
                     Jasmop.Page.set('home');
+                });
+
+                $("#abilities div.lobby").on('click', function(){
+                    Jasmop.Page.set('home', ['lobby']);
                 });
             }
 
@@ -868,7 +878,13 @@
                         B.advanceTurn();
                     }
 
+                    // Active player has left
+                    else if(task === 'LeaveParty'){
+                        B.playAI();
+                    }
+
                 }
+
 
             }
 

@@ -17,7 +17,10 @@
     };
     
     page.onLoaded = function(){
-        page.drawRoot();        
+        if(this.getArg(0) === 'lobby')
+            page.drawBattleSelect();
+        else
+            page.drawRoot();        
     };
 
 

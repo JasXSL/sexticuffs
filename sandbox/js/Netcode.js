@@ -4,6 +4,7 @@ var Netcode = {
     hosting : false,
     players : [],               // Joined players data
     party_id : '',              // ID of party
+    battleInProgress : false
     // Pages can create onSocket(task, subtask, args, byHost, byYou) to listen in
 };
 
@@ -57,7 +58,7 @@ Netcode.ini = function(){
         Netcode.party_id = '';
         Netcode.hosting = false;
         Netcode.players = [];
-
+        Netcode.battleInProgress = false;
         if(Jasmop.active_page.hasOwnProperty('onSocket'))
             Jasmop.active_page.onSocket("disconnect", [], false, true);
 
@@ -146,6 +147,7 @@ Netcode.ini = function(){
         if(!Netcode.hosting)
             return;
         Netcode.output("StartBattle", []);
+        Netcode.battleInProgress = true;
     };
 
     Netcode.selectPunishment = function(victimUUID, abilityID){
@@ -162,7 +164,6 @@ Netcode.ini = function(){
         if(!Netcode.hosting)
             return;
 
-        console.log("netcoding", text);
         Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes]);
     };
 
@@ -170,6 +171,16 @@ Netcode.ini = function(){
         if(!Netcode.hosting)
             return;
         Netcode.output("GameOver", [teamWon]);
+        Netcode.battleInProgress = false;
+        // Punt players that disconnected
+        for(var i =0; i<Netcode.players.length && Netcode.players.length; ++i){
+            var p = Netcode.players[i];
+            if(!p.is_pc && p.socket_id){
+                Netcode.players.splice(i, 1);
+                --i;
+            }
+        }
+
     };
 
     Netcode.endTurn = function(){
@@ -299,10 +310,19 @@ Netcode.input = function(byHost, socketID, task, args){
             return;
 
         // Somebody left my party! Punt them from the lobby.
-        // Later on check if a battle is ongoing and if so make them an NPC
-        for(i = 0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].socket_id === socketID){
-                Netcode.players.splice(i, 1);
+        if(!Netcode.battleInProgress){
+            for(i = 0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].socket_id === socketID){
+                    Netcode.players.splice(i, 1);
+                }
+            }
+        }
+        // Battle in progress, make NPC
+        else{
+            var player = Netcode.getPlayerBySocketID(socketID);
+            if(player){
+                player.is_pc = false;
+                Game.Battle.statusTexts.add(player, player, '%a has disconnected and will be played by an NPC', true, false, false);
             }
         }
 

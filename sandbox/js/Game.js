@@ -86,6 +86,7 @@ var Game = {};
             // Start the app
             Jasmop.dontUseHash = true;
             Jasmop.ini();
+            Jasmop.Serviceworker.ini();
 
             Jasmop.Errors.onAdd = function(){
 

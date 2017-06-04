@@ -917,9 +917,8 @@ class Character extends Asset{
             this.effects = [];
 			this.mana_ticks = 1;
 
-			if(!this.is_pc){
-				this.aiChat = new AIChat(this);
-			}
+			this.aiChat = new AIChat(this);
+			
 
 			for(var i =0; i<this.abilities.length; ++i){
 				this.abilities[i].onBattleStart();

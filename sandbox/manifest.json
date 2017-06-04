@@ -1,0 +1,37 @@
+{
+    "name": "Super Sexticuffs",
+    "short_name": "Sexticuffs",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation" : "landscape",
+    "background_color": "#AEF",
+    "description": "A super lewd game!",
+    "lang" : "en-US",
+    "icons": [
+        {
+            "src": "media/logo-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }, 
+        {
+            "src": "media/logo-256.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }, 
+        {
+            "src": "media/logo-128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        }, 
+        {
+            "src": "media/logo-64.png",
+            "sizes": "64x64",
+            "type": "image/png"
+        }, 
+        {
+            "src": "media/logo-32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        }
+    ]
+}
