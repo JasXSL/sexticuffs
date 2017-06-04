@@ -311,7 +311,7 @@
 
                 html+= '<div class="border header">';
                     html+= '<h1>Abilities</h1>';
-                    html+= '<p>Each level you gain lets you unlock a new ability. You can have 8 abilities active at a time.</p>';
+                    html+= '<p>Each level you gain lets you unlock a new ability. You can have '+Character.MAX_ABILITIES+' abilities active at a time (not counting attack).</p>';
 
                     if(freePoints){
                         html+= '<input type="button" class="highlighted" id="unlockNewAbility" value="Unlock a new ability!" />';

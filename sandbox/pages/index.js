@@ -23,8 +23,8 @@
 
 
             html+= '<h1>Super Sexticuffs!</h1>'; 
-            html+= '<p>This is a completely immoral <strong>adult game</strong>. Minors and puritans beware! It\'s currently just a concept. <a href="https://patreon.com/jasx">Please feed my back at patreon</a>.</p>';
-
+            html+= '<p>This is a completely immoral <strong>adult game</strong>. Minors and puritans beware! It\'s currently just a concept.<br /><a href="https://www.patreon.com/jasx_games">Please feed my back at patreon</a>.<br /><a href="https://github.com/JasXSL/sexticuffs">Please help develop this on github</a>.</p>';
+            
             if(Game.player){
                 html+= '<div class="button continue highlighted">Continue ('+hsc(Game.player.name)+')</div>';  
             }

@@ -527,8 +527,8 @@ DB.ini = function(){
                 cooldown : 4,
                 detrimental : false,
                 playable:true,
-                conditions : [new Condition({type:Condition.MANA_GREATER_THAN, data:[0]}), new Condition({type:Condition.ENEMY})],
-                ai_tags : ["offensive"],
+                conditions : [new Condition({type:Condition.SELF})],
+                ai_tags : ["defensive", "self"],
                 effects:[
                     new Effect({
                         id : 'masochism',
@@ -740,8 +740,8 @@ DB.generateTexts = function(){
             Text.insert({conditions:[abil, humanoid, C.NAKED], sound:'water_squish', ait:[ait.aButt, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TBUTT:!"});
             Text.insert({conditions:[abil, humanoid, C.NAKED, C.VAGINA], sound:'water_squish', ait:[ait.aVag, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TVAGINA:!"});
             Text.insert({conditions:[abil, humanoid, C.CLOTHED, C.PENIS], sound:'water_squish', ait:[ait.aGroin, ait.tWet, ait.tTickle], text:":ANAME: summons a watery glob that slips into :TARGET:'s :TCLOTHES:! The water starts swirling around, tickling :THIS: :TCROTCHEX: before pouring out onto the ground."});
-            Text.insert({conditions:[abil, humanoid, C.PENIS, C(CO.TAGS, ['c_uncut'])], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small lenght of watermilfoil slips beneath :THIS: foreskin and starts tickling against the tip of :THIS: :TPENIS:!"});
-            Text.insert({conditions:[abil, humanoid, C.PENIS], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small lenght of watermilfoil wraps tight around :THIS: :TPENIS:, sending tingles across it as it starts wriggling!"});
+            Text.insert({conditions:[abil, humanoid, C.PENIS, C(CO.TAGS, ['c_uncut'])], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil slips beneath :THIS: foreskin and starts tickling against the tip of :THIS: :TPENIS:!"});
+            Text.insert({conditions:[abil, humanoid, C.PENIS], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil wraps tight around :THIS: :TPENIS:, sending tingles across it as it starts wriggling!"});
             
             
 
@@ -797,7 +797,7 @@ DB.generateTexts = function(){
         
 
 
-    // TIER 0
+    // Generic abilities
         // Crush
             abil = C(CO.ABILITY, "generic_crush");
             Text.insert({conditions:[abil], sound:'punch_heavy', text:":ANAME: jumps at :TARGET:, slamming both :AHIS: fists into the :TRACE:!"});
@@ -811,6 +811,17 @@ DB.generateTexts = function(){
             Text.insert({conditions:[abil], sound:'heal', text:":ANAME: casts a heal on :TARGET:!"});
         
     //
+
+    // Defensive
+
+    //
+    // Offensive
+
+    //
+    // Support
+
+    //
+    
 
 
     // Punishments

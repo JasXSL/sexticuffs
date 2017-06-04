@@ -372,7 +372,7 @@
                 c+= ' opponent';
 
 
-            var log = $("#battlescreen", B.page);
+            var log = $("#battlescreen > #text", B.page);
             log.append('<div class="'+hsc(c)+'"><p>'+txt+'</p></div>');
             log[0].scrollTop = log[0].scrollHeight;
 
@@ -479,10 +479,10 @@
 
 
 
-            if(B.myTurn()){
+            if(B.myTurn() && !B.punishment_done){
 
                 // We pick punishment
-                if(B.ended && !B.punishment_done){
+                if(B.ended){
 
 
                     var html = '';
@@ -626,14 +626,15 @@
             // Build the skeleton
             B.page = $("#wrap[data-page=battle] #content");
 
-            var html = `
-
-                <div class="top">
-                    <div id="friends"><div class="bottom"></div></div>
-                    <div id="battlescreen" class="border"></div>
-                    <div id="enemies"><div class="bottom"></div></div>
-                </div>
-                <div id="manaGems" class="border">`;
+            var html = '<div class="top">'+
+                '<div id="friends"><div class="bottom"></div></div>'+
+                '<div id="battlescreen" class="border">'+
+                    '<div id="text"'+(!Netcode.Socket ? ' class="singleplayer" ' : '')+'></div>'+
+                    (Netcode.Socket ? '<div id="chat" contenteditable></div>' : '')+
+                '</div>'+
+                '<div id="enemies"><div class="bottom"></div></div>'+
+                '</div>'+
+                '<div id="manaGems" class="border">';
                 
                 for(i =0; i<me.max_mana; ++i){
                     html+= '<div class="gem disabled"></div>';
@@ -765,6 +766,17 @@
 
             });
 
+            // Bind chat
+            $("#chat").on('keypress', function(event){
+                if(event.keyCode !== 13)
+                    return;
+                
+                if($("#chat").html())
+                    Netcode.chat($("#chat").html());
+                $(this).html('');
+                return false;
+            });
+
 
             var turn = Math.floor(Math.random()*Netcode.players.length);
 
@@ -791,7 +803,8 @@
             // Generic chat handler - [(str)message]
             if(task === 'Chat'){
 
-                B.statusTexts.add(byPlayer, byPlayer, hsc(args[0].substr(128)), false, true);
+                createjs.Sound.play('shake');
+                B.statusTexts.add(byPlayer, byPlayer, args[0].substr(0, 128), false, true, true); // StatusTexts escapes
 
             }
 
@@ -804,6 +817,7 @@
                     B.turn = data.turn;
                     B.ended = data.ended;
                     B.punishment_done = data.punishment_done;
+
                     B.updateUI();
 
                     if(B.turn !== preturn)

@@ -251,6 +251,7 @@ Netcode.input = function(byHost, socketID, task, args){
             if(!player){
                 player = new Character();
                 player.socket_id = this.socketID;
+                player.team = Character.TEAM_PC;
                 Netcode.players.push(player);
             }
 
@@ -279,6 +280,10 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubSetCharacter = function(data){
         if(!this.isHost)
             return;
+
+        // Don't import team, I am the one who decides teams
+        if(data.hasOwnProperty('team'))
+            delete data.team;
 
         // The player baseobject will be added on socket join rather than here
         var player = Netcode.getPlayerBySocketID(this.socketID);
@@ -364,7 +369,7 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubAddToBattleLog = function(){};
     this.pubEndTurn = function(){};
     this.pubSelectPunishment = function(){};
-    
+    this.pubChat = function(){};    
 
 
     // Run tasks before letting page know

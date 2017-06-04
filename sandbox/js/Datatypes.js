@@ -600,7 +600,7 @@ class Character extends Asset{
 				var ability = this.abilities[i];
 				if(~Ability.DEFAULTS.indexOf(ability.id))
 					continue;
-				if(++n >= 8){
+				if(++n >= Character.MAX_ABILITIES){
 					return true;
 				}
 			}
@@ -710,13 +710,16 @@ class Character extends Asset{
 
 	// Experience, leveling & money
 		getFreePoints(){
+			if(this.isMaxLevel())
+				return 0;
 			return this.unspent_points;
 		}
 
 		isMaxLevel(){
-			if(!this.getUnlockableAbilities().length){
+			if(this.getUnlockableAbilities().length-this.unspent_points <= 0){
 				return true;
 			}
+			return false;
 		}
 
 		addExperience(amount){
@@ -729,7 +732,7 @@ class Character extends Asset{
 			Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained "+amount+" experience."}).convert(this, this));
 
 			var gainedLevel = false;
-			while(this.experience >= this.getMaxExperience() && this.getUnlockableAbilities()){
+			while(this.experience >= this.getMaxExperience() && !this.isMaxLevel()){
 				++this.level;
 				++this.unspent_points;
 
@@ -982,7 +985,6 @@ class Character extends Asset{
 				abilities_unlocked : this.abilities_unlocked,
 				cash : this.cash,
 				armor_unlocked : this.armor_unlocked,
-				team : this.team,
 				is_pc : this.is_pc,
 				size : this.size,
 				strength : this.strength
@@ -1013,6 +1015,9 @@ class Character extends Asset{
 			out.hp = this.hp;
 			out.mana = this.mana;
 			out.color = this.color;
+			if(Netcode.hosting){
+				out.team = this.team;
+			}
 			
 			return out;
 		}
@@ -1030,7 +1035,8 @@ class Character extends Asset{
 }
 Character.TEAM_PC = 0;
 Character.TEAM_NPC = 1;
-Character.TEAM_FFA = 2;
+
+Character.MAX_ABILITIES = 6;
 
     
 

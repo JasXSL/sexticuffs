@@ -303,7 +303,6 @@ div{
         padding:4vw;
         margin-top:0.5vw;
         text-align: center;
-
     }
 
     #wrap[data-page=index] div.splashscreen h1{
@@ -418,7 +417,7 @@ div{
 
     #wrap[data-page=battle] div.top{
         display:flex;
-        height:78%;
+        height:75%; 
         justify-content: space-between;
         margin-bottom:0.5vw;
     }
@@ -427,36 +426,42 @@ div{
     #wrap[data-page=battle] #battlescreen{
         width:60%;
         margin:0 0.5vw;
-        overflow:auto;
         color:#CCC;
+        overflow: hidden;
     }
 
-    #wrap[data-page=battle] #battlescreen > div.statusText{
+    #wrap[data-page=battle] #battlescreen > #text > div.statusText{
         margin:0.2vw; padding:0;
     }
 
-    #wrap[data-page=battle] #battlescreen > div{
+    #wrap[data-page=battle] #battlescreen > #text > div{
         display:block;
     }
 
-    #wrap[data-page=battle] #battlescreen > div.me
+    #wrap[data-page=battle] #battlescreen > #text > div.me
     {
         color:#FFF;
     }
 
-    #wrap[data-page=battle] #battlescreen > div.opponent
+    #wrap[data-page=battle] #battlescreen > #text > div.opponent
     {
         text-align: right;
     }
 
-    #wrap[data-page=battle] #battlescreen > div.statusText.chat
+    #wrap[data-page=battle] #battlescreen > #text > div.statusText.chat
     {
         font-weight: normal;
         font-style: italic;
-        text-align: right;
     }
     
-    #wrap[data-page=battle] #battlescreen > div.statusText.chat p{
+    #wrap[data-page=battle] #battlescreen > #text > div.statusText.chat.opponent
+    {
+        text-align: right;
+    }
+
+    
+    
+    #wrap[data-page=battle] #battlescreen > #text > div.statusText.chat p{
         font-size:1.25vw;
         background:rgba(0,0,0,.25);
         border-radius:0.25vw;
@@ -466,14 +471,14 @@ div{
         max-width:50%;
     }
 
-    #wrap[data-page=battle] #battlescreen > div.important{
+    #wrap[data-page=battle] #battlescreen > #text > div.important{
         text-align: center;
         font-weight: bold;
         color:#FFF;
     }
 
     
-    #wrap[data-page=battle] #battlescreen > div.turn{
+    #wrap[data-page=battle] #battlescreen > #text > div.turn{
         font-size:1vw;
         text-align: center;
         margin:0.5vw 0 0 0;
@@ -496,6 +501,27 @@ div{
     }
     
 
+    #wrap[data-page=battle] #text{
+        position:absolute;
+        top:0.5vw; left:0.5vw; right:0.5vw;
+        bottom:3vw;
+        overflow:auto;
+    }
+    #wrap[data-page=battle] #text.singleplayer{
+        bottom:0.5vw;
+    }
+    #wrap[data-page=battle] #chat{
+        position:absolute;
+        left:0; right:0;
+        bottom:0;
+        height:3vw; 
+        padding:0.5vw;
+        border-top:0.1vw solid rgba(255,255,255,.25);
+        background:rgba(0,0,0,.25);
+        cursor:text;
+        outline:none;
+    }
+    
 
 
 
