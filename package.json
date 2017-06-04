@@ -1,0 +1,12 @@
+{
+  "name": "sexticuffs_server",
+  "version": "0.0.1",
+  "description": "A server for the sexticuffs game",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "JasX",
+  "license": "GPL-3.0"
+}
