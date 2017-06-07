@@ -8,3 +8,4 @@ Todo: Write a proper readme.
 * Icons: game-icons.net
 * Music: http://incompetech.com
 * Art: DPS Wolf by maddworld https://www.furaffinity.net/user/maddworld/
+* Music: Strobotone
