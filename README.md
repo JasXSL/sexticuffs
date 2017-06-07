@@ -6,3 +6,5 @@ Todo: Write a proper readme.
 # credits
 
 * Icons: game-icons.net
+* Music: http://incompetech.com
+* Art: DPS Wolf by maddworld https://www.furaffinity.net/user/maddworld/
