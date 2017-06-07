@@ -8,6 +8,10 @@
     page.need_ajax_data = false;                    // If true, will attempt an ajax fetch first
     // All except onLoaded can return promises
     page.onPreload = function(){};
+
+    page.free_characters = [
+        'media/free_characters/dps.jpg'
+    ];
     
     page.onLoaded = function(){
 
@@ -15,16 +19,23 @@
 
     };
 
+
     page.drawSplashscreen = function(){
 
+        Game.setMusic('maintheme');
+        
 
 
-        var html = '<div class="splashscreen border white">';
+        var html = '<svg class="searchlight" height="600" width="200" viewbox="0 0 200 600"><polygon points="100,400 150,50 50,50" style="fill:white;" /></svg>'+
+                '<svg class="searchlight two" height="600" width="200" viewbox="0 0 200 600"><polygon points="100,400 150,50 50,50" style="fill:white;" /></svg>'+
+            '<div class="splashscreen">';
 
+            html+= '<img src="media/sxtitle.png" class="logo" />';
 
-            html+= '<h1>Super Sexticuffs!</h1>'; 
+            html+= '<div class="border disclaimer">';
             html+= '<p>This is a completely immoral <strong>adult game</strong>. Minors and puritans beware! It\'s currently just a concept.<br /><a href="https://www.patreon.com/jasx_games">Please feed my back at patreon</a>.<br /><a href="https://github.com/JasXSL/sexticuffs">Please help develop this on github</a>.</p>';
-            
+            html+= '</div>';
+
             if(Game.player){
                 html+= '<div class="button continue highlighted">Continue ('+hsc(Game.player.name)+')</div>';  
             }
@@ -39,76 +50,106 @@
 
         page.setContent(html);
 
-        $("div.splashscreen div.button.newGame").on('click', page.drawCharacterCreator);
-        $("div.splashscreen div.button.load").on('click', page.drawCharacterSelector);
+        $("div.splashscreen div.button.newGame").on('click', function(){
+            page.drawCharacterCreator();
+            Game.clickSound();
+        });
+        $("div.splashscreen div.button.load").on('click', function(){
+            page.drawCharacterSelector();
+            Game.clickSound();
+        });
         $("div.splashscreen div.button.continue").on('click', function(){
             Jasmop.Page.set('home');
+            Netcode.players = [Game.player];
+            Game.clickSound();
         });
+
+        Game.rebindSounds();
 
     };
 
     // Character creator subpage
     page.drawCharacterCreator = function(){
         
-        var html = '<div class="charcreator border white">';
+        Game.setMusic('chill');
+        var html = '<form id="newCharacter"><div class="flex">';
 
-            html+= '<form id="newCharacter">';
-                html+= '<input type="text" name="name" placeholder="Character Name" /><br />';
-                html+= 'Image. You can copy an image URL from e621 or something. Has to be HTTPS.<br /><input type="text" name="image" placeholder="Image URL" /><br />';
-                html+= 'Species: <select name="race">';
-                for(var i =0; i<DB.Race.length; ++i){
-                    if(!DB.Race[i].playable)
-                        continue;
-                    html+= '<option value="'+DB.Race[i].id+'">'+DB.Race[i].name_male+(DB.Race[i].name_female ? ' / '+DB.Race[i].name_female : '')+'</option>';
-                }
-                html+= '</select><br />';
+                html += '<div class="charcreator border white left">';
 
-                html+= 'Affinity: <br />';
-                html+= '<label><input type="radio" name="affinity" checked value="'+Ability.Packages.offensive+'" /> Offensive</label>';
-                html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.defensive+'" /> Defensive</label>';
-                html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.support+'" /> Support</label><br />';
                 
-                
-                html+= 'Description (optional):<br /><textarea name="description"></textarea>';
+                    html+= '<input type="text" name="name" placeholder="Character Name" />';
+                    
+                    html+= '<select name="race">';
+                    for(var i =0; i<DB.Race.length; ++i){
+                        if(!DB.Race[i].playable)
+                            continue;
+                        html+= '<option value="'+DB.Race[i].id+'">'+DB.Race[i].name_male+(DB.Race[i].name_female ? ' / '+DB.Race[i].name_female : '')+'</option>';
+                    }
+                    html+= '</select><br />';
 
-                html+= '<label><input type="checkbox" name="tags" value="c_penis" checked> Penis</label>';
-                html+= '<label><input type="checkbox" name="tags" value="c_vagina"> Vagina</label>';
-                html+= '<label><input type="checkbox" name="tags" value="c_breasts"> Breasts</label>';
-                html+= '<br />';
+                    html+= 'Affinity<br />';
+                    html+= '<label><input type="radio" name="affinity" checked value="'+Ability.Packages.offensive+'" /> Offensive</label>';
+                    html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.defensive+'" /> Defensive</label>';
+                    html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.support+'" /> Support</label><br />';
+                    
+                    
+                    html+= 'Description (optional):<br /><textarea name="description"></textarea><br />';
 
-                html+= 'Optional tags:';
-                html+= '<label><input type="checkbox" name="tags" value="c_uncut"> Penis Uncut</label>';
+                    html+= 'Sex<br />';
+                    html+= '<label><input type="checkbox" name="tags" value="c_penis" checked> Penis</label>';
+                    html+= '<label><input type="checkbox" name="tags" value="c_vagina"> Vagina</label>';
+                    html+= '<label><input type="checkbox" name="tags" value="c_breasts"> Breasts</label>';
+                    html+= '<br />';
 
-
-                html+= '<br />';
-                html+= 'Pronouns (Optional):<br /><input type="text" class="pronoun" name="pronoun0" placeholder="he/she" />';
-                html+= '<input type="text" class="pronoun" name="pronoun1" placeholder="him/her" />';
-                html+= '<input type="text" class="pronoun" name="pronoun2" placeholder="his/her" />';
-                html+= '<br />Strength (used for RP texts): Slender <input type="range" name="strength" step=1 min=0 max=10 value=5 /> Muscular';
-                html+= '<br />Size (used for RP texts): Tiny <input type="range" name="size" step=1 min=0 max=10 value=5 /> Huge';
-                
-                html+= '<br /><br />';
-                html+= 'Body tags (color, fuzzy, shiny, scaly etc). Comma separated:<br /><textarea name="body_tags"></textarea><br />';
-
-                html+= '<input type="submit" value="Create!" />';
-                html+= '<input type="button" value="Cancel" id="cancel" />';
-                
-
-            html+= '</form>';
+                    html+= 'Tags<br />';
+                    html+= '<label><input type="checkbox" name="tags" value="c_uncut"> Penis Uncut</label>';
 
 
-        html+= '</div>';
+                    html+= '<br />';
+                    html+= 'Pronouns (Optional):<br />';
 
+                    html+= '<div class="pronouns">';
+                        html+= '<input type="text" class="pronoun" name="pronoun0" placeholder="he" />';
+                        html+= '<input type="text" class="pronoun" name="pronoun1" placeholder="him" />';
+                        html+= '<input type="text" class="pronoun" name="pronoun2" placeholder="his" />';
+                    html+= '</div>';
+
+                    html+= '<br /><label>Slender <input type="range" name="strength" step=1 min=0 max=10 value=5 /> Muscular</label>';
+                    html+= '<br /><label>Tiny <input type="range" name="size" step=1 min=0 max=10 value=5 /> Huge</label>';
+                    
+                    html+= '<br /><br />';
+                    html+= 'Comma Ceparated Body Tags (fuzzy, brown, spotty...) <br /><textarea name="body_tags"></textarea><br />';
+
+                    html+= '<input type="submit" value="Create!" />';
+                    html+= '<input type="button" value="Cancel" id="cancel" />';
+                html+= '</div>';
+
+                html += '<div class="img border white right">';
+
+                    html+= '<img class="preview" /><br /><input type="text" name="image" placeholder="Image URL" /><br />You can use a custom URL. Supports PNG/JPG and has to be HTTPS.<hr />Free character library:<br />';
+                    
+                    html+= '<div class="flex free">';
+                    for(i = 0; i<page.free_characters.length; ++i){
+                        var url = 'https://'+window.location.hostname+window.location.pathname+page.free_characters[i];
+                        html+= '<div class="icon free_character button" style="background-image:url(\''+url+'\')" data-src="'+url+'" />';
+                    }
+                    html+= '</div>';
+
+                html+= '</div>';
+
+            html+= '</div></form>';
         
 
         page.setContent(html);
 
         $("#cancel").on('click', function(){
             page.drawSplashscreen();
+            Game.clickSound();
         });
 
         $("#newCharacter").on('submit', function(){
 
+            Game.clickSound();
             var char = new Character(),
                 i;
             var name = $("[name=name]", this).val().trim();
@@ -199,9 +240,51 @@
             return false;
         });
 
+        $("div.icon.free_character").on('mouseover', function(){
+            Game.playSound('hover');
+        });
+
+        $("div.icon.free_character").on('click', function(){
+            var src = $(this).attr('data-src');
+            $("img.preview").attr('src', src);
+            $("input[name=image]").val(src);
+        });
+
+        var all = $("div.icon.free_character");
+        var elem = all[Math.floor(Math.random()*all.length)];
+        $(elem).click();
+
+        // Binds after to prevent double click sound
+        $("div.icon.free_character").on('click', function(){
+            Game.clickSound();
+        });
+
+        $("input[name=tags]").on('change', function(){
+
+            var sextags = [];
+            $("input[name=tags]").each(function(){
+                if($(this).is(':checked')){
+                    sextags.push($(this).val());
+                }
+            });
+
+            var ch = new Character({tags:sextags});
+            ch = ch.getPronouns();
+
+            $("input.pronoun").eq(0).attr('placeholder', ch[0]);
+            $("input.pronoun").eq(1).attr('placeholder', ch[1]);
+            $("input.pronoun").eq(2).attr('placeholder', ch[2]);
+            
+
+        });
+
+        Game.rebindSounds();
+
     };
 
     page.drawCharacterSelector = function(active){
+
+        Game.setMusic('maintheme');
 
         IDB.search('characters', 'modified', true).then(function(chars){
 
@@ -230,12 +313,15 @@
                     html+= '<p class="description">'+hsc(activeChar.description)+'</p>';
 
                     html+= '<table class="stats">';
+                        html+= '<tr><td>Level:</td><td>'+activeChar.level+'</td></tr>';
                         html+= '<tr><td>Sex:</td><td>'+activeChar.getGender().toUpperCase()+'</td></tr>';
                         html+= '<tr><td>Species:</td><td>'+activeChar.race.name_male.toUpperCase()+'</td></tr>';
+                        html+= '<tr><td>Affinity:</td><td>'+activeChar.affinity.toUpperCase()+'</td></tr>';
+                        
                     html+= '</table>';
 
                     html+= '<input type="button" value="Select" id="selectCharacter" />';
-                    html+= '<input type="button" value="Delete" data-id="'+activeChar.UUID+'" id="delete" /><br />';
+                    html+= '<input type="button" value="Delete" data-id="'+activeChar.UUID+'" id="delete" />';
                     
                     html+= '<input type="button" value="Back" id="back" />';
                     
@@ -246,15 +332,19 @@
 
 
             page.setContent(html);
-
+            
             $("#selectCharacter").on('click', function(){
+                Game.clickSound();
                 Game.setActiveChar(activeChar).then(function(){
+                    Netcode.players = [];
                     Jasmop.Page.set('home');
                 });
             });
 
             $("#delete").on('click', function(){
 
+                Game.clickSound();
+                
                 if(confirm("Really delete?")){
 
                     IDB.delete("characters", $(this).attr('data-id')).then(function(){
@@ -279,18 +369,22 @@
             });
 
             $("#back").on('click', function(){
+                Game.clickSound();
                 page.drawSplashscreen();
             });
 
             $("div.character[data-index]").on('click', function(){
+                Game.clickSound();
                 var id = +$(this).attr('data-index');
                 page.drawCharacterSelector(id);
             });
+            $("div.character[data-index]").on('mouseenter', function(){
+                Game.playSound('hover');
+            });
+
+            Game.rebindSounds();
 
         });
-
-        
-
 
     };
 

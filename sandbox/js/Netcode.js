@@ -4,10 +4,12 @@ var Netcode = {
     hosting : false,
     players : [],               // Joined players data
     party_id : '',              // ID of party
-    battleInProgress : false
+    battleInProgress : false,
+    host_id : ''                // socket ID of host
     // Pages can create onSocket(task, subtask, args, byHost, byYou) to listen in
 };
 
+// Connects
 Netcode.ini = function(){
 
     return new Promise(function(res){
@@ -52,20 +54,45 @@ Netcode.ini = function(){
 
     // Manually disconnects from the socket
     Netcode.disconnect = function(){
-
+        
         Netcode.output('LeaveParty', []);
         Netcode.id = '';
+        Netcode.host_id = '';
         Netcode.party_id = '';
         Netcode.hosting = false;
-        Netcode.players = [];
+        Netcode.players = [Game.player];
         Netcode.battleInProgress = false;
+        Game.rebuildMultiplayerIcons();
+        
         if(Jasmop.active_page.hasOwnProperty('onSocket'))
             Jasmop.active_page.onSocket("disconnect", [], false, true);
 
         if(Netcode.Socket === null)
             return;
+
+        Game.playSound('disconnect');
         Netcode.Socket.disconnect();
         Netcode.Socket = null;
+    };
+
+    // Gets the host
+    Netcode.getHost = function(){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].socket_id === Netcode.host_id && Netcode.players[i].is_pc && Netcode.host_id){
+                return Netcode.players[i];
+            }
+        }
+        return Netcode.getMe();
+    };
+
+
+    // gets my character
+    Netcode.getMe = function(){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].UUID === Game.player.UUID)
+                return Netcode.players[i];
+        }
+        return Game.player;
     };
 
     // Returns a character by socket ID
@@ -85,6 +112,10 @@ Netcode.ini = function(){
             }
         }
         return false;
+    };
+
+    Netcode.isHosting = function(){
+        return Netcode.hosting || !Netcode.Socket;
     };
 
 
@@ -159,12 +190,12 @@ Netcode.ini = function(){
     };
 
     // Adds HTML to all players battle logs
-    Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes){
+    Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
 
         if(!Netcode.hosting)
             return;
 
-        Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes]);
+        Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound]);
     };
 
     Netcode.hostGameOver = function(teamWon){
@@ -204,6 +235,10 @@ Netcode.input = function(byHost, socketID, task, args){
     this.args = args;
     this.isHost = Netcode.hosting;     // I am host
 
+    if(byHost){
+        Netcode.host_id = socketID;
+    }
+
     if(!this.args)
         this.args = [];
     else if(args.constructor !== Array)
@@ -238,6 +273,9 @@ Netcode.input = function(byHost, socketID, task, args){
             Netcode.hosting = this.byHost;              // We are the host
             this.isHost = Netcode.hosting;
         }
+        else
+            Game.playSound('playerjoined');
+
         // Send character data
         if(!this.isHost){
             Netcode.setCharacter();
@@ -291,7 +329,6 @@ Netcode.input = function(byHost, socketID, task, args){
         player.load(data);
         player.socket_id = socketID;
 
-
         // Update everyone else
         Netcode.refreshParty();
     };
@@ -310,6 +347,10 @@ Netcode.input = function(byHost, socketID, task, args){
 
     // A player has left
     this.pubLeaveParty = function(){
+
+        if(!this.byMe)
+            Game.playSound('playerleft');
+
         // I left or am not host. The disconnect handler will manage this
         if(this.byMe || !this.isHost)
             return;
@@ -343,6 +384,12 @@ Netcode.input = function(byHost, socketID, task, args){
     // Received an update from the host
     this.pubUpdateCharacters = function(){
 
+
+        if(this.isHost){
+            // Rebuild the bottom player bar
+            Game.rebuildMultiplayerIcons();
+        }
+
         // Invalid sender or we're hosting
         if(!this.byHost || this.isHost)
             return;
@@ -356,6 +403,8 @@ Netcode.input = function(byHost, socketID, task, args){
         for(i =0; i<players.length; ++i){
             Netcode.players.push(new Character(players[i]));
         }
+
+        Game.rebuildMultiplayerIcons();
 
     };
 

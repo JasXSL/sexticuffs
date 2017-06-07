@@ -1,1 +1,1 @@
-../../../../../../GitHub/Jasmop/js/Jasmop.js
+../../../../../GitHub/Jasmop/js/Jasmop.js

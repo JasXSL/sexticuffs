@@ -297,14 +297,15 @@ class Character extends Asset{
 			
 			if(preArmor > 0 && this.armor <= 0){
 				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME:'s "+this.armorSet.name+" was torn off!"}).convert(attacker, this), true);
-				createjs.Sound.play('cloth_rip');
+				Game.playSound('cloth_rip');
 			}
 
 			// Constraints
 			if(this.hp > this.max_hp){this.hp = this.max_hp;}
 			else if(this.hp <= 0){
 				text = new Text({text:":TNAME: surrenders"});
-				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this), true);
+				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this), true, false, false, 'knockout');
+				
 				this.hp = 0;
 			}
 			if(this.armor > this.max_armor){this.armor = this.max_armor;}
@@ -525,10 +526,10 @@ class Character extends Asset{
 				// Auto generate
 				var out = ["he", "him", "his"];
 				if(this.hasAnyTag("c_breasts")){
-					if(this.hasAnyTag('c_vagina') && this.hasAnyTag('c_penis')){
+					if(this.hasAnyTag('c_vagina') && this.hasAnyTag('c_penis'))
 						out = ["shi", "hir", "hir"];
-					}
-					out = ["she", "her", "her"];
+					else
+						out = ["she", "her", "her"];
 				}
 
 				return out;
@@ -617,12 +618,17 @@ class Character extends Asset{
             if(id.constructor === Ability)
 				ability = id;
 			else{
-				ability = Ability.get(id).clone();
+				ability = Ability.get(id);
 			}
 			if(!ability){
-                console.error("Ability not found", id);
+				var pos = this.abilities_unlocked.indexOf(id);
+				if(~pos)
+					this.abilities_unlocked.splice(pos, 1);
                 return false;
             }
+
+			if(id.constructor !== Ability)
+				ability = ability.clone();
 
 			if(Ability.DEFAULTS.indexOf(id) === -1 && this.abilities_unlocked.indexOf(id) === -1 && ability.id){
 				// Add to unlocks
@@ -710,7 +716,7 @@ class Character extends Asset{
 
 	// Experience, leveling & money
 		getFreePoints(){
-			if(this.isMaxLevel())
+			if(!this.getUnlockableAbilities())
 				return 0;
 			return this.unspent_points;
 		}
@@ -736,15 +742,6 @@ class Character extends Asset{
 				++this.level;
 				++this.unspent_points;
 
-				// Add affinity perk
-				if(this.affinity === Ability.Packages.defensive)
-					++this.max_hp;
-				if(this.affinity === Ability.Packages.offensive)
-					++this.accuracy;
-				if(this.affinity === Ability.Packages.support)
-					++this.max_armor;
-				
-
 				gainedLevel = true;
 				this.experience -= this.getMaxExperience();
 				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained a level! Welcome to level "+this.level+"!"}).convert(this, this));
@@ -754,7 +751,7 @@ class Character extends Asset{
 				this.experience = 0;
 			
 			if(gainedLevel)
-				createjs.Sound.play('levelup');
+				Game.playSound('levelup');
 
 			this.save();
 		}
@@ -785,6 +782,30 @@ class Character extends Asset{
 
 	// 
 
+	// DOM
+		inspect(){
+			var hsc = Jasmop.Tools.htmlspecialchars;
+			var html = '<div id="characterInspect">';
+				html+= '<img class="icon" src="'+this.getImage()+'" />';
+				html+= '<h1>'+hsc(this.name)+'</h1>';
+				html+= '<p class="race">Level '+this.level+' '+hsc(this.getGender())+' '+hsc(this.race.getName())+' - '+hsc(this.affinity.toUpperCase())+' Affinity</p>';
+				html+= '<p class="description">'+hsc(this.description)+'</p>';
+				html+= '<p class="armor">'+(this.armor ? 'Wearing '+hsc(this.armorSet.name) : 'Nude')+'</p>';
+				if(Netcode.isHosting() && this.UUID !== Game.player.UUID && this.is_pc){
+					html+= '<input type="button" class="kickPlayer" data-uuid="'+hsc(this.UUID)+'" value="Kick" />';
+				}
+				html+= '<div class="clear"></div>';
+			html+= '</div>';
+
+			Jasmop.Overlay.set(html);
+
+			var th = this;
+			$("#overlay input.kickPlayer").on('click', function(){
+				Netcode.kick(th.socket_id);
+			});
+
+		}
+	//
 
 
 	// Effects
@@ -851,6 +872,10 @@ class Character extends Asset{
 
 			var clone = this.abilities.slice();
 
+			if(this.is_pc){
+				this.max_hp = 25;
+				this.max_armor = 25;
+			}
 			// Import abilities
 			this.abilities = [];
 			for(var i =0; i<clone.length; ++i){
@@ -936,8 +961,8 @@ class Character extends Asset{
 
         onTurnStart(){
 			this.mana_ticks+=this.TICKRATE;
-			if(this.mana_ticks > 5){
-				this.mana_ticks = 5;
+			if(this.mana_ticks > 10){
+				this.mana_ticks = 10;
 			}
 			this.mana+= Math.floor(this.mana_ticks);
 			if(this.mana > this.max_mana){
@@ -974,9 +999,6 @@ class Character extends Asset{
 				race : this.race.id,
 				body_tags : this.body_tags,
 				armorSet : this.armorSet.id,
-				max_armor : this.max_armor,
-				max_hp : this.max_hp,
-				max_mana : this.max_mana,
 				modified : this.modified,
 				affinity : this.affinity,
 				experience : this.experience,

@@ -61,8 +61,8 @@ DB.ini = function(){
             "s_demon",
 
             // Effects
-            "fx_cold",          // player is cold
-
+            "fx_cold",              // player is cold
+            "fx_mitigation",       // Player is mitigating
         ];
 
 
@@ -107,6 +107,7 @@ DB.ini = function(){
         Race.insert({id:'jackal',name_male : 'jackal', description : '', tags:['s_fur', 's_tail']});
         Race.insert({id:'rabbit', name_male : 'rabbit', description : '', tags:['s_fur', 's_tail', 's_tail_short']});
         Race.insert({id:'bull', name_male : 'bull', name_female : 'cow', description : '', tags:['s_fur', 's_tail']});
+        Race.insert({id:'bear', name_male : 'bear', description : '', tags:['s_fur', 's_tail', 's_tail_short']});
         
 
     //
@@ -270,7 +271,7 @@ DB.ini = function(){
                     events : [
                         new EffectData({
                             triggers: [EffectData.Triggers.apply],
-                            effects:[[EffectData.Types.damage, 7]]
+                            effects:[[EffectData.Types.damage, 6]]
                         })
                     ]
                 })
@@ -297,7 +298,7 @@ DB.ini = function(){
                     events : [
                         new EffectData({
                             triggers: [EffectData.Triggers.apply],
-                            effects:[[EffectData.Types.damage, 7]]
+                            effects:[[EffectData.Types.damage, 4]]
                         })
                     ]
                 }),
@@ -323,7 +324,7 @@ DB.ini = function(){
         Ability.insert({
             id : 'HYDROMANCE',   // Should be unique
             name : 'Hydromance',
-            description : 'Deals 2 damage instantly, and over 2 turns.',
+            description : 'Deals 2 damage instantly, and at turn start over 2 turns.',
             manacost : 4,
             cooldown: 3,
             detrimental : true,
@@ -357,7 +358,7 @@ DB.ini = function(){
                 id : 'generic_crush',   // Should be unique
                 name : 'Crush',
                 icon : 'gavel.svg',
-                description : 'Deals 5 damage.',
+                description : 'Deals 4 damage.',
                 manacost : 4,
                 cooldown:3,
                 detrimental : true,
@@ -366,14 +367,14 @@ DB.ini = function(){
                 ai_tags : ["damage"],
                 effects:[
                     new Effect({
-                        id : 't0DPS_DMG',
+                        id : 'generic_crush',
                         max_stacks : 1,
                         duration : 0,
                         detrimental : true,
                         events : [
                             new EffectData({
                                 triggers: [EffectData.Triggers.apply],
-                                effects:[[EffectData.Types.damage, 5]]
+                                effects:[[EffectData.Types.damage, 4]]
                             })
                         ]
                     })
@@ -385,7 +386,7 @@ DB.ini = function(){
                 id : 'generic_taunt',   // Should be unique
                 name : 'Taunt',
                 icon : 'taunt.svg',
-                description : 'Forces an enemy to attack you for 1 turn and increases your dodge chance by 20% for one turn.',
+                description : 'Forces an enemy to attack you for 1 turn and increases your dodge chance by 20% for one turn. Counts as mitigation.',
                 manacost : 2,
                 detrimental : true,
                 playable:true,
@@ -417,6 +418,7 @@ DB.ini = function(){
                         icon : 'dodge.svg',
                         applyText:':ATTACKER:\'s defenses rose',
                         target : Game.Consts.TARG_ATTACKER,
+                        tags : ["fx_mitigation"],
                         events : [
                             new EffectData({
                                 triggers: [],
@@ -427,28 +429,28 @@ DB.ini = function(){
                 ]
             });
             
-            // Heal
+            // Rest
             Ability.insert({
-                id : 'generic_heal',   // Should be unique
-                name : 'Heal',
-                icon : 'heal.svg',
-                description : 'Restores 5 HP.',
+                id : 'generic_rest',   // Should be unique
+                name : 'Rest',
+                icon : 'rest.svg',
+                description : 'Restores 4 HP to the caster.',
                 manacost : 3,
                 cooldown : 2,
                 detrimental : false,
                 playable:true,
-                conditions : [],
+                conditions : [new Condition({type:Condition.SELF})],
                 ai_tags : ["heal"],
                 effects:[
                     new Effect({
-                        id : 't0HEAL',
+                        id : 'generic_rest',
                         max_stacks : 1,
                         duration : 0,
                         detrimental : false,
                         events : [
                             new EffectData({
                                 triggers: [EffectData.Triggers.apply],
-                                effects:[[EffectData.Types.heal, 5]]
+                                effects:[[EffectData.Types.heal, 4]]
                             })
                         ]
                     }),
@@ -461,8 +463,8 @@ DB.ini = function(){
                 name : 'Recover',
                 icon : 'recover.svg',
                 description : 'Clears all detrimental effects from the caster.',
-                manacost : 2,
-                cooldown : 4,
+                manacost : 4,
+                cooldown : 3,
                 detrimental : false,
                 playable:true,
                 conditions : [new Condition({type:Condition.SELF})],
@@ -524,7 +526,7 @@ DB.ini = function(){
                 affinity : Ability.Packages.defensive,
                 description : 'Gives you 1 extra mana when you take damage this turn.',
                 manacost : 0,
-                cooldown : 4,
+                cooldown : 3,
                 detrimental : false,
                 playable:true,
                 conditions : [new Condition({type:Condition.SELF})],
@@ -556,8 +558,8 @@ DB.ini = function(){
                 icon : 'purify.svg',
                 affinity : Ability.Packages.support,
                 description : 'Clears all detrimental effects from your target.',
-                manacost : 3,
-                cooldown : 2,
+                manacost : 4,
+                cooldown : 1,
                 detrimental : false,
                 playable:true,
                 conditions : [],
@@ -577,15 +579,44 @@ DB.ini = function(){
                     }),
                 ]
             });
+
+            // Heal
+            Ability.insert({
+                id : 'support_heal',   // Should be unique
+                name : 'Heal',
+                icon : 'heal.svg',
+                affinity : Ability.Packages.support,
+                description : 'Restores 6 HP.',
+                manacost : 4,
+                cooldown : 2,
+                detrimental : false,
+                playable:true,
+                conditions : [],
+                ai_tags : ["heal"],
+                effects:[
+                    new Effect({
+                        id : 't0HEAL',
+                        max_stacks : 1,
+                        duration : 0,
+                        detrimental : false,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[[EffectData.Types.heal, 6]]
+                            })
+                        ]
+                    }),
+                ]
+            });
         // 
     
     //
 
     // Base abilities per type 
         Ability.BASELINE = {};
-        Ability.BASELINE[Ability.Packages.offensive] = ["generic_crush"];
-        Ability.BASELINE[Ability.Packages.defensive] = ["generic_taunt"];
-        Ability.BASELINE[Ability.Packages.support] = ["generic_heal"];
+        Ability.BASELINE[Ability.Packages.offensive] = ["generic_crush", "generic_rest", "offensive_sap"];
+        Ability.BASELINE[Ability.Packages.defensive] = ["generic_crush", "generic_rest", "generic_taunt"];
+        Ability.BASELINE[Ability.Packages.support] = ["generic_crush", "support_heal", "support_purify"];
 
 
 
@@ -608,8 +639,8 @@ DB.ini = function(){
             "LOW_BLOW",
             // Does damage over time
             "HYDROMANCE",
-            // Generic heal
-            "generic_heal",
+            "BITE",
+            "FIST"
         ], max_armor:5, max_hp:20, social:60, size:3, tags:["c_penis", "s_demon", "mc_hydromancer"], armorSet:Armor.get('loincloth')});
 
         Character.insert({"id":"breakerDemon", name:'Breaker Demon', race:Race.get('breakerDemon'), description:"", body_tags:["demonic"], abilities:[
@@ -655,7 +686,8 @@ DB.generateTexts = function(){
 
     C.A_NAKED = C(CO.TAGS, 'nude', Game.Consts.TARG_ATTACKER);
     C.A_PENIS = C(CO.TAGS, 'c_penis', Game.Consts.TARG_ATTACKER);
-
+    
+    C.HAS_TOP = C(CO.TAGS, 'a_top');
     C.ARMOR_TIGHT = C(CO.TAGS, 'a_tight');
     C.ARMOR_THONG = C(CO.TAGS, 'a_thong');
 
@@ -712,7 +744,9 @@ DB.generateTexts = function(){
         Text.insert({conditions:[abil, race_imp, C.ARMOR_THONG], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks, causing a tingling sensation to spread across the :TRACE:'s :BUTT: and leaving a gooey streak of demonic saliva!"});
         Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.PENIS], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue across :TARGET:'s bulge, causing it to jiggle while leaving a streak of demonic saliva!"});
         Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.VAG], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s legs, rubbing demonic saliva across :THIS: :TCROTCH:!"});
+        Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.BREASTS, C.HAS_TOP], sound:'slap_wet', ait:[ait.aBreasts, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue across :TARGET:'s :TBREASTS:, causing them to jiggle while leaving a streak of demonic saliva!"});
         
+
         // Hydromancer
         Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED], sound:'slime_squish_bright', ait:[ait.aButt, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TBUTT: multiple times!"});
         Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED, C.VAGINA], sound:'slime_squish_bright', ait:[ait.aVag, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TVAGINA: multiple times!"});
@@ -752,7 +786,9 @@ DB.generateTexts = function(){
             Text.insert({conditions:[abil], sound:'punch_heavy', ait:[ait.aGroin, ait.tKick], text:":ANAME: throws a swift kick between :TNAME:'s legs!"});
             Text.insert({conditions:[abil, humanoid, C.BREASTS, C.CLOTHED], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around within :THIS: :TCLOTHES:"});
             Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NAKED], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around!"});
-            Text.insert({conditions:[abil, humanoid, C.BREASTS], sound:'pinch', ait:[ait.aBreasts, ait.tPinch], text:":ANAME: grabs a hold of :TNAME:'s nipples, pulling forward while twisting them!"});
+            Text.insert({conditions:[abil, humanoid, C.BREASTS], sound:'pinch', ait:[ait.aBreasts, ait.tPinch, ait.tTwist], text:":ANAME: grabs a hold of :TNAME:'s nipples, pulling forward while twisting them!"});
+            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.ARMOR_TIGHT, C.HAS_TOP], sound:'pinch', ait:[ait.aBreasts, ait.tPinch, ait.tTwist], text:":ANAME: grabs a hold of :TNAME:'s nipples through :THIS: :TCLOTHES:, pulling forward while twisting them!"});
+            
             Text.insert({conditions:[abil, humanoid, C.PENIS, C.CLOTHED], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, jiggling :THIS: package around!"});
             Text.insert({conditions:[abil, humanoid, C.PENIS, C.NAKED], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, causing it to jiggle about!"});
             Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: pushes :TARGET:'s :TPENIS: up against :THIS: stomach wihin :THIS: :TCLOTHES:, then quickly throws a few punches at it!"});
@@ -761,8 +797,14 @@ DB.generateTexts = function(){
             Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS: through :THIS: :TCLOTHES:, then quickly twists!"});
             
             Text.insert({conditions:[abil, humanoid, C.PENIS, C.NAKED], sound:'slap', ait:[ait.aGroin, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TPENIS:, multiple times!"});
+            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NAKED], sound:'slap', ait:[ait.aBreasts, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TBREASTS:, multiple times!"});
+            
             Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.PENIS], sound:'stretch', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s bulge through :THIS: clothes, squeezing painfully!"});
-            Text.insert({conditions:[abil, humanoid, race_imp, C.ARMOR_TIGHT, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue round :TARGET:'s bulge. Wrapping under the :TRACE:'s balls, :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :CROTCH:!"});
+            Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.BREASTS], sound:'stretch', ait:[ait.aBreasts, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s :TBREASTS: through :THIS: clothes, squeezing painfully!"});
+            
+            Text.insert({conditions:[abil, humanoid, race_imp, C.ARMOR_TIGHT, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around :TARGET:'s bulge. Wrapping under the :TRACE:'s balls, :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :CROTCH:!"});
+            Text.insert({conditions:[abil, humanoid, race_imp, C.NAKED, C.BREASTS], sound:'wet_squeeze', ait:[ait.aBreasts, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around one of :TARGET:'s :TBREASTS:, hooping around. :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :TBREASTS:!"});
+            
             Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED], sound:'squish', ait:[ait.aButt, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TBUTT:!"});
             Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED, C.VAG], sound:'squish', ait:[ait.aVag, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TVAG:!"});
             
@@ -806,19 +848,37 @@ DB.generateTexts = function(){
             abil = C(CO.ABILITY, "generic_taunt");
             Text.insert({conditions:[abil], sound:'taunt', text:":ANAME: heckles :TARGET:, readying for battle!"});
         
-        // Heal
-            abil = C(CO.ABILITY, "generic_heal");
-            Text.insert({conditions:[abil], sound:'heal', text:":ANAME: casts a heal on :TARGET:!"});
+        // Recover
+            abil = C(CO.ABILITY, "generic_recover");
+            Text.insert({conditions:[abil], sound:'dispel_good', text:":ANAME: recovers, shaking off all detrimental effects!"});
+
+        // Rest
+            abil = C(CO.ABILITY, "generic_rest");
+            Text.insert({conditions:[abil], sound:'heal', text:":ANAME: rests."});
         
     //
 
     // Defensive
+        // masochism
+            abil = C(CO.ABILITY, "defensive_masochism");
+            Text.insert({conditions:[abil], sound:'masochism', text:":ANAME: cracks :AHIS: knuckles while looking aroused at :AHIS: enemies!"});
 
     //
+
     // Offensive
-
+        // sap
+            abil = C(CO.ABILITY, "offensive_sap");
+            Text.insert({conditions:[abil], sound:'drain', text:":ANAME: saps :TARGET:'s power!"});
     //
+
     // Support
+        // Heal
+            abil = C(CO.ABILITY, "support_heal");
+            Text.insert({conditions:[abil], sound:'heal', text:":ANAME: casts a heal on :TARGET:!"});
+        
+        // Pufiry
+            abil = C(CO.ABILITY, "support_purify");
+            Text.insert({conditions:[abil], sound:'dispel_good', text:":ANAME: purifies :TARGET:!"});
 
     //
     

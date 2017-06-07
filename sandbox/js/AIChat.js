@@ -208,6 +208,11 @@ class AIChat{
             add(race, char, aitl, {conditions:[], text: 'I really enjoy playing with your fun-bags!'});
             
 
+            aitl = [[ait.aBreasts, ait.tTwist]];
+            add(race, char, aitl, {conditions:[], text: 'Consider these nipples crippled!'});
+            add(race, char, aitl, {conditions:[], text: 'Am I playing too rough? Actually, I don\'t care!'});
+            
+
         // Cum inside
             aitl = [[ait.tPin, ait.tCumInside]];
             add(race, char, aitl, {conditions:[], text: 'Splat!'});

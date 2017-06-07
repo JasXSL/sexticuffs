@@ -31,7 +31,7 @@ AI.ini = function(){
             return new Promise(function(res){
 
                 Game.Battle.statusTexts.add(attacker, victim, text, false, true);
-                createjs.Sound.play("shake");
+                Game.playSound("shake");
                 setTimeout(res, 1000);
 
             });

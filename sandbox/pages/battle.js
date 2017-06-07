@@ -28,7 +28,9 @@
 
     B.turn = 0;                         // Turn from netcode
     B.page = null;                      // Jquery DOM object of this page
-    
+    B.turn_done_alert = false;          // Alerted that turn is done
+    B.turn_done_timer = null;           // Timer to trigger the turn done sound
+
     B.statusTexts = {};                 // Status text info
         B.statusTexts.texts = [];           // Texts yet to be output
         B.statusTexts.capture = false;      // Capture status texts, don't output directly
@@ -80,13 +82,17 @@
         // Turn has changed
         B.onTurnChange = function(){
             
+            $("#abilities div.ability.endTurn").toggleClass('glow', false);
+            clearTimeout(B.turn_done_timer);
+            B.turn_done_alert = false;
+
             Netcode.hostRefreshBattle();
             Netcode.refreshParty();
 
             B.updateUI();
 
             if(B.myTurn()){
-                createjs.Sound.play('yourturn');
+                Game.playSound('yourturn');
             }
 
             if(!Netcode.players[B.turn].is_pc && B.isHost()){
@@ -222,11 +228,9 @@
             var sound = text.sound;
             if(!sound)
                 sound = 'shake';
-            createjs.Sound.play(text.sound);
-
             var textblock = out;
 
-            B.addToBattleLog(attacker, victim, textblock, "rptext ability");
+            B.addToBattleLog(attacker, victim, textblock, "rptext ability", false, sound);
             B.statusTexts.output();
 
             if(!attacker.is_pc && attempt){
@@ -320,7 +324,7 @@
             var sound = text.sound;
             if(!sound)
                 sound = 'shake';
-            createjs.Sound.play(text.sound);
+            Game.playSound(text.sound);
 
             B.addToBattleLog(attacker, victim, out, 'rptext ability');
             B.statusTexts.output();
@@ -336,7 +340,7 @@
             Netcode.hostGameOver(B.winning_team);
             
             $("#abilities div.ability").on('click', function(){
-                createjs.Sound.play('shake');
+                Game.playSound('shake');
                 if($(this).hasClass('rematch')){
                     Jasmop.Page.set('battle');
                 }
@@ -356,7 +360,7 @@
     // LOGGING
 
         // Appends a chat element to the DOM
-        B.addToBattleLog = function(attacker, victim, text, classes, overrideNetwork){
+        B.addToBattleLog = function(attacker, victim, text, classes, overrideNetwork, sound){
             
             var me = B.getMyCharacter();
 
@@ -370,7 +374,9 @@
                 c+= ' me';
             if(attacker && attacker.team !== me.team)
                 c+= ' opponent';
-
+            
+            if(sound)
+                Game.playSound(sound);
 
             var log = $("#battlescreen > #text", B.page);
             log.append('<div class="'+hsc(c)+'"><p>'+txt+'</p></div>');
@@ -378,12 +384,12 @@
 
             // In an online game and hosting
             if(B.isHost() && !overrideNetwork){
-                Netcode.hostAddToBattleLog((attacker ? attacker.UUID : null), (victim ? victim.UUID : null), text, classes);
+                Netcode.hostAddToBattleLog((attacker ? attacker.UUID : null), (victim ? victim.UUID : null), text, classes, sound);
             }
         };
 
         // Schedules a "x took n damage" etc text to be output
-        B.statusTexts.add = function(attacker, victim, text, detrimental, isChat, forceSelf){
+        B.statusTexts.add = function(attacker, victim, text, detrimental, isChat, forceSelf, sound){
         
             B.statusTexts.texts.push({
                 attacker:attacker, 
@@ -391,7 +397,8 @@
                 text:text,
                 detrimental:detrimental,
                 isChat : isChat,
-                forceSelf : forceSelf
+                forceSelf : forceSelf,
+                sound : sound
             });
 
             if(B.statusTexts.capture){return;}
@@ -410,7 +417,8 @@
                     me = B.getMyCharacter(),
                     isChat  = obj.isChat,
                     classes = ['statusText'],
-                    force = obj.forceSelf
+                    force = obj.forceSelf,
+                    sound = obj.sound
                 ;
 
                 if(detrimental)
@@ -422,6 +430,9 @@
                     text = '%a says: '+text;
                 }
                 B.addToBattleLog(attacker, victim, text, classes.join(' '), force);
+                if(sound){
+                    Game.playSound(sound);
+                }
             }
             
             B.statusTexts.texts = [];
@@ -476,9 +487,7 @@
             }
 
             $("#abilities", B.page).toggleClass('disabled', !B.myTurn());
-
-
-
+            
             if(B.myTurn() && !B.punishment_done){
 
                 // We pick punishment
@@ -493,7 +502,7 @@
                     $("#abilities").html(html);
 
                     $("#abilities div.ability[data-punishment]").on('click', function(){
-                        createjs.Sound.play('shake');
+                        Game.playSound('shake');
                         var abil = Ability.get($(this).attr('data-punishment'));
                         abil.parent = B.getMyCharacter();
 
@@ -517,6 +526,14 @@
                     successfulAbilities+= active;
                 }
                 
+                if(!successfulAbilities && !B.turn_done_alert){
+                    // turn_done
+                    B.turn_done_alert = true;
+                    B.turn_done_timer = setTimeout(function(){
+                        Game.playSound('accept');
+                        $("#abilities div.ability.endTurn").toggleClass('glow', true);
+                    }, 3000);
+                }
                 $("#abilities div.ability.endTurn").toggleClass('active', successfulAbilities === 0);
 
             }
@@ -596,12 +613,12 @@
         page.onLoaded = function(){
 
             Netcode.startBattle();
+            Game.setMusic('battle');
 
             var i,
                 players = Netcode.players,
                 me = B.getMyCharacter()
             ;
-
 
             // Reset defaults
             B.turn = 0;                                 // Set turn to the first player (usually host)
@@ -703,15 +720,19 @@
             // Bind ability buttons
             $("#abilities div.ability[data-uuid]", B.page).on('click', function(){
 
-                if(!B.myTurn()){return;}
+                if(!B.myTurn()){
+                    console.error("Not your turn");
+                    return;
+                }
 
                 var ability = B.getMyCharacter().getAbilityByUuid($(this).attr('data-uuid'));
                 if(ability === false){
+                    console.error("Ability not found", $(this).attr('data-uuid'));
                     return;
                 }
 
                 if($(this).hasClass('active'))
-                    createjs.Sound.play('shake');
+                    Game.playSound('shake');
                 B.selectTarget(ability);
 
             });
@@ -728,7 +749,7 @@
             // End turn button
             $("#abilities div.ability.endTurn").on('click', function(){
                 if(!B.myTurn()){return;}
-                createjs.Sound.play('shake');
+                Game.playSound('shake');
 
                 if(!B.isHost())
                     Netcode.endTurn();
@@ -752,17 +773,9 @@
 
                 var char = B.getCharacterByUuid($(this).attr('data-uuid'));
 
-                var html = '<div id="characterInspect">';
+                char.inspect();
 
-                    html+= '<img class="icon" src="'+char.getImage()+'" />';
-                    html+= '<h1>'+hsc(char.name)+'</h1>';
-                    html+= '<p class="race">Level '+char.level+' '+hsc(char.getGender())+' '+hsc(char.race.getName())+'</p>';
-                    html+= '<p class="description">'+hsc(char.description)+'</p>';
-                    html+= '<p class="armor">'+(char.armor ? 'Wearing '+hsc(char.armorSet.name) : 'Nude')+'</p>';
-                    html+= '<div class="clear"></div>';
-                html+= '</div>';
-
-                Jasmop.Overlay.set(html);
+                
 
             });
 
@@ -778,11 +791,12 @@
             });
 
 
-            var turn = Math.floor(Math.random()*Netcode.players.length);
+            
 
-            if(B.isHost())
+            if(B.isHost()){
+                B.turn = Math.floor(Math.random()*Netcode.players.length);
                 B.advanceTurn();
-
+            }
         };
 
 
@@ -803,7 +817,7 @@
             // Generic chat handler - [(str)message]
             if(task === 'Chat'){
 
-                createjs.Sound.play('shake');
+                Game.playSound('shake');
                 B.statusTexts.add(byPlayer, byPlayer, args[0].substr(0, 128), false, true, true); // StatusTexts escapes
 
             }
@@ -835,7 +849,7 @@
                     var a = B.getCharacterByUuid(args[0]);
                     var b = B.getCharacterByUuid(args[1]);
 
-                    B.addToBattleLog(a, b, args[2], args[3]);
+                    B.addToBattleLog(a, b, args[2], args[3], false, args[4]);
 
 
                 }

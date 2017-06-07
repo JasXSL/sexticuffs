@@ -16,8 +16,8 @@
 // Root
 	var SW = {};
 		SW.config = {
-			cache_version : '2017-06-04 17:10',
-			always_cache : [
+			cache_version : '2017-06-07 22:28',
+			always_cache : [ 
 			'png',
 			'jpeg',
 			'jpg',
@@ -30,19 +30,127 @@
 			],
 		};
 	SW.cache = [
-		'/',
-		'/index.php',
-        '/media/emerald.svg',
-        '/media/emerald_colorized.svg',
-        '/media/emerald_white.svg',
-        '/media/hearts.svg',
-        '/media/shield.svg',        
+            '/',
+      'index.php',
+      'manifest.json',
+      'favicon.ico',
+      'https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css',
+      'https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js',
+      'https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js',
+      'css/style.css',
+      'js/AI.js',
+      'js/AIChat.js',
+      'js/Audio.js',
+      'js/Datatypes.js',
+      'js/Game.js',
+      'js/IDB.js',
+      'js/Jasmop.js',
+      'js/Library.js',
+      'js/Netcode.js',
+      'js/libraries/createjs-2015.11.26.min.js',
+      'js/libraries/jquery.ui.touch-punch.min.js',
+      'js/libraries/socket.io.js',
+      'pages/battle.js',
+      'pages/home.js',
+      'pages/index.js',
+      'media/audio/ability_unlock.ogg',
+      'media/audio/accept.ogg',
+      'media/audio/bite.ogg',
+      'media/audio/brush_wiggle_goo.ogg',
+      'media/audio/button_hover.ogg',
+      'media/audio/chat.ogg',
+      'media/audio/cloth_rip.ogg',
+      'media/audio/connectionlost.ogg',
+      'media/audio/dispel_good.ogg',
+      'media/audio/drain.ogg',
+      'media/audio/fail.ogg',
+      'media/audio/freeze.ogg',
+      'media/audio/game_intro.ogg',
+      'media/audio/generic.ogg',
+      'media/audio/heal.ogg',
+      'media/audio/knockout.ogg',
+      'media/audio/levelup.ogg',
+      'media/audio/masochism.ogg',
+      'media/audio/pinch.ogg',
+      'media/audio/playerdisconnected.ogg',
+      'media/audio/playerjoined.ogg',
+      'media/audio/punch.ogg',
+      'media/audio/punch_heavy.ogg',
+      'media/audio/purchase.ogg',
+      'media/audio/redress.ogg',
+      'media/audio/scratch.ogg',
+      'media/audio/slap.ogg',
+      'media/audio/slap_wet_small.ogg',
+      'media/audio/slime_hit.ogg',
+      'media/audio/slime_squish.ogg',
+      'media/audio/slime_squish_bright.ogg',
+      'media/audio/small_scratch.ogg',
+      'media/audio/soundtracks/battle.ogg',
+      'media/audio/soundtracks/chill.ogg',
+      'media/audio/soundtracks/home.ogg',
+      'media/audio/soundtracks/main_theme.ogg',
+      'media/audio/soundtracks/skirmish.ogg',
+      'media/audio/soundtracks/store.ogg',
+      'media/audio/soundtracks/town.ogg',
+      'media/audio/squish.ogg',
+      'media/audio/stretch.ogg',
+      'media/audio/stretch_snap.ogg',
+      'media/audio/taunt.ogg',
+      'media/audio/tickle.ogg',
+      'media/audio/turndone.ogg',
+      'media/audio/water_splash.ogg',
+      'media/audio/wet_squeeze.ogg',
+      'media/audio/yourturn.ogg',
+      'media/backgrounds/city.jpg',
+      'media/backgrounds/city_fx.jpg',
+      'media/backgrounds/gym.jpg',
+      'media/backgrounds/home_a.jpg',
+      'media/backgrounds/lobby.jpg',
+      'media/backgrounds/lockers.jpg',
+      'media/backgrounds/mall.jpg',
+      'media/backgrounds/skirmish.jpg',
+      'media/cursors/default.svg',
+      'media/cursors/inspect.svg',
+      'media/cursors/move.svg',
+      'media/cursors/pointer.svg',
+      'media/effects/anatomy.svg',
+      'media/effects/boxing-glove.svg',
+      'media/effects/cog.svg',
+      'media/effects/coliseum.svg',
+      'media/effects/dodge.svg',
+      'media/effects/gavel.svg',
+      'media/effects/gym.svg',
+      'media/effects/heal.svg',
+      'media/effects/house.svg',
+      'media/effects/hydromance.svg',
+      'media/effects/masochism.svg',
+      'media/effects/punch.svg',
+      'media/effects/purify.svg',
+      'media/effects/recover.svg',
+      'media/effects/rest.svg',
+      'media/effects/sap.svg',
+      'media/effects/shop.svg',
+      'media/effects/stun.svg',
+      'media/effects/taunt.svg',
+      'media/emerald.svg',
+      'media/emerald_colorized.svg',
+      'media/emerald_white.svg',
+      'media/free_characters/dps.jpg',
+      'media/hearts.svg',
+      'media/logo-128.png',
+      'media/logo-144.png',
+      'media/logo-256.png',
+      'media/logo-32.png',
+      'media/logo-512.png',
+      'media/logo-64.png',
+      'media/shield.svg',
+      'media/sxbg.jpg',
+      'media/sxtitle.png',
 	];
 
 
 	SW.ini = function(event){
 		
-		console.log("Opening cache");
 		// Load up the cache
 		event.waitUntil(
 			caches.open(SW.config.cache_version).then(function(cache) {
@@ -203,11 +311,28 @@
 		event.respondWith(
 		caches.match(event.request)
 			.then(function(response) {
-			// Cache hit - return response
-			if (response) {
-				return response;
-			}
-			return fetch(event.request);
+				// Cache hit - return response
+				if (response) {
+					return response;
+				}
+
+				var freq = event.request.clone();
+				return fetch(freq).then(function(response){
+					var type = response.url.split('.').pop();
+					// Always auto cache audio
+					if(!response || response.status !== 200 || response.type !== 'basic' || type !== 'ogg') {
+						return response;
+					}
+
+					var responseToCache = response.clone();
+
+					caches.open(SW.config.cache_version)
+					.then(function(cache) {
+						cache.put(event.request, responseToCache);
+					});
+
+					return response;
+				});
 			}
 		)
 		);

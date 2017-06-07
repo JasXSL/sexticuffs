@@ -171,7 +171,7 @@ function SocketHandler(socket, task, args){
 				}
 				else{
 					// Tell the host that you left
-					this.output('LeaveParty', [], this.getHost());
+					this.respondToRoom([]);
 				}
 				// Leave the room
 				this.socket.leave(this.socket._sexticuffs.room);
@@ -227,11 +227,11 @@ function SocketHandler(socket, task, args){
 				this.respondToHost([victimUUID, abilityUUID]);
 			};
 
-			this.pubAddToBattleLog = function(attackerUUID, victimUUID, text, classes){
+			this.pubAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
 				if(!th.isHost()){
 					return;
 				}
-				this.respondToRoom([attackerUUID, victimUUID, text, classes]);
+				this.respondToRoom([attackerUUID, victimUUID, text, classes, sound]);
 			};
 
 			this.pubEndTurn = function(){

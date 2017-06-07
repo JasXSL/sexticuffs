@@ -1,5 +1,5 @@
 html{
-    background:#000;
+    background:#444;
 }
 body, html{
     height:100%;
@@ -25,11 +25,12 @@ div{
 
 
 /* JASMOP */
-    #content, #overlay > div.content{
+    #content{
         position: absolute;
-        left:2vw;
-        right:2vw;
-        padding-top:2vw; padding-bottom:2vw;
+        left:0;
+        right:0;
+        top:0; bottom:0;
+        padding:2vw;
     }
 
 
@@ -40,7 +41,7 @@ div{
             text-align: center;
             border-radius:1vw;
             border:0.25vw solid #000;
-            background:rgba(255,255,255,.5);
+            background:rgba(255,255,255,.75);
             color:#000;
             display:block;
             width:100%; 
@@ -67,9 +68,52 @@ div{
 
     /* Menu */
         #menu{
-            display: none;
+            position: absolute;
+            bottom:.5vw;
+            right:.5vw;
+            padding:0;
+            color:#FFF;
+            text-align: center;
+            z-index:1000;
+        }
+        #menu > div.button > img{
+            width:3vw;
+            height:3vw;
+        }
+        #menu > div.button{
+            padding:0;
+            margin:0;
+            box-shadow:0.25vw 0.25vw 1vw rgba(0,0,0,.5);
+        }
+        
+        #menu > div.rollout div.button{
+            margin:0;
+            border-radius: 0;
+        }
+        #menu > div.rollout div.button.noclick{
+            cursor:default;
+            cursor:url('../media/cursors/default.svg'), auto;
         }
 
+
+        #menu > div.rollout{
+            width:20vw;
+            position: absolute;
+            top:0;
+            left:50%;
+            transform:translate(-100%, -100%);
+        }
+        #menu > div.rollout > div.entry{
+            background:rgba(0,0,0,.75);
+            padding:0.25vw;
+        }
+
+        #menu > div.rollout input[type=range]{
+            box-sizing: border-box;
+            width:100%;
+        }
+
+        
 
     /* ERRORS */
         #errors{
@@ -80,10 +124,10 @@ div{
         }
 
         #errors > div{
-            text-shadow:0.1vw 0.1vw 0.2vw rgba(0,0,0,.5);
+            text-shadow:0.1vw 0.1vw 0.2vw rgba(0,0,0,.75);
             font-weight: bold;
             color:#ABF;
-            background:rgba(0,0,0,.5);
+            background:rgba(0,0,0,.75);
             padding:1vw;
             border-radius:0.5vw;
             font-size:1.25vw;
@@ -105,32 +149,40 @@ div{
         #overlay{
             position: fixed;
             left:0; right:0; bottom:0; top:0;
-            background:rgba(255,255,255,.5);
+            background:rgba(255,255,255,.75);
             z-index:1000;
         }
         #overlay.hidden{
             display:none;
         }
+
         #overlay > div.content{
+            top:50%; left:50%;
+            transform: translate(-50%,-50%);
+            max-height:90%;
             width:75%;
-            margin-left:auto; margin-right:auto;
-            left:0; right:0;
-            top:50%;
-            transform:translateY(-50%);
-            position: absolute;
+            overflow:visible;
+
             background:rgba(255,255,255,.75);
             border:0.2vw #FFF solid;
             padding:1vw;
-            overflow:auto;
-            max-height:90%;
             border-radius:2vw;
+            padding-bottom:5vw;
+        }
+
+        #overlay > div.content > div.text{
+            display:inline-block;
+            overflow:auto;
         }
         /*
         #overlay > div.content > div.text{
         }
         */
         #overlay > div.content > div.buttons{
-            margin-top:1vmax; 
+            position:absolute;
+            left:50%;
+            bottom:0;
+            transform:translate(-50%, 50%);
         }
 
 
@@ -146,7 +198,7 @@ div{
         cursor:url('../media/cursors/default.svg'), auto; - Default
         cursor:url('../media/cursors/pointer.svg') 5 5, auto; - Pointer
         cursor:url('../media/cursors/move.svg') 12 12, auto; - Move
-        cursor:url('../media/cursors/inspect.svg') 7 8, auto;  - help
+        cursor:url('../media/cursors/inspect.svg') 7 8, auto;  - Inspect
         
 
     */
@@ -156,7 +208,7 @@ div{
         border-color:#AFA !important;
     }
     div.droppable.dragging{
-        background:rgba(255,255,255,.5) !important;
+        background:rgba(255,255,255,.75) !important;
     }
 
     div.ui-draggable-dragging{
@@ -181,6 +233,7 @@ div{
         background-repeat: no-repeat;
         background: radial-gradient(ellipse at center, #e2edff 34%,#b1c8ef 81%,#98b0d9 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
         cursor:url('../media/cursors/default.svg'), auto;
+        box-shadow:0.5vw 0.5vw 2vw #000;
     }
 
     @media all and (display-mode: standalone) {
@@ -203,7 +256,15 @@ div{
     div.ability.highlighted,
     #abilities:not(.disabled) div.ability.active{
         border-color:#DFD;
-        background:rgba(20,80,20,.5);
+        background:rgba(20,80,20,.75);
+    }
+
+    @keyframes turndone{
+        from{box-shadow: 0 0 1vw #AFA; transform:scale(1);}
+        to{box-shadow: 0 0 1.5vw #EFE; transform:scale(1.05);}
+    }
+    #abilities:not(.disabled) div.ability.active.glow{
+        animation:turndone 1s ease-in-out alternate infinite;
     }
 
     div.ability{
@@ -220,13 +281,17 @@ div{
         margin-right:0.2vw;
     }
 
+    input, select, textarea{
+        outline:none;
+    }
+
     div.button,
     input[type=submit],
     input[type=button]{
-        background: rgba(0,0,0,.5); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+        background: rgba(0,0,0,.75); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
         padding:1vw; 
-        border:0.2vw solid #000;
-        border-radius:1vw;
+        border:0.2vw solid #FFF;
+        border-radius:0.25vw;
         cursor:url('../media/cursors/pointer.svg') 5 5, auto;
         
 
@@ -240,7 +305,21 @@ div{
     input[type=submit]:hover,
     input[type=button]:hover{
         border:0.2vw solid #FFF;
-        outline:none;
+    }
+
+    div.border div.button,
+    div.border input[type=submit],
+    div.border input[type=button]{
+        color:#000;
+        border:0.2vw solid #FFF;
+        background: rgba(255,255,255,.75);
+        box-shadow:0.5vw 0.5vw 1vw rgba(0,0,0,.5);
+    }
+
+    div.border div.button:hover,
+    div.border input[type=submit]:hover,
+    div.border input[type=button]:hover{
+        border:0.2vw solid #000;
     }
 
     @keyframes buttonHighlight{
@@ -249,24 +328,27 @@ div{
     }
     div.button.highlighted{
         animation:buttonHighlight 1s ease-in-out alternate infinite;
-        background-color:rgba(50,100,50,.5); 
+        background-color:rgba(50,100,50,.75); 
     }
 
 
     div.border{
-        background:rgba(0,0,0,.5);
+        background:rgba(0,0,0,.75);
         padding:1vw;
         border:0.2vw solid #FFF;
-        border-radius:1vw;
+        border-radius:.25vw;
+        color:#DDD;
     }
     div.border.white{
         border:0.2vw solid #000;
-        background:rgba(255,255,255,.5);
+        background:rgba(255,255,255,.75);
+        color:#000;
     }
 
     span.tooltip{
         z-index:10;
         display:none;
+        color:#FFF;
     }
 
     *:hover > span.tooltip{
@@ -278,11 +360,11 @@ div{
         transform:translateX(-50%);
         background:rgba(0,0,0,.75);
         border-radius:1vw;
-        border:.2vw solid rgba(255,255,255,.5);
+        border:.2vw solid rgba(255,255,255,.75);
         padding:0.5vw;
-        max-width:20vw;
+        max-width:30vw;
         font-size:1vw;
-        min-width:10vw;
+        min-width:20vw;
     }
 
     p{
@@ -292,10 +374,141 @@ div{
 
 /**/
 
+
+/* Bottom bar */
+    #netgamePlayers{
+        position: absolute;
+        left:1vw;
+        bottom:1vw;
+        z-index:11;
+        text-align: center;
+        right:1vw;
+        text-align: left;
+    }
+    #wrap #netgamePlayers div.player{
+        width:10vw;
+        color:#FFF;
+        padding:1vw 0;
+        overflow:hidden;
+        box-shadow:0.25vw 0.25vw 0.5vw rgba(0,0,0,.5);
+        display: inline-block;
+        margin-right:0.25vw;
+    }
+    #wrap #netgamePlayers div.player div.bg{
+        font-size:1.5vw;
+        padding:0.5vw;
+    }
+/**/
+
+
 /* Index */
 
-    #wrap[data-page=index] div.splashscreen,
-    #wrap[data-page=index] div.charcreator
+    #wrap[data-page=index]{
+        background:url('../media/sxbg.jpg');
+        background-size:100%;
+        overflow:hidden;
+    }
+
+    #wrap[data-page=index] #content{
+        overflow:hidden;
+    }
+
+
+    @keyframes searchlight{
+        from{transform:rotate(-20deg);}
+        to{transform:rotate(20deg);}
+    }
+    
+    #wrap[data-page=index] svg.searchlight{
+        width:30vw;
+        height:90vw; 
+        filter: blur(1vw);
+        animation: searchlight 4s ease-in-out infinite alternate;
+        opacity:0.2;
+        position: absolute;
+        transform-origin: 50% 70%;
+        left:35%;
+        top:10%;
+    }
+    #wrap[data-page=index] svg.searchlight.two{
+        animation: searchlight 4s ease-in-out alternate-reverse infinite;
+    }
+    
+    #wrap[data-page=index] div.disclaimer{
+        color:#DDD;
+    }
+
+    #wrap[data-page=index] div.disclaimer a{
+        text-decoration: none;
+        color:#FFF;
+    }
+    
+    
+
+    @keyframes logo{
+        from{transform:translateX(-25%) scale(1);}
+        to{transform:translateX(-25%) scale(1.02);}
+    }
+    #wrap[data-page=index] div.splashscreen img.logo{
+        width:200%;
+        top:-25%;
+        position: absolute;
+        left:0;
+        transform:translateX(-25%);
+        animation: logo 3s ease-in-out alternate infinite;
+    }
+
+    #wrap[data-page=index] div.splashscreen{
+        top:10vw;
+    }
+    
+    #wrap[data-page=index] #newCharacter{
+        max-height: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    #wrap[data-page=index] #newCharacter div.right img.preview{
+        max-width:100%;
+        max-height:50%;
+        border-radius:1vw;
+        border:0.1vw solid #000;
+    }
+    #wrap[data-page=index] #newCharacter div.right div.icon.free_character{
+        width:10vw;
+        height:10vw;
+        border-radius:1vw;
+        border:0.1vw solid #000;
+        background-size: cover;
+        margin:0.25vw;
+    }
+    #wrap[data-page=index] #newCharacter div.right div.flex.free{
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    
+
+    #wrap[data-page=index] #newCharacter > div.flex{
+        top:2vw; bottom:2vw; left:2vw; right:2vw;
+        position: absolute;
+    }
+    #wrap[data-page=index] #newCharacter > div.flex > div{
+        overflow:auto;
+        position: relative;
+        max-height:100%;
+    }
+    #wrap[data-page=index] #content div.charcreator{
+        width:60%;
+    }
+
+    
+
+    #wrap[data-page=index] #content div.img{
+        width:40%;
+        margin-left:1vw;
+    }
+
+    #wrap[data-page=index] div.splashscreen
     {
         width:50%;
         left:50%;
@@ -303,6 +516,7 @@ div{
         padding:4vw;
         margin-top:0.5vw;
         text-align: center;
+        max-height: 100%;
     }
 
     #wrap[data-page=index] div.splashscreen h1{
@@ -313,10 +527,34 @@ div{
     }
     
 
+    #wrap[data-page=index] div.charcreator input[name=name], #wrap[data-page=index] div.charcreator select[name=race]{
+        width:45%;
+        display:inline-block;
+        margin:0.5vw;
+    }
+
+    #wrap[data-page=index] div.charcreator label{
+        background:rgba(255,255,255,.75);
+        border:#DDD solid 0.1vw;
+        padding:0.5vw;
+        margin:0.25vw;
+        display: inline-block;
+        border-radius:1vw;
+    }
+
+
+    #wrap[data-page=index] div.charcreator textarea{
+        border-radius:0.5vw;
+        width:80%;
+        display:inline-block;
+    }
+
     #wrap[data-page=index] div.charcreator input.pronoun
     {
         display: inline-block;
         width:30%;
+        margin:0.25vw;
+        font-size:1.5vw;
     }
 
     #wrap[data-page=index] div.charcreator select option,
@@ -325,9 +563,11 @@ div{
         text-transform: capitalize;
     }
 
+
+
     #wrap[data-page=index] div.charcreator{
-        font-size:1vw;
         padding:2vw;
+        text-align: center;
     }
 
     #wrap[data-page=index] div.charselect{
@@ -378,7 +618,7 @@ div{
         border:0.2vw solid #000;
     }
     #wrap[data-page=index] div.charselect div.left div.character div.black{
-        background:rgba(0, 0, 0, .5);
+        background:rgba(0, 0, 0, .75);
         padding:0.5vw 2vw;
     }
     #wrap[data-page=index] div.charselect div.left div.character:hover{
@@ -402,6 +642,8 @@ div{
 /* Battle */
     #wrap[data-page=battle]{
         overflow:visible;
+        background:url('../media/backgrounds/skirmish.jpg');
+        background-size:100%;
     }
     #wrap[data-page=battle] #content{
         height:100%;
@@ -648,7 +890,7 @@ div{
     }
 
     #wrap[data-page=battle] div.character{
-        background:rgba(0,0,0,.5);
+        background:rgba(0,0,0,.75);
         background-size:cover;
         background-position-y: 25%;
         padding:0.5vw 0;
@@ -656,7 +898,7 @@ div{
         border-radius:0.5vw;
         user-select: none;
         overflow:visible;
-        cursor:url('../media/cursors/inspect.svg') 7 8, auto; ;
+        cursor:url('../media/cursors/inspect.svg') 7 8, auto;
         margin-top:0.5vw;
     }
 
@@ -681,12 +923,12 @@ div{
         transform:scale(1.05,1.05);
     }
     #wrap[data-page=battle] div.character.selectable div.center{
-        background:rgba(255,255,200,.5);
+        background:rgba(255,255,200,.75);
     }
     
 
     #wrap[data-page=battle] div.character div.center{
-        background:rgba(0,0,0,.5);
+        background:rgba(0,0,0,.75);
         padding:0.5vw;
         border-top:0.2vw solid rgba(0,0,0,0);
         border-bottom:0.2vw solid rgba(0,0,0,0);
@@ -706,7 +948,7 @@ div{
         border-color:#EFE;
     }
     #wrap[data-page=battle] div.character.turn div.center{
-        background:rgba(25,100,25,.5);
+        background:rgba(25,100,25,.75);
         animation: playerTurn 1s ease-in-out alternate infinite;
     }
 
@@ -714,7 +956,7 @@ div{
         border-color:#600;
     }
     #wrap[data-page=battle] div.character.dead div.center{
-        background:rgba(100,25,25,.5);
+        background:rgba(100,25,25,.75);
     }
 
 
@@ -744,7 +986,7 @@ div{
         position: absolute;
         left:50%; top:50%;
         transform:translate(-50%,-50%);
-        text-shadow:0.2vw 0.2vw 0.5vw rgba(0,0,0,.5);
+        text-shadow:0.2vw 0.2vw 0.5vw rgba(0,0,0,.75);
     }
     #wrap[data-page=battle] div.character div.resources > div.full{
         color:#FFF;
@@ -753,7 +995,7 @@ div{
     #wrap[data-page=battle] div.character div.resources > div > div.bg{
         position: absolute;
         top:0; left:0; right:0; bottom:0;
-        filter:brightness(75%) saturate(500%) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.5));  
+        filter:brightness(75%) saturate(500%) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));  
     }
 
     #wrap[data-page=battle] div.character div.resources div.armor div.bg{
@@ -814,6 +1056,140 @@ div{
 
 /* HOME */
 
+    #wrap[data-page=home]{
+        background:url('../media/backgrounds/home_a.jpg');
+        background-size:100%;
+    }
+
+    #wrap[data-page=home].map{
+        background:url('../media/backgrounds/city.jpg');
+        background-size:100%;
+    }
+
+    @keyframes flicker{
+        0%{opacity:0;}
+        10%{opacity:0.1;}
+        20%{opacity:0.02;}
+        30%{opacity:0.2;}
+        40%{opacity:0.04;}
+        50%{opacity:0.15;}
+        60%{opacity:0.06;}
+        70%{opacity:0.1;}
+        80%{opacity:0.02;}
+        90%{opacity:0.06;}
+        100%{opacity:0;}
+    }
+
+    #wrap[data-page=home].map > div#content{
+        z-index:2;
+    }
+
+    #wrap[data-page=home].map > div#content::before {
+        content: "";
+        background:url('../media/backgrounds/city_fx.jpg');
+        background-blend-mode: lighten;
+        background-size:100%;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        position: absolute;
+        z-index: 1;
+        animation:flicker 5s ease-in-out infinite; 
+        pointer-events: none;
+    }
+
+
+    #wrap[data-page=home].map div.buttons{
+        position: absolute;
+        left:0; right:0;
+        top:50%;
+        text-align: center;
+        transform:translateY(-50%);
+        z-index:10;
+    }
+    #wrap[data-page=home].map div.buttons div.mapicon{
+        width:10vw;
+        height:10vw;
+        background:rgba(0,0,0,.75);
+        border:0.2vw solid #FFF;
+        border-radius:1vw;
+        display: inline-block;
+        box-shadow:0.2vw 0.2vw 0.5vw rgba(0,0,0,.5);
+        
+    }
+
+    #wrap[data-page=home].map div.buttons div.mapicon.highlighted{
+        background:Rgba(20,60,20,0.75);
+        border-color:#DFD;
+    }
+    #wrap[data-page=home].map div.buttons.mapicon img{
+        width:100%; height:100%;
+    }
+    
+    
+
+
+    #wrap[data-page=home] div.player h3{
+        margin:0;
+        color:#FFF;
+    }
+    #wrap[data-page=home] div.player{
+        margin:0;
+        background-size:cover;
+        background-position-y: 25%;
+        padding:2vw 0;
+        border-radius:1vw;
+        border:0.2vw solid #000;
+        cursor:url('../media/cursors/inspect.svg') 7 8, auto;
+        margin-bottom:0.25vw;
+    }
+    #wrap[data-page=home] div.player div.bg{
+        background:rgba(0, 0, 0, .75);
+        padding:1vw 2vw;
+        font-size:3vw;
+    }
+
+    #wrap[data-page=home] div.netgame input{
+        width:100%;
+        margin:0.25vw 0;
+        position: relative;
+        display:block;
+    }
+    
+    
+    
+
+
+    #wrap[data-page=home].lobby{
+        background-image:url('../media/backgrounds/lobby.jpg');
+        background-size:100%;
+        
+    }
+
+    #wrap[data-page=home].lobby #content{
+        text-align: center;
+    }
+    
+    #wrap[data-page=home].lobby #content > div.border{
+        margin-bottom: 4vw;
+    }
+    
+    #wrap[data-page=home].lobby #content > div.button{
+        width:50%;
+        display:inline-block;
+        padding:4vw;
+    }
+
+
+    #wrap[data-page=home].skirmish{
+        background-image:url(../media/backgrounds/lockers.jpg);
+    }
+    #wrap[data-page=home].skirmish div.player div.bg{
+        font-size:2vw;
+    }
+
+
     #wrap[data-page=home] div.left
     {
         width:70%;
@@ -830,9 +1206,30 @@ div{
 
     #wrap[data-page=home] div.left > div.active{
         text-align: center;
-        background:rgba(0,100,0,.5);
+        background:rgba(0,100,0,.75);
         border-color:#EFE;
     }
+
+    
+
+
+
+    #wrap[data-page=home].gym{
+        background-image:url('../media/backgrounds/gym.jpg');
+        background-size:100%;
+    }
+
+
+
+    #wrap[data-page=home].mall{
+        background-image:url('../media/backgrounds/mall.jpg');
+        background-size:100%;
+    }
+
+
+
+
+
 
     #wrap[data-page=home] div.left > div.border > div.ability{
         cursor:url('../media/cursors/move.svg') 12 12, auto;
@@ -851,14 +1248,14 @@ div{
     #characterInspect img.icon
     {
         float:left;
-        max-width:20vw;
-        max-height:20vw;
+        max-width:50%;
+        max-height:50%;
         margin-right:1vw;
     }
 
     #characterInspect img.icon{
         max-width:50%;
-        max-height:none;
+        max-height:80vw; 
         border:0.1vw solid #FFF;
         border-radius:1vw;
     }
@@ -875,7 +1272,7 @@ div{
     
     #wrap[data-page=home] div.left div.tier.unlocked div.ability{
         border-color:#FFF;
-        background:rgba(255,255,255,.5);
+        background:rgba(255,255,255,.75);
         animation:buttonHighlight 1s ease-in-out alternate infinite;
     }
 
@@ -888,7 +1285,6 @@ div{
     #wrap[data-page=home] div.left.battle div.team{
         width:49%;
     }
-    #wrap[data-page=home] div.left.battle div.netgame,
     #wrap[data-page=home] div.left.battle div.delete
     {
         width:100%;
@@ -911,7 +1307,7 @@ div{
     }
 
     #wrap[data-page=home] div.left.battle div.team div.player div.bg{
-        background:rgba(255,255,255,.5);
+        background:rgba(255,255,255,.75);
         padding:1vw;
         color:#000;
     }
@@ -919,36 +1315,40 @@ div{
 
     #wrap[data-page=home] div.right div.wallet{
         border-color:#FFA;
-        background:rgba(100,100,50,.5); 
+        background:rgba(100,100,50,.75); 
         font-weight: bold;
         text-align: center;
     }
 
+    #wrap[data-page=home] div.left div.shop{
+        display:flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        z-index:9;
+    }
     #wrap[data-page=home] div.left div.shopitem{
-        display:inline-block;
-        border-color:#AAA;   
+        border-color:#AAA;
+        background:rgba(150,150,150,0.75);
+        color:#FFF;
+        width:49%;
+        margin:0.25vw;
+        z-index:9;
+        position: relative;
+        cursor:url('../media/cursors/inspect.svg') 7 8, auto;
     }
 
     #wrap[data-page=home] div.left div.shopitem.owned{
-        border-color:#BBA;
-        background:rgba(100,100,50, .75);
+        border-color:#FFF;
+        background:rgba(255,255,255,.75);
     }
     #wrap[data-page=home] div.left div.shopitem:hover{
-        border-color:#FFF;
+        transform: scale(1.05,1.05);
     }
 
     #wrap[data-page=home] div.left div.shopitem.worn{
         border-color:#FFF;
-        background:rgba(50,100,50,.5);
-    }
-    
-    #wrap[data-page=home] div.left div.header div.worn{
-        border-color:#FFF;
-        background:#EFE;
-        border-style: dashed;
-        display: inline-block;
-        min-width:50%;
-        margin-top:1vw;
+        background:rgba(200,255,200,.75);
+        font-weight: bold;
     }
 
     #wrap[data-page=home] div.left div.header div.worn h3,

@@ -26,7 +26,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/libraries/jquery.ui.touch-punch.min.js"></script>
-    <script src="https://code.createjs.com/soundjs-0.6.2.min.js"></script>
+    <script src="js/libraries/createjs-2015.11.26.min.js"></script>
     <script src="js/Jasmop.js?"></script> 
     <script src="js/Datatypes.js?"></script>
     <script src="js/Library.js?"></script>
@@ -55,6 +55,7 @@
             Game.ini();
         });
     </script>
+
 
 </body>
 </html>

@@ -155,6 +155,21 @@ IDB.search = function(table, index, descending, limit){
 
 };
 
+IDB.getAll = function(table){
+    return new Promise(function(res){
+        IDB.getObjectStore(table).then(function(os){
+            var request = os.getAll();
+            request.onsuccess = function(){
+                res(request.result);
+            };
+            request.onerror = function(){
+                console.error("Error!", request);
+                res([]);
+            };
+        });
+    });
+};
+
 // Gets a single item
 IDB.get = function(table, index, item){
 
