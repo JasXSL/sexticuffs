@@ -13,4 +13,6 @@ Todo: Write a proper readme.
 * Image: Thomas Ledl
 * Image: www.spreadfilms.de
 * Image: compujeramey
-* Sound Effects: soneproject
+* Sound Effects: soneproject @ freesound
+* SFX: LittleRobotSoundFactory @ freesound
+* SFX: Timbre @ freesound
