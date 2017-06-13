@@ -12,8 +12,18 @@
 
     page.need_ajax_data = false;                    // If true, will attempt an ajax fetch first
     // All except onLoaded can return promises
-    page.onPreload = function(){};
+
+
+    // Since this is the first page after selecting character, you can initialize stuff here
+    page.onPreload = function(){
+        if(!Netcode.players.length){
+            Netcode.players = [Game.player];
+        }
+    };
     
+
+    page.CLOTH_COST = 50;
+
     page.onLoaded = function(){
         if(this.getArg(0) === 'lobby')
             page.drawSkirmish();
@@ -269,11 +279,18 @@
     // Skirmish editor
     page.drawSkirmish = function(){
 
-        page.onSocketSub = function(task, args, byHost, byMe, isHost){};
+        // Refresh on change
+        page.onSocketSub = function(task, args, byHost, byMe, isHost){
+            if((byHost && task === 'UpdateCharacters') || task === "disconnect"){
+                page.drawSkirmish();
+            }
+        };
+
+
         Game.setMusic('skirmish');
         $("#wrap").attr('class', 'skirmish'); 
 
-        var isHost = Netcode.hosting || !Netcode.Socket;
+        var isHost = Netcode.isHosting();
 
         if(Netcode.players.length<2){
             Netcode.players = [];
@@ -307,13 +324,16 @@
                     }
                     html+= '</div>';
 
-                    html+= '<select id="addCharacter">';
-                    html+= '<option value="">-- Add Character --</option>';
-                    for(i=0; i<DB.Character.length; ++i){
-                        html+= '<option value="'+hsc(DB.Character[i].id)+'">'+hsc(DB.Character[i].name)+'</option>';
+                    if(isHost){
+                        
+                        html+= '<div><select id="addCharacter">';
+                        html+= '<option value="">-- Add Character --</option>';
+                        for(i=0; i<DB.Character.length; ++i){
+                            html+= '<option value="'+hsc(DB.Character[i].id)+'">'+hsc(DB.Character[i].name)+'</option>';
+                        }
+                        
+                        html+= '</select></div>';
                     }
-                    
-                    html+= '</select>';
                 html+= '</div>';
 
                 html+= '<div class="border droppable delete hidden">';
@@ -505,10 +525,14 @@
 
                 for(i =0; i<char.abilities_unlocked.length; ++i){
                     abil = char.abilities_unlocked[i];
-                    if(char.hasAbility(abil))
+                    if(char.hasAbility(abil, true))
                         continue;
-
-                    html+= Ability.get(abil).getButton(false);
+                    
+                    var ab = Ability.get(abil);
+                    // Ability has been removed
+                    if(!ab)
+                        continue;
+                    html+= ab.getButton(false);
                 }
                     
                 html+= '</div>';
@@ -639,7 +663,7 @@
                 for(i =0; i<all.length; ++i){
                     var piece = all[i]; 
                     var owned = char.ownsArmor(piece.id);
-                    html+= '<div class="shopitem button armor'+(owned ? ' owned' : '')+(piece.id === char.armorSet.id ? ' worn' : '')+'" data-id="'+hsc(piece.id)+'">'+hsc(piece.name)+(!owned ? ' [15 &ETH;]' : '')+(piece.id === char.armorSet.id ? ' [Equipped]' : '')+'</div>';
+                    html+= '<div class="shopitem button armor'+(owned ? ' owned' : '')+(piece.id === char.armorSet.id ? ' worn' : '')+'" data-id="'+hsc(piece.id)+'">'+hsc(piece.name)+(!owned ? ' ['+page.CLOTH_COST+' &ETH;]' : '')+(piece.id === char.armorSet.id ? ' [Equipped]' : '')+'</div>';
                 }
                 html+= '</div>';
 
@@ -679,7 +703,7 @@
                     html+= '<p class="description">'+hsc(piece.description)+'</p>';
                     html+= '<hr />';
                     if(!owned)
-                        html+= '<input type="button" value="Purchase (50 &ETH;)" class="purchaseItem" />';
+                        html+= '<input type="button" value="Purchase ('+page.CLOTH_COST+' &ETH;)" class="purchaseItem" />';
                     else if(piece.id !== char.armorSet.id)
                         html+= '<input type="button" value="Equip" class="equipItem" />';
                 

@@ -26,6 +26,13 @@
         "#DDD"
     ];
 
+    B.MANA_TYPES = [
+        "offensive",
+        "defensive",
+        "support"
+    ];
+
+
     B.turn = 0;                         // Turn from netcode
     B.page = null;                      // Jquery DOM object of this page
     B.turn_done_alert = false;          // Alerted that turn is done
@@ -92,6 +99,8 @@
             B.updateUI();
 
             if(B.myTurn()){
+                // make sure the gem picker is toggled on by default
+                $("#gemPicker div.gemsOffered").toggleClass('hidden', false);
                 Game.playSound('yourturn');
             }
 
@@ -106,12 +115,17 @@
             var me = B.getMyCharacter();
 
             if(+winningTeam === +me.team){
-                // Add to my base character
+                // Add money etc to my base character
                 Game.player.onVictory(B.winning_team);
-                // Player base stats might have changed, so best send it again to host
+                // Player stats might have changed, so best send it again to host
                 Netcode.setCharacter();
             }
 
+            // Reset stats etc
+            for(var i =0; i<Netcode.players.length; ++i)
+                Netcode.players[i].onBattleStart();
+
+            Netcode.refreshParty();
         };
 
 
@@ -134,6 +148,8 @@
                 if(Netcode.players[B.turn].hp > 0){
 
                     B.addToBattleLog(Netcode.players[B.turn], null, 'Turn changed to %a', 'turn');
+
+
                     Netcode.players[B.turn].onTurnStart();
 
                     // Player might have died
@@ -152,6 +168,15 @@
 
         // Draws the target selector, or uses an ability if only 1 target is viable
         B.selectTarget = function(ability){
+
+            var active = B.getTurnCharacter();
+
+            if(active.offeredGemsPicked < 3){
+                if(active === B.getMyCharacter()){
+                    Jasmop.Errors.addErrors('Please select 3 gems first.');
+                }
+                return false;
+            }
             
             var viable = ability.usableOn(Netcode.players, false, true);
             if(!viable){console.error("no viable targets for ability", ability, ability.usableOn(Netcode.players, true)); return;}
@@ -190,7 +215,17 @@
         // Do heuristics for AI play
         B.playAI = function(){
             if(B.ended){return;}
+
+            // AI will grab the first best gems
             var player = this.getTurnCharacter();
+
+            for(var i =0; i<player.offeredGems.length && player.offeredGemsPicked < 3; ++i){
+                player.pickGem(i); // Will return false if invalid anyways
+            }
+
+            // Make sure we only loop through this at start
+            player.offeredGemsPicked = 3;
+
             AI.makePlay(player, Netcode.players);
         };
 
@@ -199,8 +234,6 @@
         
             var attacker = B.getTurnCharacter(), me = B.getMyCharacter();
             var hosting = B.isHost();
-
-
             // This was a punishment, let the punishment handler deal with it
             if(~Ability.PUNISHMENTS.indexOf(ability.id)){
                 if(!hosting)
@@ -214,28 +247,7 @@
                 B.closeTargetSelector();
                 return;
             }
-
-            B.statusTexts.capture = true;
-
-            // hit text
-            var text = Text.generate(attacker, victim, ability, true);
-
-            var attempt = ability.useAgainst(victim);
-            if(!attempt)
-                text = Text.generate(attacker, victim, ability, false);
-
-            var out = text.convert(attacker, victim, ability);
-            var sound = text.sound;
-            if(!sound)
-                sound = 'shake';
-            var textblock = out;
-
-            B.addToBattleLog(attacker, victim, textblock, "rptext ability", false, sound);
-            B.statusTexts.output();
-
-            if(!attacker.is_pc && attempt){
-                attacker.aiChat.get(AIChat.Events.ability, text, attacker, victim, ability);
-            }
+            var successes = ability.useAgainst(victim);
 
             B.closeTargetSelector();
             
@@ -446,6 +458,41 @@
     
     // VISUALS
 
+        // Returns HTML with icon and info of an active effect on a player or a charge
+        B.getFxIcon = function(asset){
+            
+            // no icon
+            if(!asset.icon)
+                return '';
+            
+            var isAbil  = asset.constructor === Ability;
+
+            if(isAbil && !asset._charged)
+                return '';
+
+            var desc = new Text({text:Jasmop.Tools.htmlspecialchars(asset.description)});
+
+            var attacker = null, victim = null;
+            if(isAbil){
+                attacker = asset.parent;
+                victim = asset._charge_targs[0];
+            }else{
+                attacker = asset.getAttacker();
+                victim = asset.getVictim();
+            }
+
+            var out = '<div class="spellIcon '+(asset.detrimental ? 'detrimental' : '')+(isAbil ? ' charged' : '')+'">';
+                out+= '<div class="icon"><img src="media/effects/'+asset.icon+'" /></div>';
+                out+= '<div class="turns">'+(isAbil ? asset._charged : asset._duration)+'</div>';
+                out+= '<span class="tooltip">'+asset.name+(!isAbil && asset._stacks > 1 ? ' x'+asset.stacks : '')+'<br />'+
+                    desc.convert(attacker, victim).split('%a').join(attacker.getName())+
+                '</span>';
+            out+= '</div>';
+
+            return out;
+	
+        }
+
         // Updates the UI with the latest stats
         B.updateUI = function(){
 
@@ -459,11 +506,17 @@
                 var portrait = $("div.character[data-uuid='"+p.UUID+"']", B.page);
                 $("div.armor > span", portrait).html(p.armor);
                 $("div.hp > span", portrait).html(p.hp);
-                $("div.mana > span", portrait).html(p.mana);
+                $("div.mana.offensive > span", portrait).html(p.mana.offensive);
+                $("div.mana.defensive > span", portrait).html(p.mana.defensive);
+                $("div.mana.support > span", portrait).html(p.mana.support);
+                
 
                 $("div.armor", portrait).toggleClass('full', p.armor === p.max_armor);
-                $("div.hp", portrait).toggleClass('full', p.armor === p.max_armor);
-                $("div.mana", portrait).toggleClass('full', p.armor === p.max_armor);
+                $("div.hp", portrait).toggleClass('full', p.hp === p.max_hp);
+                $("div.mana.offensive", portrait).toggleClass('full', p.mana.offensive === p.max_mana);
+                $("div.mana.defensive", portrait).toggleClass('full', p.mana.defensive === p.max_mana);
+                $("div.mana.support", portrait).toggleClass('full', p.mana.support === p.max_mana);
+                
 
                 // Next turn this amount is added: 
                 
@@ -473,11 +526,17 @@
 
                 var fx = '';
                 for(var f = 0; f < p.effects.length; ++f){
-                    fx+= p.effects[f].getIcon();
+                    fx+= B.getFxIcon(p.effects[f]);
                 }
+                for(f = 0; f < p.abilities.length; ++f){
+                    fx+= B.getFxIcon(p.abilities[f]);
+                }
+                
                 $("div.effects", portrait).html(fx);
 
             }
+
+
 
             if(me.isDead() && !B.punishment_done){
                 $("#abilities").toggleClass('dead', true);
@@ -486,7 +545,7 @@
                 $("#abilities").toggleClass('dead', false);
             }
 
-            $("#abilities", B.page).toggleClass('disabled', !B.myTurn());
+            $("#abilities", B.page).toggleClass('disabled', !B.myTurn() || me.offeredGemsPicked < 3);
             
             if(B.myTurn() && !B.punishment_done){
 
@@ -526,7 +585,8 @@
                     successfulAbilities+= active;
                 }
                 
-                if(!successfulAbilities && !B.turn_done_alert){
+                // Handle turn done checks
+                if(!successfulAbilities && !B.turn_done_alert && B.getMyCharacter().offeredGemsPicked >= 3){
                     // turn_done
                     B.turn_done_alert = true;
                     B.turn_done_timer = setTimeout(function(){
@@ -534,9 +594,47 @@
                         $("#abilities div.ability.endTurn").toggleClass('glow', true);
                     }, 3000);
                 }
+                else if(successfulAbilities)
+                    clearTimeout(B.turn_done_timer);
+                
+                // Toggle end turn active
                 $("#abilities div.ability.endTurn").toggleClass('active', successfulAbilities === 0);
 
+
+
+                // Handle gem picker
+                if(me.offeredGemsPicked >= 3)
+                    $("#gemPicker").toggleClass('hidden', true);
+                else{
+                    $("#gemPicker").toggleClass('hidden', false);
+                    $("#gemPicker span.n").html(3-me.offeredGemsPicked);
+
+                    var gems = '';
+                    for(i = 0; i<me.offeredGems.length; ++i){
+                        var type = me.offeredGems[i].type,
+                            picked = me.offeredGems[i].picked;
+                        gems+= '<div class="gem '+type+(picked ? ' picked': '')+'" data-index="'+i+'"><div class="bg"></div></div>';
+                    }
+                    $("#gemPicker div.gemsOffered").html(gems);
+                    $("#gemPicker div.gemsOffered div.gem").on('click', function(){
+
+                        var index = +$(this).attr('data-index');
+                        if(!B.isHost()){
+                            Netcode.pickGem(index);
+                        }
+
+                        else if(me.pickGem(index)){
+                            B.updateUI();
+                            Game.playSound('gem_pick');
+                            if(me.offeredGemsPicked >= 3)
+                                Game.playSound('laser_close');
+                        }
+
+                    });
+                }
+
             }
+
             else if(B.ended && !isHost){
 
                 var ht = '<div class="button disconnect">Disconnect</div>';
@@ -556,6 +654,7 @@
             }
 
 
+
             B.updateGems();
 
 
@@ -569,8 +668,11 @@
             // this might be an event you can parse with jquery
             // Update mana crystals
             var mana = me.mana;
-            var manaNextTurn = Math.floor(me.mana_ticks+me.TICKRATE)+mana;
-            var manaCost = 0;
+            var manaCost = {
+                offensive : 0,
+                defensive : 0,
+                support : 0
+            };
 
             
 
@@ -586,24 +688,29 @@
                     return;
                 
                 manaCost = ability.getManaCost();
-                if(manaCost > mana){
+                if(!me.hasEnoughMana(manaCost)){
                     return;
                 }
 
             }
             
-            
-
-            $("#manaGems div.gem").each(function(index){
+            $("#manaGems div.manatype").each(function(){
                 
-                $(this).toggleClass('disabled semi highlighted', false);
-                if(index < manaCost)
-                    $(this).toggleClass('highlighted', true);
+                var type = $(this).attr('data-manatype');
 
-                if(index >= mana)
-                    $(this).toggleClass('disabled', true);
-                if(index < manaNextTurn)
-                    $(this).toggleClass('semi', true);
+                $("div.gem", this).each(function(index){
+
+                    $(this).toggleClass('disabled semi highlighted', false);
+
+                    if(index < manaCost[type])
+                        $(this).toggleClass('highlighted', true);
+
+                    if(index >= mana[type])
+                        $(this).toggleClass('disabled', true);
+
+
+                });
+                
             });
 
         };
@@ -653,14 +760,20 @@
                 '</div>'+
                 '<div id="manaGems" class="border">';
                 
-                for(i =0; i<me.max_mana; ++i){
-                    html+= '<div class="gem disabled"></div>';
+
+                for(var x = 0; x<B.MANA_TYPES.length; ++x){
+                    html+= '<div class="manatype '+B.MANA_TYPES[x]+'" data-manatype="'+B.MANA_TYPES[x]+'">';
+                    for(i =0; i<me.max_mana; ++i){
+                        html+= '<div class="gem disabled"></div>';
+                    }
+                    html+= '</div>';
                 }
 
 
             html+=`</div>
                 <div id="abilities"></div>
                 <div id="cancelAbility" class="hidden"><div class="button">Cancel</div></div>
+                <div id="gemPicker" class="hidden"><div class="gemsOffered"></div><div class="text border">Pick <span class="n">n</span></div></div>
             `;
 
 
@@ -686,7 +799,10 @@
                     html+= '<div class="resources">';
                         html+= '<div class="armor full"><div class="bg"></div><span></span></div>';
                         html+= '<div class="hp full"><div class="bg"></div><span></span></div>';
-                        html+= '<div class="mana full"><div class="bg"></div><span></span></div>';
+                        html+= '<div class="mana offensive full"><div class="bg"></div><span></span></div>';
+                        html+= '<div class="mana defensive full"><div class="bg"></div><span></span></div>';
+                        html+= '<div class="mana support full"><div class="bg"></div><span></span></div>';
+                        
                     html+= '</div>';
 
                     html+= '<div class="effects"></div>';
@@ -715,6 +831,11 @@
             // Add the end turn button
             $("#abilities", B.page).append('<div class="ability button endTurn">End Turn</div>');
 
+
+            // Make gem picker toggleable
+            $("#gemPicker div.text").on('click', function(){
+                $("#gemPicker div.gemsOffered").toggleClass('hidden');
+            });
 
 
             // Bind ability buttons
@@ -748,7 +869,8 @@
 
             // End turn button
             $("#abilities div.ability.endTurn").on('click', function(){
-                if(!B.myTurn()){return;}
+                if(!B.myTurn() || B.getMyCharacter().offeredGemsPicked < 3){return;}
+
                 Game.playSound('shake');
 
                 if(!B.isHost())
@@ -790,8 +912,6 @@
                 return false;
             });
 
-
-            
 
             if(B.isHost()){
                 B.turn = Math.floor(Math.random()*Netcode.players.length);
@@ -873,6 +993,10 @@
                             targ = B.getCharacterByUuid(args[0])
                         ;
 
+                        if(byPlayer.offeredGemsPicked < 3){
+                            return Jasmop.Errors.addErrors('Invalid ability use received: Player has not picked 3 gems');
+                        }
+
                         if(ability === false || targ === false){
                             return Jasmop.Errors.addErrors('Invalid ability use received');
                         }
@@ -882,6 +1006,21 @@
                         }
 
                         B.useAbility(ability, targ);
+
+                    }
+
+                    else if(task === 'PickGem'){
+
+                        var index = +args[0];
+                        if(byPlayer.offeredGemsPicked >= 3){
+                            return Jasmop.Errors.addErrors('Invalid gem pick received. Player has already picked their gems.');
+                        }
+
+                        if(byPlayer.pickGem(index)){
+                            Netcode.refreshParty();
+                            B.updateUI();
+                        }
+
 
                     }
 
@@ -903,6 +1042,9 @@
                     }
 
                     else if(task === 'EndTurn'){
+                        if(byPlayer.offeredGemsPicked < 3){
+                            return Jasmop.Errors.addErrors('Can\'t advance turn, player needs to pick mana gems first.');
+                        }
                         B.advanceTurn();
                     }
 

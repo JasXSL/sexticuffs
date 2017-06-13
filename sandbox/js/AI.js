@@ -52,13 +52,25 @@ AI.ini = function(){
         
         AI.player = player;
         AI.all = all;
-        
-        // What can we actually use?
 
+        if(player.is_pc){
+            console.error("Attempted to play AI for a PC.");
+            return;
+        }
+        
         // Max nr of random spells to pick
-        AI.numPlays = Math.round(player.mana/10*3+Math.random());
-        // 1/4 to skip when below 5 mana
-        if(player.mana <= 5 && Math.random()<0.25){
+        AI.numPlays = Math.ceil(Math.random()*3);
+
+        // 1/3 to skip when no mana is full
+        var skip = 1/3;
+        for(var i in player.mana){
+            if(player.mana[i] >= player.max_mana){
+                skip = 0;
+                break;
+            }
+        }
+
+        if(Math.random()<skip){
             AI.numPlays = 0;
         }
 
@@ -102,6 +114,9 @@ AI.ini = function(){
                 --AI.numPlays;
 
                 var ability = AI.getViable(abilities, player, all);
+
+                
+
                 if(ability !== false){
 
                     // Pick a random target

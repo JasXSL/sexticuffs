@@ -16,7 +16,7 @@
 // Root
 	var SW = {};
 		SW.config = {
-			cache_version : '2017-06-07 22:28',
+			cache_version : '2017-06-13 23:00',
 			always_cache : [ 
 			'png',
 			'jpeg',
@@ -30,7 +30,7 @@
 			],
 		};
 	SW.cache = [
-            '/',
+             '/',
       'index.php',
       'manifest.json',
       'favicon.ico',
@@ -58,6 +58,7 @@
       'media/audio/bite.ogg',
       'media/audio/brush_wiggle_goo.ogg',
       'media/audio/button_hover.ogg',
+      'media/audio/charge.ogg',
       'media/audio/chat.ogg',
       'media/audio/cloth_rip.ogg',
       'media/audio/connectionlost.ogg',
@@ -66,9 +67,11 @@
       'media/audio/fail.ogg',
       'media/audio/freeze.ogg',
       'media/audio/game_intro.ogg',
+      'media/audio/gem_pick.ogg',
       'media/audio/generic.ogg',
       'media/audio/heal.ogg',
       'media/audio/knockout.ogg',
+      'media/audio/laser_close.ogg',
       'media/audio/levelup.ogg',
       'media/audio/masochism.ogg',
       'media/audio/pinch.ogg',
@@ -119,6 +122,7 @@
       'media/effects/coliseum.svg',
       'media/effects/dodge.svg',
       'media/effects/gavel.svg',
+      'media/effects/grab.svg',
       'media/effects/gym.svg',
       'media/effects/heal.svg',
       'media/effects/house.svg',
@@ -129,6 +133,7 @@
       'media/effects/recover.svg',
       'media/effects/rest.svg',
       'media/effects/sap.svg',
+      'media/effects/shield-reflect.svg',
       'media/effects/shop.svg',
       'media/effects/stun.svg',
       'media/effects/taunt.svg',

@@ -189,6 +189,10 @@ Netcode.ini = function(){
         Netcode.output("UseAbility", [victimUUID, abilityUUID]);
     };
 
+    Netcode.pickGem = function(index){
+        Netcode.output("PickGem", [index]);
+    };
+
     // Adds HTML to all players battle logs
     Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
 
@@ -325,6 +329,8 @@ Netcode.input = function(byHost, socketID, task, args){
 
         // The player baseobject will be added on socket join rather than here
         var player = Netcode.getPlayerBySocketID(this.socketID);
+        if(!player)
+            console.error("Socket ID not found in players", this.socketID, Netcode.players);
         player.is_pc = true;
         player.load(data);
         player.socket_id = socketID;
@@ -419,7 +425,8 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubEndTurn = function(){};
     this.pubSelectPunishment = function(){};
     this.pubChat = function(){};    
-
+    this.pubPickGem = function(){};    
+    
 
     // Run tasks before letting page know
     this._construct();

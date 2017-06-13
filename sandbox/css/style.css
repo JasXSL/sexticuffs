@@ -39,8 +39,8 @@ div{
             font-size:2vmax;
             padding:0.5vw;
             text-align: center;
-            border-radius:1vw;
-            border:0.25vw solid #000;
+            border-radius:0.25vw;
+            border:0.25vw solid #FFF;
             background:rgba(255,255,255,.75);
             color:#000;
             display:block;
@@ -159,7 +159,7 @@ div{
         #overlay > div.content{
             top:50%; left:50%;
             transform: translate(-50%,-50%);
-            max-height:90%;
+
             width:75%;
             overflow:visible;
 
@@ -167,17 +167,23 @@ div{
             border:0.2vw #FFF solid;
             padding:1vw;
             border-radius:2vw;
-            padding-bottom:5vw;
+
+            width:90vw;
+            height:50.625vw;
+
+            max-height: 90vh;
+            max-width: 160.002vh; /* 16/9 = 1.778 */
+            
         }
 
         #overlay > div.content > div.text{
-            display:inline-block;
+            display:block;
             overflow:auto;
+            padding-bottom:5vw;
+            width:100%;
+            height:100%;
         }
-        /*
-        #overlay > div.content > div.text{
-        }
-        */
+
         #overlay > div.content > div.buttons{
             position:absolute;
             left:50%;
@@ -281,6 +287,48 @@ div{
         margin-right:0.2vw;
     }
 
+    div.ability span.tooltip div.manacost{
+        background:none;
+        width:3vw;
+        height:3vw;
+        display: inline-block;
+        color:#FFF;
+        text-align: center;
+        
+        font-weight: bold;
+        font-size:2vw; 
+        text-shadow:0.1vw 0.1vw 0.3vw #000;
+    }
+    div.ability span.tooltip div.manacost div.bg{
+        background-image:url(../media/emerald.svg);
+        background-size:100%;
+        position: absolute;
+        left:0; right:0;
+        top:0; bottom:0;
+        color:#AEF; 
+    }
+    div.ability span.tooltip div.manacost p{
+        display: block;
+        position: absolute;
+        top:0; right:0; left:0; bottom:0;
+        z-index:11;
+        padding-top:0.25vw;
+    }
+    div.ability span.tooltip div.manacost.offensive{
+        color:#FAA;
+    }
+    div.ability span.tooltip div.manacost.offensive div.bg{
+        filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+    }
+    div.ability span.tooltip div.manacost.support{
+        color:#AFA;
+    }
+    div.ability span.tooltip div.manacost.support div.bg{
+        filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+    }
+
+
+
     input, select, textarea{
         outline:none;
     }
@@ -304,7 +352,7 @@ div{
     div.button:hover,
     input[type=submit]:hover,
     input[type=button]:hover{
-        border:0.2vw solid #FFF;
+        border:0.2vw solid #AAA;
     }
 
     div.border div.button,
@@ -319,7 +367,7 @@ div{
     div.border div.button:hover,
     div.border input[type=submit]:hover,
     div.border input[type=button]:hover{
-        border:0.2vw solid #000;
+        border:0.2vw solid #AAA;
     }
 
     @keyframes buttonHighlight{
@@ -356,7 +404,7 @@ div{
         display:block;
         pointer-events: none;
         left:50%;
-        top:50%;
+        top:100%;
         transform:translateX(-50%);
         background:rgba(0,0,0,.75);
         border-radius:1vw;
@@ -372,7 +420,13 @@ div{
         margin:0; padding:0;
     }
 
+
+
+
+
 /**/
+
+
 
 
 /* Bottom bar */
@@ -386,7 +440,7 @@ div{
         text-align: left;
     }
     #wrap #netgamePlayers div.player{
-        width:10vw;
+        width:15vw; 
         color:#FFF;
         padding:1vw 0;
         overflow:hidden;
@@ -397,6 +451,7 @@ div{
     #wrap #netgamePlayers div.player div.bg{
         font-size:1.5vw;
         padding:0.5vw;
+        white-space: nowrap;
     }
 /**/
 
@@ -639,6 +694,55 @@ div{
 /**/
 
 
+
+/* Scrolling battle text */
+
+    @keyframes SBT{
+        0%{
+            transform: scale(0,0);
+            opacity:0;
+        }
+        5%{
+            transform: translate(-50%,-50%) scale(1.5,1.5);
+            opacity:1;
+        }
+        15%{
+            transform: translate(-50%,-50%) scale(0.95, 0.95);
+        }
+        25%{
+            transform: translate(-50%,-50%) scale(1, 1) ;
+            opacity:1;
+            margin-top:0;
+        }
+        60%{
+            opacity:1;
+        }
+        
+        100%{
+            transform: translate(-50%,-50%);
+            margin-top:-5vw;
+            opacity:0;
+        }
+
+    }
+    div.SBT{
+        text-shadow: 0.1vw 0.1vw 0.2vw #000;
+        position:absolute;
+        color:#FAA;
+        font-weight: bold;
+        animation:SBT ease-in 1.5s; 
+        font-size:3vw;
+        z-index:20;
+        animation-fill-mode: forwards;
+    }
+
+    div.SBT.good{
+        color:#AFA;
+    }
+
+
+/**/
+
 /* Battle */
     #wrap[data-page=battle]{
         overflow:visible;
@@ -705,12 +809,12 @@ div{
     
     #wrap[data-page=battle] #battlescreen > #text > div.statusText.chat p{
         font-size:1.25vw;
-        background:rgba(0,0,0,.25);
+        background:rgba(255,255,255,.1);
         border-radius:0.25vw;
         padding:0.25vw;
         display: inline-block;
         color:#EEE;
-        max-width:50%;
+        max-width:75%;
     }
 
     #wrap[data-page=battle] #battlescreen > #text > div.important{
@@ -724,7 +828,8 @@ div{
         font-size:1vw;
         text-align: center;
         margin:0.5vw 0 0 0;
-        background:rgba(0,0,0,.1);
+        background:rgba(255,255,255,.1);
+
     }
 
     #wrap[data-page=battle] #battlescreen div.rptext p{
@@ -767,6 +872,88 @@ div{
 
 
 
+    #wrap[data-page=battle] #gemPicker{
+        position:absolute;
+        display:block;
+        bottom:21%; left:50%;
+
+        text-align: center;
+        transform: translate(-50%, -50%);
+        transition:opacity 0.25s ease-out;
+    }
+
+    #wrap[data-page=battle] #gemPicker.hidden{
+        opacity:0;
+        display:block;
+        pointer-events: none;
+    }
+
+
+    @keyframes gemsOffered{
+        from{box-shadow:0 0 2vw rgba(255,255,255,.25); border-color:#FFF;}
+        to{box-shadow:0 0 2vw rgba(255,255,255,.5); border-color:rgba(255,255,255,.5);}
+    }
+    #wrap[data-page=battle] #gemPicker > div.text{
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        padding: 0.25vw 1vw;
+        transform: translate(-50%, 100%);
+        cursor:url('../media/cursors/pointer.svg') 5 5, auto;
+        user-select: none;
+        transition:transform 0.25s ease-out;
+        width:10vw;
+    }
+    #wrap[data-page=battle] #gemPicker > div.text:hover{
+        transform: translate(-50%, 100%) scale(1.05,1.05);
+    }
+    
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered.hidden{
+        pointer-events: none;
+        visibility: hidden;
+        display:inline-block;
+    }
+
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem{
+        width:7vw;
+        height:7vw;
+        margin:0.25vw;
+        cursor:url('../media/cursors/pointer.svg') 5 5, auto;
+        display:inline-block;
+        background:rgba(0,0,0,.75);
+        border:.2vw solid #FFF;
+        border-radius:0.25vw;
+        transition: transform 0.25s ease-out;
+        animation:gemsOffered 1s ease-in-out alternate infinite;
+    }
+
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.picked{
+        visibility: hidden;
+        pointer-events: none;
+        
+    }
+
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem:hover{
+        transform:scale(1.1,1.1);
+    }
+
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem div.bg{
+        position: absolute;
+        top:0; right:0; left:0; bottom:0;
+        filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
+        background-image:url(../media/emerald.svg);
+        background-size:100% 100%;
+    }
+
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.offensive div.bg{
+        filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
+    }
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.support div.bg{
+        filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
+    }
+    
+
+
     #wrap[data-page=battle] #friends, 
     #wrap[data-page=battle] #enemies{
         width:25%;
@@ -786,6 +973,14 @@ div{
         text-align: center;
         padding:0;
     }
+    
+    #wrap[data-page=battle] #manaGems div.manatype{
+        margin:0 1vw;
+        display:inline-block;
+    }
+
+    
+
     #wrap[data-page=battle] #manaGems div.gem{
         display: inline-block;
         width:4vw;
@@ -796,18 +991,26 @@ div{
         filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
     }
 
+    #wrap[data-page=battle] #manaGems div.manatype.offensive div.gem{
+        filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
+    }
+    #wrap[data-page=battle] #manaGems div.manatype.defensive div.gem{
+        filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
+    }
+    #wrap[data-page=battle] #manaGems div.manatype.support div.gem{
+        filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
+    }
+    
+
     /* Highlight when hovering over a castable ability */
-    #wrap[data-page=battle] #manaGems div.gem.highlighted{
-        filter:drop-shadow(0 0 0.5vw rgba(100,240,255, 1)) brightness(200%); 
+    #wrap[data-page=battle] #manaGems div.manatype div.gem.highlighted{
+        filter:drop-shadow(0 0 0.5vw rgba(255,255,255, 1)) brightness(200%); 
     }
 
-    #wrap[data-page=battle] #manaGems div.gem.disabled{
+    #wrap[data-page=battle] #manaGems div.manatype div.gem.disabled{
         filter:drop-shadow(0 0 0.2vw rgba(0,0,0,1)) saturate(0%) brightness(50%); 
     }
 
-    #wrap[data-page=battle] #manaGems div.gem.disabled.semi{
-        filter:drop-shadow(0 0 0.5vw rgba(0,0,0, 1)) saturate(0%) brightness(90%); 
-    }
     
     #wrap[data-page=battle] #abilities.dead{
         display:none;
@@ -825,10 +1028,16 @@ div{
         display:inline-block;
     }
 
+    #wrap[data-page=battle] #abilities.disabled div.button{
+        border-color:#AAA;
+    }
+
     #wrap[data-page=battle] #abilities div.ability span.tooltip{
         top:0;
         transform:translate(-50%, -100%);
     }
+
+    
     
 
 
@@ -1004,8 +1213,16 @@ div{
     #wrap[data-page=battle] div.character div.resources div.hp div.bg{
         background-image:url(../media/hearts.svg);
     }
+
     #wrap[data-page=battle] div.character div.resources div.mana div.bg{
         background-image:url(../media/emerald.svg);
+    }
+
+    #wrap[data-page=battle] div.character div.resources div.mana.offensive div.bg{
+        filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+    }
+    #wrap[data-page=battle] div.character div.resources div.mana.support div.bg{
+        filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
     }
 
     #wrap[data-page=battle] div.character div.effects{
@@ -1020,7 +1237,8 @@ div{
         transform:none;
     }  
     #wrap[data-page=battle] #enemies div.spellIcon:hover span.tooltip{
-        transform:translateX(-100%);
+        transform:translate(-100%, -100%);
+        top:0;
     }  
 
     #wrap[data-page=battle] div.character div.effects div.spellIcon{
@@ -1034,7 +1252,17 @@ div{
         text-align: center;
         text-shadow:0.1vw 0.1vw 0.1vw #000;
         display:inline-block;
+        margin:0.1vw;
     }
+
+    @keyframes chargeWiggle{
+        from{transform:translateX(-2%);}
+        to{transform:translateX(2%);}
+    }
+    #wrap[data-page=battle] div.character div.effects div.spellIcon.charged{
+        animation:chargeWiggle 0.1s alternate infinite;
+    }
+
     #wrap[data-page=battle] div.character div.effects div.spellIcon.detrimental{
         border-color:#FDD;
     }
@@ -1100,7 +1328,7 @@ div{
     }
 
 
-    #wrap[data-page=home].map div.buttons{
+    #wrap[data-page=home].map #content div.buttons{
         position: absolute;
         left:0; right:0;
         top:50%;
@@ -1108,7 +1336,7 @@ div{
         transform:translateY(-50%);
         z-index:10;
     }
-    #wrap[data-page=home].map div.buttons div.mapicon{
+    #wrap[data-page=home].map #content div.buttons div.mapicon{
         width:10vw;
         height:10vw;
         background:rgba(0,0,0,.75);
@@ -1116,18 +1344,22 @@ div{
         border-radius:1vw;
         display: inline-block;
         box-shadow:0.2vw 0.2vw 0.5vw rgba(0,0,0,.5);
-        
     }
 
-    #wrap[data-page=home].map div.buttons div.mapicon.highlighted{
+    #wrap[data-page=home].map #content div.buttons div.mapicon.highlighted{
         background:Rgba(20,60,20,0.75);
         border-color:#DFD;
     }
-    #wrap[data-page=home].map div.buttons.mapicon img{
+    #wrap[data-page=home].map #content div.buttons.mapicon img{
         width:100%; height:100%;
     }
     
     
+
+    #wrap[data-page=home] div.right div.button{
+        margin:0;
+        margin-bottom:0.25vw;
+    }
 
 
     #wrap[data-page=home] div.player h3{
@@ -1139,7 +1371,7 @@ div{
         background-size:cover;
         background-position-y: 25%;
         padding:2vw 0;
-        border-radius:1vw;
+        border-radius:.25vw;
         border:0.2vw solid #000;
         cursor:url('../media/cursors/inspect.svg') 7 8, auto;
         margin-bottom:0.25vw;
@@ -1187,6 +1419,12 @@ div{
     }
     #wrap[data-page=home].skirmish div.player div.bg{
         font-size:2vw;
+    }
+
+    #wrap[data-page=home].skirmish select#addCharacter{
+        margin:0.5vw;
+        display:inline-block;
+        width:auto;
     }
 
 
@@ -1254,11 +1492,11 @@ div{
     }
 
     #characterInspect img.icon{
-        max-width:50%;
-        max-height:80vw; 
+        max-width:30%; 
         border:0.1vw solid #FFF;
         border-radius:1vw;
     }
+
 
     #wrap[data-page=home] div.left div.tier
     {
@@ -1299,7 +1537,7 @@ div{
         background-size:cover;
         background-position: 0% 25%;
         padding:1vw 0;
-        border-radius:0.5vw;
+        border-radius:0.25vw;
         border: 0.2vw solid #FFF;
         user-select: none;
         cursor:url('../media/cursors/move.svg') 12 12, auto;

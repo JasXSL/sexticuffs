@@ -227,6 +227,11 @@ function SocketHandler(socket, task, args){
 				this.respondToHost([victimUUID, abilityUUID]);
 			};
 
+			this.pubPickGem = function(index){
+				this.respondToHost([index]);
+			};
+			
+
 			this.pubAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
 				if(!th.isHost()){
 					return;

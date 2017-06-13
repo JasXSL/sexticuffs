@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Super Fantastic Sexticuffs Battle Desu!</title>
+  <title>Super Sexticuffs!</title>
   <meta name="description" content="Something furries, sex and fighting">
   <meta name="author" content="That Fucking Cat">
   
@@ -29,13 +29,12 @@
     <script src="js/libraries/createjs-2015.11.26.min.js"></script>
     <script src="js/Jasmop.js?"></script> 
     <script src="js/Datatypes.js?"></script>
-    <script src="js/Library.js?"></script>
     <script src="js/Game.js?"></script>
     <script src="js/AI.js?"></script>
     <script src="js/IDB.js?"></script>
     <script src="js/AIChat.js?"></script>
     <script src="js/Netcode.js?"></script>
-    
+    <script src="js/Library.js?"></script>
 
 <?php
 

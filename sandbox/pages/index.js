@@ -88,9 +88,9 @@
                     html+= '</select><br />';
 
                     html+= 'Affinity<br />';
-                    html+= '<label><input type="radio" name="affinity" checked value="'+Ability.Packages.offensive+'" /> Offensive</label>';
-                    html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.defensive+'" /> Defensive</label>';
-                    html+= '<label><input type="radio" name="affinity" value="'+Ability.Packages.support+'" /> Support</label><br />';
+                    html+= '<label><input type="radio" name="affinity" checked value="'+Ability.AffinityOffensive+'" /> Offensive</label>';
+                    html+= '<label><input type="radio" name="affinity" value="'+Ability.AffinityDefensive+'" /> Defensive</label>';
+                    html+= '<label><input type="radio" name="affinity" value="'+Ability.AffinitySupport+'" /> Support</label><br />';
                     
                     
                     html+= 'Description (optional):<br /><textarea name="description"></textarea><br />';
@@ -145,6 +145,29 @@
         $("#cancel").on('click', function(){
             page.drawSplashscreen();
             Game.clickSound();
+        });
+
+        console.log($("input[name=image]"));
+
+        $("input[name=image]").on('change', function(){
+            console.log("Image changed");
+            var img = $(this).val().trim();
+            if(!img)
+                return;
+            
+            if(img.substr(0, 8).toLowerCase() !== 'https://'){
+                Jasmop.Errors.addErrors('URL Has to be HTTPS');
+                return false;
+            }
+            var a = document.createElement('a');
+            a.href = img;
+            var filetype = a.pathname.split('/').pop().split('.').pop();
+            if(['jpg','jpeg','png','webp'].indexOf(filetype) === -1){
+                Jasmop.Errors.addErrors('URL is not a supported image format');
+                return false;
+            }
+            $("img.preview").attr('src', img);
+
         });
 
         $("#newCharacter").on('submit', function(){
@@ -313,7 +336,7 @@
                     html+= '<p class="description">'+hsc(activeChar.description)+'</p>';
 
                     html+= '<table class="stats">';
-                        html+= '<tr><td>Level:</td><td>'+activeChar.level+'</td></tr>';
+                        html+= '<tr><td>Level:</td><td>'+activeChar.getLevel()+'</td></tr>';
                         html+= '<tr><td>Sex:</td><td>'+activeChar.getGender().toUpperCase()+'</td></tr>';
                         html+= '<tr><td>Species:</td><td>'+activeChar.race.name_male.toUpperCase()+'</td></tr>';
                         html+= '<tr><td>Affinity:</td><td>'+activeChar.affinity.toUpperCase()+'</td></tr>';

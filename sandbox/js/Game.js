@@ -84,6 +84,10 @@ var Game = {};
             {id:'purchase', src:'purchase.ogg'},
             {id:'redress', src:'redress.ogg'},
             {id:'ability_unlock', src:'ability_unlock.ogg'},
+            {id:'laser_close', src:'laser_close.ogg'},
+            {id:'gem_pick', src:'gem_pick.ogg'},
+            {id:'charge', src:'charge.ogg'},
+            
             
             
             {id:'disconnect', src:'connectionlost.ogg'},

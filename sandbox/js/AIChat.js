@@ -334,4 +334,28 @@ class AIChat{
 
     //
 
+    // Breaker
+        race = 'breakerDemon';
+
+        // Butt hump
+            aitl = [[ait.aButt, ait.tPin]];
+            add(race, char, aitl, {conditions:[], text: 'Must break you!'});
+            add(race, char, aitl, {conditions:[], text: 'Submit!'});
+            
+        // Lick generic
+            aitl = [[ait.tLick]];
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'Taste...good!'});
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'Feed...on you!'});
+
+        // Mouth hump
+            aitl = [[ait.aMouth, ait.tPin]];
+            add(race, char, aitl, {conditions:[], text: 'Good...toy!'});
+            
+        // Generic low blows
+            aitl = [[ait.aGroin, ait.tPunch], [ait.aGroin, ait.tKick], [ait.aGroin, ait.tTwist], [ait.aBreasts, ait.tPunch], [ait.aBreasts, ait.tKick], [ait.aBreasts, ait.tTwist]];
+            add(race, char, aitl, {conditions:[], text: 'Break...you!'});
+            add(race, char, aitl, {conditions:[], text: 'You...surrender!'});
+            
+    //
+
 })();
