@@ -16,4 +16,5 @@ Todo: Write a proper readme.
 * Sound Effects: soneproject @ freesound
 * SFX: LittleRobotSoundFactory @ freesound
 * SFX: Timbre @ freesound
-* SFX: kafokafo
+* SFX: kafokafo @ freesound
+* SFX: LiamG_SFX @ freesound
