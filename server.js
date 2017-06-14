@@ -131,7 +131,7 @@ function SocketHandler(socket, task, args){
 				}
 
 				var room = Math.random().toString(36).substring(2);
-				if(id)
+				if(id && id.length)
 					room = id;
 				
 				var con = numClients(room);

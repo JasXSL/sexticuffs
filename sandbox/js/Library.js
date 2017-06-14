@@ -395,8 +395,37 @@ var DB = {
                     id : 'support_heal',   // Should be unique
                     name : 'Heal',
                     icon : 'heal.svg',
-                    description : 'Restores 4 HP.',
-                    manacost : {support:3},
+                    description : 'Restores 6 HP.',
+                    manacost : {support:4},
+                    cooldown : 3,
+                    detrimental : false,
+                    playable:true,
+                    conditions : [],
+                    ai_tags : ["heal"],
+                    effects:[
+                        new Effect({
+                            id : 't0HEAL',
+                            max_stacks : 1,
+                            duration : 0,
+                            detrimental : false,
+                            events : [
+                                new EffectData({
+                                    triggers: [EffectData.Triggers.apply],
+                                    effects:[[EffectData.Types.heal, 6]]
+                                })
+                            ]
+                        }),
+                    ]
+                });
+
+                // Bloodthirst
+                /*
+                Ability.insert({
+                    id : 'bloodthirst',   // Should be unique
+                    name : 'Bloodthirst',
+                    icon : 'snake-bite.svg',
+                    description : 'Deals 4 damage and heals you for 2. Can only be used on a character that has been healed prior to your turn.',
+                    manacost : {offensive:2, support:1},
                     cooldown : 2,
                     detrimental : false,
                     playable:true,
@@ -417,13 +446,15 @@ var DB = {
                         }),
                     ]
                 });
+                */
+
             //
         
         //
 
         // Base abilities per type 
-            Ability.BASELINE = {};
-            Ability.BASELINE[Ability.AffinityOffensive] = ["generic_crush", "generic_rest"];
+            Ability.BASELINE = {}; 
+            Ability.BASELINE[Ability.AffinityOffensive] = ["generic_crush", "defensive_masochism"];
             Ability.BASELINE[Ability.AffinityDefensive] = ["generic_crush", "generic_taunt"];
             Ability.BASELINE[Ability.AffinitySupport] = ["generic_crush", "support_heal"];
 
@@ -542,7 +573,7 @@ var DB = {
                 id : 'LOW_BLOW',   // Should be unique
                 name : 'Low Blow',
                 description : 'Deals 4 damage and reduces your target\'s hit chance by 25% for one turn',
-                manacost : {offensive:4},
+                manacost : {offensive:2, defensive:2}, 
                 detrimental : true,
                 conditions : [new Condition({type:Condition.SELF, inverse:true})],
                 ai_tags : ["damage"],
@@ -660,9 +691,8 @@ var DB = {
         // Base characters here
             // Imp
             Character.insert({"id":"imp", name:'Imp', race:Race.get('imp'), description:"", body_tags:["impish"], abilities:[
-                "BITE",
-                "VAG_FIXATION",
-                "NONVAG_FIXATION"
+                //"BITE",
+                "LOW_BLOW"
             ], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')});
 
             // Hydromancer. Has a custom tag for mc_hydromancer
@@ -977,7 +1007,7 @@ var DB = {
                         abil = C(CO.ABILITY, "NONVAG_FIXATION");
                         Text.insert({conditions:[abil, C.PENIS, C.NAKED], sound:'squeeze', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s exposed :TPENIS:, rubbing it sensually!"});
                         Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tPin], text:":ANAME: gets behind :TARGET: and forces :AHIS: :APENIS: up inside the :TRACE:'s :TBUTT:, thrusting into :THIM: a couple of times!"});
-                        Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps at :TARGET:'s head and forces :AHIS: :APENIS: into the :TRACE:'s :TMOUTH:, thrusting into :THIM: a couple of times!"});
+                        Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps at :TARGET:'s head and forces :AHIS: :APENIS: into the :TRACE:'s mouth, thrusting into :THIM: a couple of times!"});
                         Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tLick], text:":ANAME: slips behind :TARGET:, pressing :AHIS: head against the :TRACE:'s :TBUTT:! :ATTACKER: pushes :AHIS: long tongue inside of the :TRACE:, forcing :THIM: to squirm as the demonic tongue swirls around inside :THIM:!"});
                         
 

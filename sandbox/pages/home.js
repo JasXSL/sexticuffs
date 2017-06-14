@@ -573,6 +573,8 @@
                 
             ol+= '</div>';
             Jasmop.Overlay.set(ol);
+            if(!Netcode.isHosting())
+				Netcode.setCharacter();
         });
 
         $("div.left > div.droppable > div.ability").draggable({
@@ -600,6 +602,8 @@
 
                 if(success){
                     page.drawTalents();
+                    if(!Netcode.isHosting())
+					    Netcode.setCharacter();
                 }
 
             }
@@ -716,6 +720,8 @@
                 char.equipArmor(id);
                 page.drawShop();
                 Game.playSound('redress');
+                if(!Netcode.isHosting())
+				    Netcode.setCharacter();
                 Jasmop.Overlay.close();
             });
 
@@ -730,6 +736,8 @@
                 char.unlockArmor(id);
                 char.equipArmor(id);
                 page.drawShop();
+                if(!Netcode.isHosting())
+					Netcode.setCharacter();
                 Jasmop.Overlay.close();
             });
             

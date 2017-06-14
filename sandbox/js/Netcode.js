@@ -138,9 +138,6 @@ Netcode.ini = function(){
     Netcode.refreshParty = function(){
         if(!Netcode.hosting)
             return;
-
-        
-
         var p = [];
         for(var i =0; i<Netcode.players.length; ++i){
             p.push(Netcode.players[i].hostExportFull());

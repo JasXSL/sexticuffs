@@ -194,7 +194,7 @@ class Character extends Asset{
         this.max_hp = 20;		// Can be healed
         this.max_mana = 6;     // this should be flat
 		this.accuracy = 0;		// bonus percent chance to hit
-		this.dodge = 0;			// bonus percent chance to dodge
+		this.dodge = 5;			// bonus percent chance to dodge
 		
 
         // Stats
@@ -734,9 +734,6 @@ class Character extends Asset{
 
 			if(save)
 				this.save();
-			
-			if(!Netcode.isHosting())
-				Netcode.setCharacter();
 			return true;
 		}
 
@@ -788,8 +785,6 @@ class Character extends Asset{
             if(!this.hasAbility(ability.id, true) && ! this.abilitiesFull()){
             	ability.parent = this;
             	this.abilities.push(ability);
-				if(!Netcode.isHosting())
-					Netcode.setCharacter();
 			}
 
 			if(save){
@@ -881,7 +876,7 @@ class Character extends Asset{
 		}
 
 		getLevel(){
-			return this.unspent_points+this.abilities_unlocked.length-2; // You start off with 2 base abilities
+			return this.unspent_points+this.abilities_unlocked.length-1; // You start off with 2 base abilities
 		}
 
 		addExperience(amount){
@@ -1030,6 +1025,7 @@ class Character extends Asset{
 			if(this.is_pc){
 				this.max_hp = 20;
 				this.max_armor = 20;
+				this.dodge = 5;
 			}
 			// Import abilities
 			this.abilities = [];
