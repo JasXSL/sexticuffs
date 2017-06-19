@@ -19,3 +19,4 @@ Todo: Write a proper readme.
 * SFX: kafokafo @ freesound
 * SFX: LiamG_SFX @ freesound
 * SFX: xtrgamr @ freesound
+* CC Art: Adrianiglesiart
