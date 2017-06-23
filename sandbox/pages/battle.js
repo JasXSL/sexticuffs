@@ -37,6 +37,11 @@
     B.page = null;                      // Jquery DOM object of this page
     B.turn_done_alert = false;          // Alerted that turn is done
     B.turn_done_timer = null;           // Timer to trigger the turn done sound
+    
+    B.campaign = null;                  // If this fight is a part of a campaign, this is the campaign object
+    B.stage = null;                     // If this fight is part of a campaign, this is the stage object
+    B.intro = false;                    // Intro is ongoing
+    B.talkingHeadStage = 0;
 
     B.statusTexts = {};                 // Status text info
         B.statusTexts.texts = [];           // Texts yet to be output
@@ -111,20 +116,8 @@
 
         // Battle has ended
         B.onVictory = function(winningTeam){
-
             var me = B.getMyCharacter();
-
-            if(+winningTeam === +me.team){
-                // Add money etc to my base character
-                Game.player.onVictory(B.winning_team);
-                // Player stats might have changed, so best send it again to host
-                Netcode.setCharacter();
-            }
-
-            // Reset stats etc
-            for(var i =0; i<Netcode.players.length; ++i)
-                Netcode.players[i].onBattleStart();
-
+            Game.player.onBattleEnded(+winningTeam === B.getMyCharacter().team, B.campaign, B.stage);
             Netcode.refreshParty();
         };
 
@@ -231,6 +224,10 @@
 
         // Current player using an ability on a target
         B.useAbility = function(ability, victim){
+
+            // Intro is ongoing
+            if(B.intro)
+                return;
         
             var attacker = B.getTurnCharacter(), me = B.getMyCharacter();
             var hosting = B.isHost();
@@ -357,7 +354,7 @@
                     Jasmop.Page.set('battle');
                 }
                 else{
-                    Jasmop.Page.set('home', ['lobby']);
+                    Jasmop.Page.set('home', [(B.campaign ? 'campaignRoot' : 'lobby')]);
                 }
             });
 
@@ -374,6 +371,10 @@
         // Appends a chat element to the DOM
         B.addToBattleLog = function(attacker, victim, text, classes, overrideNetwork, sound){
             
+            if(Jasmop.active_page !== B){
+                return;
+            }
+
             var me = B.getMyCharacter();
 
             var txt = hsc(text), c = classes;
@@ -491,7 +492,7 @@
 
             return out;
 	
-        }
+        };
 
         // Updates the UI with the latest stats
         B.updateUI = function(){
@@ -511,8 +512,8 @@
                 $("div.mana.support > span", portrait).html(p.mana.support);
                 
 
-                $("div.armor", portrait).toggleClass('full', p.armor === p.max_armor);
-                $("div.hp", portrait).toggleClass('full', p.hp === p.max_hp);
+                $("div.armor", portrait).toggleClass('full', p.armor === p.getMaxArmor());
+                $("div.hp", portrait).toggleClass('full', p.hp === p.getMaxHP());
                 $("div.mana.offensive", portrait).toggleClass('full', p.mana.offensive === p.max_mana);
                 $("div.mana.defensive", portrait).toggleClass('full', p.mana.defensive === p.max_mana);
                 $("div.mana.support", portrait).toggleClass('full', p.mana.support === p.max_mana);
@@ -547,6 +548,9 @@
 
             $("#abilities", B.page).toggleClass('disabled', !B.myTurn() || me.offeredGemsPicked < 3);
             
+
+
+
             if(B.myTurn() && !B.punishment_done){
 
                 // We pick punishment
@@ -606,31 +610,29 @@
                 if(me.offeredGemsPicked >= 3)
                     $("#gemPicker").toggleClass('hidden', true);
                 else{
+
+                    // Show gem picker
                     $("#gemPicker").toggleClass('hidden', false);
+
+                    // Pick n gems text
                     $("#gemPicker span.n").html(3-me.offeredGemsPicked);
 
-                    var gems = '';
+                    // Update the gems
                     for(i = 0; i<me.offeredGems.length; ++i){
+
+                        var el = $("#gemPicker div.gemsOffered div.gem[data-index="+i+"]");
+
                         var type = me.offeredGems[i].type,
-                            picked = me.offeredGems[i].picked;
-                        gems+= '<div class="gem '+type+(picked ? ' picked': '')+'" data-index="'+i+'"><div class="bg"></div></div>';
+                            picked = me.offeredGems[i].picked,
+                            full = me.mana[type] >= me.max_mana
+                        ;
+                        el
+                            .toggleClass('offensive defensive support', false)
+                            .toggleClass('picked', picked)
+                            .toggleClass('full', full)
+                            .toggleClass(type, true)
+                        ;
                     }
-                    $("#gemPicker div.gemsOffered").html(gems);
-                    $("#gemPicker div.gemsOffered div.gem").on('click', function(){
-
-                        var index = +$(this).attr('data-index');
-                        if(!B.isHost()){
-                            Netcode.pickGem(index);
-                        }
-
-                        else if(me.pickGem(index)){
-                            B.updateUI();
-                            Game.playSound('gem_pick');
-                            if(me.offeredGemsPicked >= 3)
-                                Game.playSound('laser_close');
-                        }
-
-                    });
                 }
 
             }
@@ -639,7 +641,7 @@
 
                 var ht = '<div class="button disconnect">Disconnect</div>';
                 if(B.punishment_done){
-                    ht+= '<div class="button lobby">Return to lobby</div>';
+                    ht+= '<div class="button lobby">Return</div>';
                 }
 
                 $("#abilities").html(ht);
@@ -649,7 +651,7 @@
                 });
 
                 $("#abilities div.lobby").on('click', function(){
-                    Jasmop.Page.set('home', ['lobby']);
+                    Jasmop.Page.set('home', [(this.campaign ? 'campaignRoot' : 'lobby')]);
                 });
             }
 
@@ -716,11 +718,45 @@
         };
         
 
+        B.advanceTalkingHead = function(){
+
+            $("#talkingHead").toggleClass('hidden', true);
+
+            // Start the battle
+            if(!B.stage || B.talkingHeadStage >= B.stage.intro.length){
+                B.advanceTurn();
+                B.intro = false;
+            }
+            // Output talking head
+            else{
+                var head = B.stage.intro[B.talkingHeadStage],
+                    text = head.text,
+                    icon = head.icon,
+                    sound = head.sound
+                ;
+                if(!sound)
+                    sound = 'shake';
+                
+                ++B.talkingHeadStage;
+
+                setTimeout(function(){
+                    $("#talkingHead").toggleClass('hidden', false);
+                    $("#talkingHead div.text").html(hsc(text));
+                    $("#talkingHead div.head").attr('style', 'background-image:url('+hsc(icon)+')');
+                    Game.playSound(sound);
+                }, 250);
+                setTimeout(B.advanceTalkingHead, 4000);
+            }
+        };
+
         // Builds the DOM and binds events
         page.onLoaded = function(){
 
             Netcode.startBattle();
             Game.setMusic('battle');
+
+            // Clear custom background
+            $("#wrap").attr('style', '');
 
             var i,
                 players = Netcode.players,
@@ -773,7 +809,15 @@
             html+=`</div>
                 <div id="abilities"></div>
                 <div id="cancelAbility" class="hidden"><div class="button">Cancel</div></div>
-                <div id="gemPicker" class="hidden"><div class="gemsOffered"></div><div class="text border">Pick <span class="n">n</span></div></div>
+                <div id="gemPicker" class="hidden"><div class="gemsOffered">`;
+                for(i = 0; i<5; ++i){
+                    html+= '<div class="gem" data-index="'+i+'"><div class="bg"></div></div>';
+                }
+                html+=`</div><div class="text border">Pick <span class="n">n</span></div></div>
+                <div id="talkingHead" class="hidden">
+                    <div class="text"></div>
+                    <div class="head"></div>
+                </div>
             `;
 
 
@@ -858,6 +902,24 @@
 
             });
 
+
+            // Bind gem pickers
+            $("#gemPicker div.gemsOffered div.gem").on('click', function(){
+
+                var index = +$(this).attr('data-index');
+                if(!B.isHost()){
+                    Netcode.pickGem(index);
+                }
+
+                else if(me.pickGem(index)){
+                    B.updateUI();
+                    Game.playSound('gem_pick');
+                    if(me.offeredGemsPicked >= 3)
+                        Game.playSound('laser_close');
+                }
+
+            });
+
             // Cancel ability
             $("#cancelAbility div.button").on('click', function(){
                 if(!B.myTurn())
@@ -913,10 +975,21 @@
             });
 
 
+            B.talkingHeadStage = 0;
+            if(B.stage && B.stage.intro.length){
+                B.intro = true;
+            }
+
             if(B.isHost()){
                 B.turn = Math.floor(Math.random()*Netcode.players.length);
-                B.advanceTurn();
             }
+
+            if(B.stage){
+                $("#wrap").attr('style', 'background-image:url('+hsc(B.stage.background)+')');
+                Game.Music.set(B.stage.music);
+            }
+            B.advanceTalkingHead();
+
         };
 
 
@@ -1062,7 +1135,10 @@
 
         
 
-    page.onUnload = function(){};
+    page.onUnload = function(){
+        // Clear custom background
+        $("#wrap").attr('style', '');
+    };
     page.onUserData = function(){};
 
 })();

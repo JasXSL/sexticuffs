@@ -131,6 +131,7 @@ function SocketHandler(socket, task, args){
 				}
 
 				var room = Math.random().toString(36).substring(2);
+				id = id.trim();
 				if(id && id.length)
 					room = id;
 				
@@ -229,6 +230,20 @@ function SocketHandler(socket, task, args){
 
 			this.pubPickGem = function(index){
 				this.respondToHost([index]);
+			};
+
+			// Forwards Scrolling battle text from host to party.
+			this.pubSBT = function(uuid, amount, detrimental){
+				if(!th.isHost())
+					return;
+				this.respondToRoom([uuid, amount, detrimental]);
+			};
+
+			// Forwards hit visual from host to party
+			this.pubHitVisual = function(uuid, detrimental){
+				if(!th.isHost())
+					return;
+				this.respondToRoom([uuid, detrimental]);
 			};
 			
 

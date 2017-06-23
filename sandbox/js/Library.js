@@ -29,9 +29,15 @@ var DB = {
     C.A_NAKED = C(CO.TAGS, 'nude', Game.Consts.TARG_ATTACKER);
     C.A_PENIS = C(CO.TAGS, 'c_penis', Game.Consts.TARG_ATTACKER);
     
-    C.HAS_TOP = C(CO.TAGS, 'a_top');
+    C.HAS_TOP = C(CO.TAGS, 'a_upper');
+	C.HAS_BOTTOM = C(CO.TAGS, 'a_lower');
+	C.NO_TOP = C(CO.NOT_TAGS, 'a_upper');
+	C.NO_BOTTOM = C(CO.NOT_TAGS, 'a_lower');
+	
+
     C.ARMOR_TIGHT = C(CO.TAGS, 'a_tight');
     C.ARMOR_THONG = C(CO.TAGS, 'a_thong');
+
 
     var humanoid = C(CO.HUMANOID);
 
@@ -106,15 +112,17 @@ var DB = {
 
         // Armor
             // Not in store
-            Armor.insert({id:'loincloth', name:'Tattered Loincloth', description:'A tattered loincloth.', tags:['a_loose', 'a_loincloth'], in_store:false});
-
-            // Public
-            Armor.insert({id:"goldenThong", name:"Golden Thong", description:"A shiny gold-colored thong that fits tight over your crotch.", tags:["a_shiny", "a_tight", "a_thong", "a_lower"]});
-            Armor.insert({id:"goldenBikini", name:"Golden Bikini", description:"A shiny gold-colored thong and bra set.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_bra"]});
-            Armor.insert({id:"slingBikini", name:"Sling Bikini", description:"A shiny sling bikini.", tags:["a_shiny", "a_tight", "a_thong", "a_sling", "a_upper", "a_lower"]});
-            Armor.insert({id:"latexSet", name:"Latex Set", description:"An outfit made of tight and shiny black latex. Comes with a top, thong and stockings.", tags:["a_shiny", "a_tight", "a_thong", "a_stockings", "a_upper", "a_lower"]});
-            Armor.insert({id:"latexSwimsuit", name:"Latex Swimsuit", description:"A shiny tight black latex swimsuit with a thong back.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_swimsuit"]});
+            Armor.insert({id:'loincloth', name:'Tattered Loincloth', description:'A tattered loincloth.', tags:['a_loose', 'a_loincloth', 'a_bottom'], in_store:false});
+            Armor.insert({id:'plateBikini', name:'Plate Bikini', description:'An adorned plate bra and panties.', tags:['a_tight', 'a_thong', 'a_shiny', 'a_upper', 'a_lower'], in_store:false});
             
+            // Public
+            Armor.insert({id:"goldenThong", name:"Golden Thong", cost:25, description:"A shiny gold-colored thong that fits tight over your crotch.", tags:["a_shiny", "a_tight", "a_thong", "a_lower"]});
+            Armor.insert({id:"goldenBikini", name:"Golden Bikini", cost:25, description:"A shiny gold-colored thong and bra set.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_bra"]});
+            Armor.insert({id:"slingBikini", name:"Sling Bikini", cost:30, description:"A shiny sling bikini.", tags:["a_shiny", "a_tight", "a_thong", "a_sling", "a_upper", "a_lower"]});
+            Armor.insert({id:"latexSet", name:"Latex Set", cost:150, description:"An outfit made of tight and shiny black latex. Comes with a top, thong and stockings.", tags:["a_shiny", "a_tight", "a_thong", "a_stockings", "a_upper", "a_lower"]});
+            Armor.insert({id:"latexSwimsuit", name:"Latex Swimsuit", cost:95, description:"A shiny tight black latex swimsuit with a thong back.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_swimsuit"]});
+            
+
         //
 
         // Races
@@ -122,6 +130,7 @@ var DB = {
             Race.insert({id:'imp', name_male : 'imp', playable:false, description : 'A stomach high impish creature with horns and hooves'});
             
             Race.insert({id:'breakerDemon', name_male : 'breaker demon', playable:false, description : 'A big muscular demonic canine.'});
+            Race.insert({id:'succubus', name_male : 'succubus', playable:false, description : 'A voluptous lady with horns, wings and hooves.'});
             
 
 
@@ -155,6 +164,8 @@ var DB = {
             Race.insert({id:'rodent', name_male : 'rodent', description : '', tags:['s_fur', 's_tail']});
             Race.insert({id:'bat', name_male : 'bat', description : '', tags:['s_fur', 's_tail', 's_tail_short']});
             Race.insert({id:'bird', name_male : 'bird', description : '', tags:['s_feathers']});
+            Race.insert({id:'otter', name_male : 'otter', description : '', tags:['s_fur', 's_tail']});
+            Race.insert({id:'possum', name_male : 'possum', description : '', tags:['s_fur', 's_tail']});
             
             
 
@@ -265,10 +276,11 @@ var DB = {
                     id : 'generic_taunt',   // Should be unique
                     name : 'Taunt',
                     icon : 'taunt.svg',
-                    description : 'Forces an enemy to attack you and increases miss chance by 50% against you.',
+                    description : 'Forces an enemy to attack you and reduces their damage done against you by 50%. Counts as mitigation. Can\'t miss.',
                     manacost : {defensive:2},
                     detrimental : true,
                     playable:true,
+                    always_hit : true,
                     conditions : [new Condition({type:Condition.ENEMY})],
                     ai_tags : ["defensive"],
                     effects:[
@@ -279,7 +291,7 @@ var DB = {
                             detrimental : true,
                             icon: 'taunt.svg',
                             name: 'Taunt',
-                            description: 'Taunted by :ATTACKER: and has a 50% miss chance against them.',
+                            description: 'Taunted by :ATTACKER: and has a 40% miss chance against them.',
                             events : [
                                 new EffectData({
                                     triggers: [],
@@ -288,11 +300,19 @@ var DB = {
                                 new EffectData({
                                     triggers: [],
                                     victim_on_attacker : 1,
-                                    effects:[[EffectData.Types.hit, -50]]
+                                    effects:[[EffectData.Types.damage_done_multi, 0.5]]
                                 }),
                             ]
                         }),
-                        
+                        new Effect({
+                            id : 'tauntMitigation',
+                            max_stacks : 1,
+                            duration : 1,
+                            detrimental : false,
+                            applyText : ':ATTACKER: is now mitigating',
+                            target : Game.Consts.TARG_ATTACKER,
+                            tags : ['fx_mitigation']
+                        })
                     ]
                 });
 
@@ -301,14 +321,14 @@ var DB = {
                     id : 'counterAttack',   // Should be unique
                     name : 'Counterattack',
                     icon : 'shield-reflect.svg',
-                    description : 'Deals 5 damage. Only usable after a character misses an attack against you.',
-                    manacost : {defensive:2},
+                    description : 'Deals 4 damage. Only usable after being attacked.',
+                    manacost : {defensive:3},
                     detrimental : true,
-                    cooldown: 1,
+                    cooldown: 2,
                     playable:true,
                     conditions : [
                         new Condition({type:Condition.ENEMY}), 
-                        new Condition({type:Condition.TAGS, data:["recently_missed"], target : Game.Consts.TARG_ATTACKER}),
+                        new Condition({type:Condition.TAGS, data:["recently_attacked"], target : Game.Consts.TARG_ATTACKER}),
                     ],
                     ai_tags : ["defensive"],
                     effects:[
@@ -323,7 +343,7 @@ var DB = {
                             events : [
                                 new EffectData({
                                     triggers: [EffectData.Triggers.apply],
-                                    effects:[[EffectData.Types.damage, 5]],
+                                    effects:[[EffectData.Types.damage, 4]], 
                                 }),
                             ]
                         }),
@@ -368,7 +388,7 @@ var DB = {
                     name : 'Purify',
                     icon : 'purify.svg',
                     description : 'Clears all detrimental effects from your target.',
-                    manacost : {support:3},
+                    manacost : {support:2},
                     cooldown : 1,
                     detrimental : false,
                     playable:true,
@@ -395,9 +415,9 @@ var DB = {
                     id : 'support_heal',   // Should be unique
                     name : 'Heal',
                     icon : 'heal.svg',
-                    description : 'Restores 6 HP.',
-                    manacost : {support:4},
-                    cooldown : 3,
+                    description : 'Restores 4 HP/Armor.',
+                    manacost : {support:3},
+                    cooldown : 1,
                     detrimental : false,
                     playable:true,
                     conditions : [],
@@ -411,12 +431,47 @@ var DB = {
                             events : [
                                 new EffectData({
                                     triggers: [EffectData.Triggers.apply],
-                                    effects:[[EffectData.Types.heal, 6]]
+                                    effects:[[EffectData.Types.heal, 4]]
                                 })
                             ]
                         }),
                     ]
                 });
+
+                // Corrupt
+                Ability.insert({
+                    id : 'corrupt',   // Should be unique
+                    name : 'Corrupt',
+                    icon : 'corrupt.svg',
+                    description : 'Makes your healing abilities deal damage this turn, and cannot be dodged or resisted.',
+                    manacost : {},
+                    cooldown : 2,
+                    detrimental : false,
+                    playable:true,
+                    conditions : [C(CO.SELF, [])],
+                    ai_tags : ["buff"],
+                    effects:[
+                        new Effect({
+                            id : 'corrupt',
+                            max_stacks : 1,
+                            duration : 1,
+                            detrimental : false,
+                            target : Game.Consts.TARG_ATTACKER,
+                            icon : 'corrupt.svg',
+                            description : 'Healing abilities now deal damage.',
+                            events : [
+                                new EffectData({
+                                    triggers: [],
+                                    effects:[[EffectData.Types.heal_to_damage]]
+                                })
+                            ]
+                        }),
+                    ]
+                });
+
+                
+
+
 
                 // Bloodthirst
                 /*
@@ -513,7 +568,7 @@ var DB = {
         // VAG_FIXATION
             Ability.insert({
                 id : 'VAG_FIXATION',   // Should be unique
-                name : 'Vaginal Fixation',
+                name : 'Fixate Vag',
                 description : 'Arouse a naked player with a vagina',
                 manacost : {support:4},
                 detrimental : true,
@@ -542,7 +597,7 @@ var DB = {
         // NONVAG_FIXATION
             Ability.insert({
                 id : 'NONVAG_FIXATION',   // Should be unique
-                name : 'Nonfist',
+                name : 'Fixate Body',
                 description : 'Arouse a player without a vagina',
                 manacost : {support:4},
                 detrimental : true,
@@ -610,6 +665,157 @@ var DB = {
                 ]
             });
 
+		// Succubus kiss
+			Ability.insert({
+                id : 'KISS',   // Should be unique
+                name : 'Kiss',
+                description : 'Destroys 3 defensive crystals on an enemy.',
+                manacost : {support:2}, 
+                detrimental : true,
+                conditions : [new Condition({type:Condition.ENEMY}), C(CO.MANA_GREATER_THAN, {defensive:0})],
+				cooldown: 3,
+                ai_tags : [],
+                effects:[
+                    new Effect({
+                        id : 'kiss',
+                        max_stacks : 1,
+                        duration : 0,
+                        detrimental : true,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[[EffectData.Types.manaDamage, {defensive:3}]]
+                            })
+                        ]
+                    })
+                ]
+            });
+
+		// Succubus Aura
+			Ability.insert({
+                id : 'SUCCUBUS_AURA',   // Should be unique
+                name : 'Succubus Aura',
+                description : 'Attackers will be stunned for 2 turns. Caster takes 100% more damage the turn after.',
+                manacost : {defensive:2}, 
+                detrimental : false,
+                conditions : [new Condition({type:Condition.SELF})],
+				cooldown: 4,
+                ai_tags : [],
+                effects:[
+                    new Effect({
+                        id : 'succubusAura',
+                        max_stacks : 1,
+                        duration : 1,
+                        detrimental : false,
+                        
+                        icon : 'lips.svg',
+                        name: 'Stunning Aura',
+                        description : 'Stuns anyone who uses a detrimental ability against this target.',
+
+                        events : [
+                            new EffectData({
+                                triggers: [],
+                                effects:[[EffectData.Types.invul]]
+                            }),
+                            // Trigger frailty after aura fades
+                            new EffectData({
+                                triggers: [EffectData.Triggers.remove],
+                                effects: [
+                                    [EffectData.Types.text, ":ATTACKER: looks frail as the aura ends!"],
+                                    [EffectData.Types.applyEffect, new Effect({
+                                        id : 'succubusFrail',
+                                        duration : 1,
+                                        detrimental : true,
+                                        target: Game.Consts.TARG_ATTACKER,
+                                        fadeText : ":TNAME: looks less frail.",
+                                        icon : 'weaken.svg',
+                                        name : 'Frailty',
+                                        description : 'Taking 2x damage',
+                                        events : [
+                                            new EffectData({
+                                                triggers: [],
+                                                effects: [[EffectData.Types.damage_taken_multi, 2]]
+                                            }),
+                                        ]
+                                    })]
+                                ]
+                            }),
+                            // Trigger stun on attacked
+							new EffectData({
+                                triggers: [[EffectData.Triggers.attacked]],
+                                effects:[
+                                    [EffectData.Types.applyEffect, new Effect({
+                                        id : 'succubusStun',
+                                        duration : 2,
+                                        detrimental : true,
+                                        target: Game.Consts.TARG_RAISER,
+                                        fadeText : ":TNAME: recovers from the succubus charm.",
+                                        applyText : ":TNAME: is stunned.",
+                                        icon : 'stun.svg',
+                                        name : 'Succubus Charm',
+                                        description : 'Stunned, taking 2x damage',
+                                        tags : ["succubus_aura"],
+                                        events : [
+                                            new EffectData({
+                                                triggers: [],
+                                                effects: [[EffectData.Types.stun],[EffectData.Types.damage_taken_multi, 2]]
+                                            }),
+                                            new EffectData({
+                                                triggers: [EffectData.Triggers.apply],
+                                                effects: [[EffectData.Types.text, ":TARGET: succumbs to the :ARACE:'s aura!", 'mez']]
+                                            }),
+                                        ]
+                                    })],
+                                ]
+                            }),
+                        ]
+                    })
+                ]
+            });
+
+		// Whip crack
+			Ability.insert({
+                id : 'WHIPCRACK',   // Should be unique
+                name : 'Whipcrack',
+                description : 'Deals 4 damage and reduces your target\'s hit chance by 10% for two turns',
+                manacost : {offensive:4, defensive:2}, 
+                cooldown : 3,
+                detrimental : true,
+                conditions : [new Condition({type:Condition.SELF, inverse:true})],
+                ai_tags : ["damage"],
+                effects:[
+                    new Effect({
+                        id : 'WHIPCRACK_dmg',
+                        max_stacks : 1,
+                        duration : 0,
+                        detrimental : true,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[[EffectData.Types.damage, 4]]
+                            })
+                        ]
+                    }),
+                    new Effect({
+                        id : 'WHIPCRACK_hit',
+                        name : 'Low Blow',
+                        description : 'Hit chance reduced by 15%',
+                        max_stacks : 1,
+                        duration : 2,
+                        detrimental : true,
+                        icon : 'boxing-glove.svg',
+                        applyText : ":TNAME:'s focus fell.",
+                        events : [
+                            new EffectData({
+                                triggers: [],
+                                effects:[[EffectData.Types.hit, -10]]
+                            })
+                        ]
+                        
+                    }),
+                ]
+            });
+
             
 
             
@@ -618,12 +824,13 @@ var DB = {
                 id : 'GRASP',   // Should be unique
                 name : 'Grasp',
                 icon: 'grab.svg',
-                description : 'Grabs a player in a vice-like grip, inflicting heavy damage and stunning the player for 1 turn.',
+                description : 'Grabs a player in a vice-like grip, inflicting heavy damage and stunning the player for 1 turn unless mitigating.',
                 manacost : {offensive:2, support:2},
                 cooldown: 3,
                 detrimental : true,
                 charged : 1,
                 conditions : [new Condition({type:Condition.SELF, inverse:true})],
+                charge_hit_conditions : [C(CO.NOT_TAGS, ["fx_mitigation"])],
                 ai_tags : ["damage", "stun"],
                 effects:[
                     new Effect({
@@ -690,7 +897,7 @@ var DB = {
 
         // Base characters here
             // Imp
-            Character.insert({"id":"imp", name:'Imp', race:Race.get('imp'), description:"", body_tags:["impish"], abilities:[
+            Character.insert({"id":"imp", image:'media/npc/imp.svg', name:'Imp', race:Race.get('imp'), description:"", body_tags:["impish"], abilities:[
                 //"BITE",
                 "LOW_BLOW"
             ], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')});
@@ -708,26 +915,36 @@ var DB = {
                 "GRASP"
             ], max_armor:10, max_hp:40, size:8, strength:9, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')});
 
-            /*
-            Character.insert({"id":"SunStreak", name:'Sun Streak', race:Race.get('shark'), description:"Egads, a shark!", image:'https://static1.e621.net/data/74/ef/74efbcf087504adc76e54d047db600c1.jpg', body_tags:[], abilities:[
-                    "generic_taunt",
-                    "BITE"
-                ], max_armor:25, max_hp:20, size:4, strength:3, tags:["c_penis"], 
-                armorSet:new Armor({id:"sunArmor", name:"Revealing Outfit", description:"A loose shirt, tight thong and stockings!", tags:["a_tight", "a_stockings", "a_thong", "a_upper", "a_lower"]})
-            });
-            */
+
+            Character.insert({"id":"succubus", name:'Succubus', image:'media/npc/succubus.jpg', race:Race.get('succubus'), description:"A busty succubus with a long whip. Beware before attacking.", body_tags:[], abilities:[
+                "KISS",						// Kiss a player, destroying 3 defensive crystals
+                "SUCCUBUS_AURA",			// Adds 100% dodge chance for 1 turn and stuns all players that attack her for 2 turns
+                "WHIPCRACK"					// Whips a player, inflicting extra damage
+            ], max_armor:15, max_hp:15, social:75, size:3, tags:["c_vagina", "c_breasts", "s_demon"], armorSet:Armor.get('plateBikini')});
 
 
-        
 
         
 
 
         // For challenges, monster HP will increase based on nr players
+
+        // Insert custom NPCS
+        
+        // Succubi
+        var suca = Character.get('succubus').clone(),
+            sucb = Character.get('succubus').clone()
+        ;
+        suca.name = 'Xyllia';
+        sucb.name = 'Vylnila';
+
+
+        // Hell bent for latex
         Challenge.insert({
             id : 'sexyHell',
             name : 'Hell Bent for Latex',
             description : 'Raid the sexy demonic dimension. Defeat the denizens to receive a reward!',
+            buttonbg : '',
             wings : [
                 new ChallengeWing({
                     id : 'gatesOfHell',
@@ -739,21 +956,24 @@ var DB = {
                         // The trick will be to kill the one not relevant to you
                         new ChallengeStage({
                             id : 'imps',
-                            icon : '',
+                            icon : 'media/npc/imp.svg',
                             name : 'Imp Brothers',
+                            music : 'rocket_power',
+                            background : 'media/backgrounds/hell.jpg',
                             description : 'The two imp brothers have wildy separate interests.',
+							intro : [
+								new ChallengeTalkingHead({icon:'media/npc/imp.svg', text:'Impo: Let\'s get ready to pound some pussy!', sound:''}),
+                                new ChallengeTalkingHead({icon:'media/npc/imp.svg', text:'Impicus: Ew no, not not when they have so many other nice things to play with!', sound:''}),
+							],
                             npcs : [
                                 // Wants vagina
                                 new Character({
-                                    "id":"imp", name:'Impo', race:Race.get('imp'), description:"Really likes vaginas", body_tags:["impish"], abilities:["BITE","VAG_FIXATION"], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth'),
-                                    attack_text_conditions: [C(CO.TAGS, ['c_vagina'])]
+                                    "id":"impo", name:'Impo', race:Race.get('imp'), description:"Really likes vaginas", body_tags:["impish"], abilities:["BITE","VAG_FIXATION"], max_armor:5, max_hp:10, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')
                                 }),
                                 // Does not want
                                 new Character({
-                                    "id":"imp", name:'Impicus', race:Race.get('imp'), description:"Does not like vaginas", body_tags:["impish"], abilities:["BITE","NONVAG_FIXATION"], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth'),
-                                    attack_text_conditions: [C(CO.NOT_TAGS, ['c_vagina'])]
+                                    "id":"impicus", name:'Impicus', race:Race.get('imp'), description:"Does not like vaginas", body_tags:["impish"], abilities:["BITE","NONVAG_FIXATION"], max_armor:5, max_hp:10, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')
                                 }),
-
                             ]
                         }),
 
@@ -763,11 +983,17 @@ var DB = {
                             id : 'gatekeeper',
                             icon : '',
                             name : 'The Gatekeeper',
-                            description : '',
+                            description : 'The gatekeeper blocks the path, keep your defenses up!',
+                            music : 'rocket_power',
+                            background : 'media/backgrounds/hell.jpg',
+							intro : [
+								new ChallengeTalkingHead({icon:'', text:'Must... smash...', sound:'', left:true})
+							],
                             npcs : [
-                                new Character({"id":"imp", name:'Impo', race:Race.get('imp'), description:"Really likes vaginas", body_tags:["impish"], abilities:[
-                                    "BITE",
-                                ], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')}),
+                                new Character({"id":"gatekeeper", name:'The Gatekeeper', race:Race.get('breakerDemon'), description:"A cruel gatekeeper stands in your way.", body_tags:["demonic"], abilities:[
+                                    "LOW_BLOW",			// Lowers offenses
+                                    "GRASP"				// Charged, stuns and damages unless mitigated
+                                ], max_armor:10, max_hp:40, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')}),
                             ]
                         }),
 
@@ -775,20 +1001,29 @@ var DB = {
                         // Stage 3 - Succubus
                         new ChallengeStage({
                             id : 'succubi',
-                            icon : '',
+                            icon : 'media/npc/succubus.jpg',
                             name : 'The Succubi',
-                            description : 'The twin succubi stand in your way',
+                            description : 'Two succubi stand in your way, think before you attack.',
+                            music : 'rocket_power',
+                            background : 'media/backgrounds/hell.jpg',
+							intro : [
+								new ChallengeTalkingHead({icon:'media/npc/succubus.jpg', text:'Xyllia: Oh my, what have we here?', sound:'', left:true}),
+                                new ChallengeTalkingHead({icon:'media/npc/succubus.jpg', text:'Vylnila: A new plaything for us!', sound:'', left:true}),
+							],
                             npcs : [
-                                new Character({"id":"imp", name:'Impo', race:Race.get('imp'), description:"Really likes vaginas", body_tags:["impish"], abilities:[
-                                    "BITE",
-                                ], max_armor:5, max_hp:15, social:75, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth')}),
+								suca, sucb
                             ]
                         }),
-                        
-
                     ],
                     rewards : [
-
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.clothes,
+                            data:'plateBikini',
+                        }),
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.money,
+                            data:100,
+                        }),
                     ],
                 })
                 
@@ -821,25 +1056,36 @@ var DB = {
             Text.insert({conditions:[abil, humanoid], sound:'slap', ait:[ait.aButt, ait.tSlap], text:":ANAME: smacks :TNAME:'s :BUTT:!"});
             Text.insert({conditions:[abil, humanoid, C.BREASTS, C(CO.TAGS, "a_sling")], sound:'stretch_snap', ait:[ait.aBreasts, ait.tTwang], text:":ANAME: tugs at the front of :TNAME:'s :TCLOTHES:, tugging the straps backwards and releasing them, causing them to snap against the :TRACE:'s :TBREASTS:!"});
             Text.insert({conditions:[abil, humanoid, C(CO.TAGS, "a_sling")], sound:'stretch_snap', ait:[ait.aGroin, ait.tTwang], text:":ANAME: grabs a hold of the bottom of :TNAME:'s :TCLOTHES:, stretching it down between the :TRACE:'s legs before letting it go, snapping up against the :TRACE:'s :TGROIN:!"});
-            Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT], sound:'tickle', ait:[ait.aGroin, ait.tTickle], text:":ANAME: tickles at the :TGROIN: of :TARGET:'s tight :TCLOTHES:!"});
-            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NAKED], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: manages to get behind :TARGET: and quickly slips :AHIS: :APENIS: up the :TRACE:'s :BUTT:, landing a few thrusts!"});
-            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C(CO.TAGS, "a_thong")], ait:[ait.aButt, ait.tPin], sound:'squish', text:":ANAME: manages to get behind :TARGET:, quickly slipping the butt-string of the :TRACE:'s :TCLOTHES: aside and shoving :AHIS: :APENIS: up the :TRACE:'s :BUTT:, landing a few thrusts!"});
-            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NAKED, C.VAG], ait:[ait.aVag, ait.tPin], sound:'squish', text:":ANAME: manages to get behind :TARGET: and quickly slips :AHIS: :APENIS: up into the :TRACE:'s :TVAGINA:, landing a few thrusts!"});
+            Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.HAS_BOTTOM], sound:'tickle', ait:[ait.aGroin, ait.tTickle], text:":ANAME: tickles at the :TGROIN: of :TARGET:'s tight :TCLOTHES:!"});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.NO_BOTTOM], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: manages to get behind :TARGET: and quickly slips :AHIS: :APENIS: up the :TRACE:'s :BUTT:, landing a few thrusts!"});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.NO_BOTTOM, C(CO.TAGS, "a_thong")], ait:[ait.aButt, ait.tPin], sound:'squish', text:":ANAME: manages to get behind :TARGET:, quickly slipping the butt-string of the :TRACE:'s :TCLOTHES: aside and shoving :AHIS: :APENIS: up the :TRACE:'s :BUTT:, landing a few thrusts!"});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.NO_BOTTOM, C.NO_BOTTOM, C.VAG], ait:[ait.aVag, ait.tPin], sound:'squish', text:":ANAME: manages to get behind :TARGET: and quickly slips :AHIS: :APENIS: up into the :TRACE:'s :TVAGINA:, landing a few thrusts!"});
             Text.insert({conditions:[abil, humanoid, C.ARMOR_THONG], sound:'tickle', ait:[ait.aButt, ait.tTickle], text:":ANAME: slips a finger between :TARGET:'s buttcheeks, pushing it against the string and giving the :TRACE:'s :BUTT: a few tickles!"});
             Text.insert({conditions:[abil, humanoid, C.VAG, C(CO.TAGS, ['c_nude', 'a_tight'])], sound:'tickle', ait:[ait.aGroin, ait.tTickle], text:":ANAME: slips a finger between :TARGET:'s legs, pushing it against :THIS: :TGROIN: and giving the :TRACE: a few tickles!"});
             
-            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.CLOTHED, C(CO.TAGS, ['a_upper'])], sound:'stretch', ait:[ait.aBreasts, ait.tExpose], text:":ANAME: grabs a hold of the top of :TARGET:'s :TCLOTHES:, tugging it out of the way and exposing :TARGET:'s :TBREASTS:!"});
-            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.CLOTHED, C(CO.TAGS, ['a_upper'])], sound:'stretch', ait:[ait.aBreasts, ait.aCloth], text:":ANAME: grabs a hold of the top of :TARGET:'s :TCLOTHES:, tugging :THIS: body fowards and damaging the outfit!"});
+            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.HAS_TOP, C(CO.TAGS, ['a_upper'])], sound:'stretch', ait:[ait.aBreasts, ait.tExpose], text:":ANAME: grabs a hold of the top of :TARGET:'s :TCLOTHES:, tugging it out of the way and exposing :TARGET:'s :TBREASTS:!"});
+            Text.insert({conditions:[abil, humanoid, C.BREASTS, C.HAS_TOP, C(CO.TAGS, ['a_upper'])], sound:'stretch', ait:[ait.aBreasts, ait.aCloth], text:":ANAME: grabs a hold of the top of :TARGET:'s :TCLOTHES:, tugging :THIS: body fowards and damaging the outfit!"});
             
 
-            Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.PENIS], ait:[ait.aGroin, ait.tTickle], sound:'tickle', text:":ANAME: slips :AHIS: hand between :TARGET:'s legs from behind, using :AHIS: fingers to tickle at the :TRACE:'s balls through :THIS: tight :TCLOTHES:!"});
+            Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.PENIS, C.HAS_BOTTOM], ait:[ait.aGroin, ait.tTickle], sound:'tickle', text:":ANAME: slips :AHIS: hand between :TARGET:'s legs from behind, using :AHIS: fingers to tickle at the :TRACE:'s balls through :THIS: tight :TCLOTHES:!"});
             Text.insert({conditions:[abil, humanoid, C.ARMOR_THONG], sound:'scratch', ait:[ait.aButt, ait.tScratch], text:":ANAME: slips a finger between :TARGET:'s buttcheeks, pushing it against the string and scratching the :TRACE:'s :BUTT: through :THIS: butt-string!"});
-            Text.insert({conditions:[abil, humanoid, C.NAKED], sound:'scratch', ait:[ait.aButt, ait.tScratch], text:":ANAME: slips a finger between :TARGET:'s buttcheeks, giving the :TRACE:'s :BUTT: a couple of firm scratches!"});
+            Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM], sound:'scratch', ait:[ait.aButt, ait.tScratch], text:":ANAME: slips a finger between :TARGET:'s buttcheeks, giving the :TRACE:'s :BUTT: a couple of firm scratches!"});
 
-            Text.insert({conditions:[abil, humanoid, C.CLOTHED, C.VAG], sound:'scratch', ait:[ait.aGroin, ait.tScratch], text:":ANAME: slips :AHIS: fingers between :TARGET:'s legs, giving the :TRACE:'s :TCROTCH: a couple of firm scratches!"});
-            Text.insert({conditions:[abil, humanoid, C.CLOTHED, C(CO.TAGS, ['c_uncut'])], sound:'squish', ait:[ait.aGroin, ait.aForeskin, ait.tSqueeze], text:":ANAME: slips :ahis: hand inside :TARGET:'s :TCLOTHES:, grabbing a firm hold of the :TRACE:'s :TPENIS:! :ATTACKER: tugs back :TARGET:'s foreskin and starts pulling up and down, grinding the sensitive tip of :TARGET:'s :TPENIS: across the insides of :THIS: :TCLOTHES:!"});
-            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NAKED], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: manages to grab :TARGET:'s ankles, tripping :THIM: backwards! While the :TRACE: is dazed, :ATTACKER: separates :THIS: legs and jabs :AHIS: :APENIS: into :TARGET:'s :TBUTT:, rapidly forcing it in and out of the struggling :TRACE:."});
-            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NAKED, C.VAG], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: manages to grab :TARGET:'s ankles, tripping :THIM: backwards! While the :TRACE: is dazed, :ATTACKER: separates :THIS: legs and jabs :AHIS: :APENIS: into :TARGET:'s :TVAG:, rapidly forcing it in and out of the struggling :TRACE:!"});
+            Text.insert({conditions:[abil, humanoid, C.HAS_BOTTOM, C.VAG], sound:'scratch', ait:[ait.aGroin, ait.tScratch], text:":ANAME: slips :AHIS: fingers between :TARGET:'s legs, giving the :TRACE:'s :TCROTCH: a couple of firm scratches!"});
+            Text.insert({conditions:[abil, humanoid, C.HAS_BOTTOM, C(CO.TAGS, ['c_uncut'])], sound:'squish', ait:[ait.aGroin, ait.aForeskin, ait.tSqueeze], text:":ANAME: slips :ahis: hand inside :TARGET:'s :TCLOTHES:, grabbing a firm hold of the :TRACE:'s :TPENIS:! :ATTACKER: tugs back :TARGET:'s foreskin and starts pulling up and down, grinding the sensitive tip of :TARGET:'s :TPENIS: across the insides of :THIS: :TCLOTHES:!"});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NO_BOTTOM], v_turntags:['humped_butt', 'knockdown_back'], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: manages to grab :TARGET:'s ankles, tripping :THIM: backwards! While the :TRACE: is dazed, :ATTACKER: separates :THIS: legs and jabs :AHIS: :APENIS: into :TARGET:'s :TBUTT:, rapidly forcing it in and out of the struggling :TRACE:."});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C.NO_BOTTOM, C.VAG], v_turntags:['humped_pussy', 'knockdown_back'], sound:'squish', ait:[ait.aVag, ait.tPin], text:":ANAME: manages to grab :TARGET:'s ankles, tripping :THIM: backwards! While the :TRACE: is dazed, :ATTACKER: separates :THIS: legs and jabs :AHIS: :APENIS: into :TARGET:'s :TVAG:, rapidly forcing it in and out of the struggling :TRACE:!"});
+            Text.insert({conditions:[abil, humanoid, C.A_PENIS, C.A_NAKED, C(CO.TAGS, ['humped_pussy', 'humped_butt']), C(CO.TAGS, ['knockdown_back'])], sound:'squish', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps on the already knocked down :TRACE:, forcing :AHIS: :APENIS: inside :TARGET:'s mouth!"});
+
+            Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: slips :AHIS: hand between :TARGET:'s legs and pushes :AHIS: fingers against :TARGET:'s clit, rubbing it firmly!"});
+            Text.insert({conditions:[abil, humanoid, C.HAS_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: slips :AHIS: hand between :TARGET:'s legs and into :THIS: :TCLOTHES:, pushing :AHIS: fingers against :TARGET:'s clit. :ANAME: manages to rub it firmly for a little while!"});
+            
+
+            // Succubus aura
+            var race_succubus = C(CO.RACE, 'succubus', Game.Consts.TARG_ATTACKER);
+            var sucAura = C(CO.TAGS, ['succubus_aura']);
+            Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.VAG, sucAura], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: commands the mesmerized :TRACE: to reach inbetween :THIS: own legs, rubbing :THIS: :TVAG:!"});
+            Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.PENIS, sucAura], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: commands the mesmerized :TRACE: to reach inbetween :THIS: own legs, stroking :THIS: :TPENIS:!"});
             
 
             // imp
@@ -849,19 +1095,19 @@ var DB = {
             Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS], sound:'squish', ait:[ait.tFacial], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground! :TARGET: recovers from the daze to see the :ARACE: standing over :THIM:, cock in hand. Before :TARGET: can react, :ATTACKER:'s :TPENIS: twitches slightly before squirting a big load of demonic jizz into the :TRACE:'s face!"});
             Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS], sound:'squish', ait:[ait.tFacial], text:":ANAME: shoves :TARGET: from behind, tripping :THIM: face first to the ground! The :TRACE: pushes :THIS: torso off the ground, only to be greeted by the :ARACE:'s twitching :APENIS:. Before :TARGET: can turn away, :ATTACKER: launches a stream of demonic jizz right into the :TRACE:'s face!"});
             Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS], sound:'squish', ait:[ait.aMouth, ait.tPin, ait.tCumInside], text:":ANAME: shoves :TARGET: from behind, tripping :THIM: face first to the ground! The :TRACE: pushes :THIS: torso off the ground, only to be greeted by the :ARACE:'s :APENIS: shoved inside :THIS: mouth! :TARGET: tries to break free, but :ATTACKER: grabs a hold of :THIS: head and forces :AHIS: :APENIS: deeper inside, thrusting until :AHE: climaxes, forcing :AHIS: demonic load down the :TRACE:'s throat!"});
-            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: pushes :TARGET:'s legs up as :AHE: shoves :APENIS: into the :TRACE:'s :BUTT:, humping it for a little while and leaving a trail of demonic cum."});
-            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: shoves :AHIS: :APENIS: into the :TRACE:'s :TVAGINA:, humping it for a little while and leaving a trail of demonic cum."});
-            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED, C.BREASTS], sound:'squish', ait:[ait.aBreasts, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: jumps onto their chest and forces :AHIS: :APENIS: between the :TRACE:'s :TBREASTS:, humping for a little while and leaving demonic penis-residue between them."});
+            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NO_BOTTOM], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: pushes :TARGET:'s legs up as :AHE: shoves :APENIS: into the :TRACE:'s :BUTT:, humping it for a little while and leaving a trail of demonic cum."});
+            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NO_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: shoves :AHIS: :APENIS: into the :TRACE:'s :TVAGINA:, humping it for a little while and leaving a trail of demonic cum."});
+            Text.insert({conditions:[abil, race_imp, C.A_NAKED, C.A_PENIS, C.NO_TOP, C.BREASTS], sound:'squish', ait:[ait.aBreasts, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: jumps onto their chest and forces :AHIS: :APENIS: between the :TRACE:'s :TBREASTS:, humping for a little while and leaving demonic penis-residue between them."});
             
-            Text.insert({conditions:[abil, race_imp, C.NAKED, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around :TARGET:'s :TPENIS:, squeezing it firmly and leaving demonic saliva across the :TRACE:'s :TPENIS:!"});
-            Text.insert({conditions:[abil, race_imp, C.NAKED, C.PENIS, C(CO.TAGS, ['c_uncut'])], sound:'wet_squeeze', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue towards :TARGET:'s :TPENIS:, where it slips beneath the :TRACE:'s foreskin and hoops around, leaving demonic saliva across the :TRACE:'s glans!"});
-            Text.insert({conditions:[abil, race_imp, C.NAKED], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks, causing a tingling sensation to spread across the :TRACE:'s :BUTT: and leaving a gooey streak of demonic saliva!"});
-            Text.insert({conditions:[abil, race_imp, C.NAKED], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks and into :THIS: :TBUTT:, causing a tingling sensation inside of :TARGET: and leaving a gooey streak of demonic saliva as the tongue retracts!"});
-            Text.insert({conditions:[abil, race_imp, C.NAKED, C.VAG], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s legs and into :THIS: :TVAG:, causing a tingling sensation inside of :TARGET: and leaving a gooey streak of demonic saliva as the tongue retracts!"});
+            Text.insert({conditions:[abil, race_imp, C.NO_BOTTOM, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around :TARGET:'s :TPENIS:, squeezing it firmly and leaving demonic saliva across the :TRACE:'s :TPENIS:!"});
+            Text.insert({conditions:[abil, race_imp, C.NO_BOTTOM, C.PENIS, C(CO.TAGS, ['c_uncut'])], sound:'wet_squeeze', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue towards :TARGET:'s :TPENIS:, where it slips beneath the :TRACE:'s foreskin and hoops around, leaving demonic saliva across the :TRACE:'s glans!"});
+            Text.insert({conditions:[abil, race_imp, C.NO_BOTTOM], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks, causing a tingling sensation to spread across the :TRACE:'s :BUTT: and leaving a gooey streak of demonic saliva!"});
+            Text.insert({conditions:[abil, race_imp, C.NO_BOTTOM], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks and into :THIS: :TBUTT:, causing a tingling sensation inside of :TARGET: and leaving a gooey streak of demonic saliva as the tongue retracts!"});
+            Text.insert({conditions:[abil, race_imp, C.NO_BOTTOM, C.VAG], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s legs and into :THIS: :TVAG:, causing a tingling sensation inside of :TARGET: and leaving a gooey streak of demonic saliva as the tongue retracts!"});
             
             Text.insert({conditions:[abil, race_imp, C.ARMOR_THONG], sound:'slime_squish_bright', ait:[ait.aButt, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s buttcheeks, causing a tingling sensation to spread across the :TRACE:'s :BUTT: and leaving a gooey streak of demonic saliva!"});
-            Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.PENIS], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue across :TARGET:'s bulge, causing it to jiggle while leaving a streak of demonic saliva!"});
-            Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.VAG], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s legs, rubbing demonic saliva across :THIS: :TCROTCH:!"});
+            Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.HAS_BOTTOM, C.PENIS], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue across :TARGET:'s bulge, causing it to jiggle while leaving a streak of demonic saliva!"});
+            Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.HAS_BOTTOM, C.VAG], sound:'slap_wet', ait:[ait.aGroin, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue between :TARGET:'s legs, rubbing demonic saliva across :THIS: :TCROTCH:!"});
             Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.BREASTS, C.HAS_TOP], sound:'slap_wet', ait:[ait.aBreasts, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue across :TARGET:'s :TBREASTS:, causing them to jiggle while leaving a streak of demonic saliva!"});
             
             Text.insert({conditions:[abil, race_imp, C.ARMOR_TIGHT, C.VAG, C(CO.TAGS, ["a_swimsuit"])], sound:'stretch', ait:[ait.aGroin, ait.tTickle], text:":ANAME: grabs a hold of the front of :TARGET:'s :TCLOTHES:, near the groin and tugs up, revealing a camel toe! :attacker: gives it a few tickles!"});
@@ -870,9 +1116,9 @@ var DB = {
 
 
             // Hydromancer
-            Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED], sound:'slime_squish_bright', ait:[ait.aButt, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TBUTT: multiple times!"});
-            Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED, C.VAGINA], sound:'slime_squish_bright', ait:[ait.aVag, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TVAGINA: multiple times!"});
-            Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.aTentacle, ait.tWet, ait.tSqueeze], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, wrapping itself around the :TRACE:'s :TPENIS: and rubbing it firmly!"});
+            Text.insert({conditions:[abil, humanoid, hydromancer, C.NO_BOTTOM], sound:'slime_squish_bright', ait:[ait.aButt, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TBUTT: multiple times!"});
+            Text.insert({conditions:[abil, humanoid, hydromancer, C.NO_BOTTOM, C.VAGINA], sound:'slime_squish_bright', ait:[ait.aVag, ait.aTentacle, ait.tPen, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, pushing up and into the :TRACE:'s :TVAGINA: multiple times!"});
+            Text.insert({conditions:[abil, humanoid, hydromancer, C.NO_BOTTOM, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.aTentacle, ait.tWet, ait.tSqueeze], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, wrapping itself around the :TRACE:'s :TPENIS: and rubbing it firmly!"});
             Text.insert({conditions:[abil, humanoid, hydromancer], sound:'wet_squeeze', ait:[ait.aGroin, ait.aButt, ait.tWet, ait.tTickle], text:":ANAME: summons a jet of water between :TARGET:\'s legs, the splashing water tickles :THIS: :TBUTT: and :TGROIN:!"});
             Text.insert({conditions:[abil, humanoid, hydromancer], sound:'slap_wet', ait:[ait.aButt, ait.aTentacle, ait.tWet, ait.tSlap], text:":ANAME: summons a water tendril behind :TARGET:! The tendril quickly lashes at the :TRACE:'s :TBUTT: a few times in rapid succession!"});
             Text.insert({conditions:[abil, humanoid, hydromancer, C(CO.TAGS, ['nude', 'a_thong'])], sound:'wet_squeeze', ait:[ait.aButt, ait.tWet, ait.tScratch], text:":ANAME: flings a watery glob towards :TARGET:, landing beneath :THIS: legs! A long piece of watermilfoil rises from the glob and slips in between the :TRACE:'s buttcheeks, where it starts moving in a flossing motion, sending tingles across :TARGET:'s rear!"});
@@ -883,76 +1129,76 @@ var DB = {
             // Bite
                 abil = C(CO.ABILITY, "BITE");
                 Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED], sound:'bite', ait:[ait.tBite], text:":ANAME: jumps at :TNAME:, biting at :THIS: :TCLOTHES:!"});
-                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED], sound:'bite', ait:[ait.aButt, ait.tBite], text:":ANAME: jumps at :TNAME:, biting at the :TRACE:'s butt through :THIS: :TCLOTHES:!"});
-                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED], sound:'stretch_snap', ait:[ait.aButt, ait.tTwang], text:":ANAME: jumps at :TNAME:, biting a hold of the back of :THIS: :TCLOTHES:! The :ARACE: pulls back before letting the garment snap back onto :TARGET:'s :BUTT:!"});
-                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED, C.ARMOR_TIGHT], sound:'stretch_snap', ait:[ait.aGroin, ait.tTwang], text:":ANAME: jumps at :TNAME:, biting a hold of the front of the groin of :THIS: :TCLOTHES:! The :ARACE: pulls back, letting the garment snap back onto :TARGET:'s :CROTCH:!"});
-                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED, C.ARMOR_TIGHT, C.PENIS], sound:'small_scratch', ait:[ait.aGroin, ait.tBite], text:":ANAME: jumps at :TNAME:, teeth bare! The :ARACE: manages to graze :TARGET:'s bulge with :AHIS: teeth!"});
+                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.HAS_BOTTOM], sound:'bite', ait:[ait.aButt, ait.tBite], text:":ANAME: jumps at :TNAME:, biting at the :TRACE:'s butt through :THIS: :TCLOTHES:!"});
+                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.HAS_BOTTOM], sound:'stretch_snap', ait:[ait.aButt, ait.tTwang], text:":ANAME: jumps at :TNAME:, biting a hold of the back of :THIS: :TCLOTHES:! The :ARACE: pulls back before letting the garment snap back onto :TARGET:'s :BUTT:!"});
+                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.HAS_BOTTOM, C.ARMOR_TIGHT], sound:'stretch_snap', ait:[ait.aGroin, ait.tTwang], text:":ANAME: jumps at :TNAME:, biting a hold of the front of the groin of :THIS: :TCLOTHES:! The :ARACE: pulls back, letting the garment snap back onto :TARGET:'s :CROTCH:!"});
+                Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.HAS_BOTTOM, C.ARMOR_TIGHT, C.PENIS], sound:'small_scratch', ait:[ait.aGroin, ait.tBite], text:":ANAME: jumps at :TNAME:, teeth bare! The :ARACE: manages to graze :TARGET:'s bulge with :AHIS: teeth!"});
                 Text.insert({conditions:[C(CO.ABILITY, "BITE"), C.CLOTHED, C.VAG, C.BREASTS, C(CO.TAGS, "a_sling")], sound:'stretch', ait:[ait.tTwang], text:":ANAME: jumps at :TNAME:, biting a hold of the back of the :TRACE:'s sling bikini. Putting :AHIS: foot on :TARGET:'s back, the :ARACE: tugs back, wedging the garment against :THIS: :TGROIN: and :TBREASTS:!"});
 
             // Hydromance
                 abil = C(CO.ABILITY, "HYDROMANCE");
                 Text.insert({conditions:[abil, humanoid, C.CLOTHED, C.ARMOR_TIGHT], sound:'freeze', ait:[ait.aBody, ait.tCold], text:":ANAME: sends a blast of cold across :TARGET:, causing :THIS: :TCLOTHES: to freeze!"});
                 Text.insert({conditions:[abil, humanoid, C.NAKED], sound:'freeze', ait:[ait.aBody, ait.tCold], text:":ANAME: sends an icy blast across :TARGET:!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED], sound:'water_squish', ait:[ait.aButt, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TBUTT:!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.VAGINA], sound:'water_squish', ait:[ait.aVag, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TVAGINA:!"});
-                Text.insert({conditions:[abil, humanoid, C.CLOTHED, C.PENIS], sound:'water_squish', ait:[ait.aGroin, ait.tWet, ait.tTickle], text:":ANAME: summons a watery glob that slips into :TARGET:'s :TCLOTHES:! The water starts swirling around, tickling :THIS: :TCROTCHEX:."});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C(CO.TAGS, ['c_uncut'])], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil slips beneath :THIS: foreskin and starts tickling against the tip of :THIS: :TPENIS:!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tSqueeze], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a long piece of a watery plant wraps tight around :THIS: package, squeezing a firm hold around the :TCROTCH: of :THIS: :TCLOTHES:!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM], sound:'water_squish', ait:[ait.aButt, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TBUTT:!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.VAGINA], sound:'water_squish', ait:[ait.aVag, ait.tWet, ait.tPen], text:":ANAME: casts a spell! :TARGET: gasps as a small undulating glob of water slips up into :THIS: :TVAGINA:!"});
+                Text.insert({conditions:[abil, humanoid, C.HAS_BOTTOM, C.PENIS], sound:'water_squish', ait:[ait.aGroin, ait.tWet, ait.tTickle], text:":ANAME: summons a watery glob that slips into :TARGET:'s :TCLOTHES:! The water starts swirling around, tickling :THIS: :TCROTCHEX:."});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM, C(CO.TAGS, ['c_uncut'])], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil slips beneath :THIS: foreskin and starts tickling against the tip of :THIS: :TPENIS:!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT, C.HAS_BOTTOM], sound:'brush_wiggle', ait:[ait.aGroin, ait.tWet, ait.tSqueeze], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a long piece of a watery plant wraps tight around :THIS: package, squeezing a firm hold around the :TCROTCH: of :THIS: :TCLOTHES:!"});
                 
-                Text.insert({conditions:[abil, humanoid, C.PENIS], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil wraps tight around :THIS: :TPENIS:, sending tingles across it as it starts wriggling!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil wraps tight around :THIS: :TPENIS:, sending tingles across it as it starts wriggling!"});
                 
 
             // Low blow
                 abil = C(CO.ABILITY, "LOW_BLOW");
                 Text.insert({conditions:[abil], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch between :TNAME:'s legs!"});
                 Text.insert({conditions:[abil], sound:'punch_heavy', ait:[ait.aGroin, ait.tKick], text:":ANAME: throws a swift kick between :TNAME:'s legs!"});
-                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.CLOTHED], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around within :THIS: :TCLOTHES:"});
-                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NAKED], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around!"});
+                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.HAS_TOP], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around within :THIS: :TCLOTHES:"});
+                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NO_TOP], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around!"});
                 Text.insert({conditions:[abil, humanoid, C.BREASTS], sound:'pinch', ait:[ait.aBreasts, ait.tPinch, ait.tTwist], text:":ANAME: grabs a hold of :TNAME:'s nipples, pulling forward while twisting them!"});
                 Text.insert({conditions:[abil, humanoid, C.BREASTS, C.ARMOR_TIGHT, C.HAS_TOP], sound:'pinch', ait:[ait.aBreasts, ait.tPinch, ait.tTwist], text:":ANAME: grabs a hold of :TNAME:'s nipples through :THIS: :TCLOTHES:, pulling forward while twisting them!"});
                 
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.CLOTHED], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, jiggling :THIS: package around!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NAKED], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, causing it to jiggle about!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: pushes :TARGET:'s :TPENIS: up against :THIS: stomach wihin :THIS: :TCLOTHES:, then quickly throws a few punches at it!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS: through :THIS: :TCLOTHES: before quickly twisting!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NAKED], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS:, then quickly twists!"});
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS: through :THIS: :TCLOTHES:, then quickly twists!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.HAS_BOTTOM], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, jiggling :THIS: package around!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TPENIS:, causing it to jiggle about!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT, C.HAS_BOTTOM], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: pushes :TARGET:'s :TPENIS: up against :THIS: stomach wihin :THIS: :TCLOTHES:, then quickly throws a few punches at it!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT, C.HAS_BOTTOM], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS: through :THIS: :TCLOTHES: before quickly twisting!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS:, then quickly twists!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.ARMOR_TIGHT, C.HAS_BOTTOM], sound:'stretch', ait:[ait.aGroin, ait.tTwist], text:":ANAME: grabs a hold of :TARGET:'s :TPENIS: through :THIS: :TCLOTHES:, then quickly twists!"});
                 
-                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NAKED], sound:'slap', ait:[ait.aGroin, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TPENIS:, multiple times!"});
-                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NAKED], sound:'slap', ait:[ait.aBreasts, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TBREASTS:, multiple times!"});
+                Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM], sound:'slap', ait:[ait.aGroin, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TPENIS:, multiple times!"});
+                Text.insert({conditions:[abil, humanoid, C.BREASTS, C.NO_TOP], sound:'slap', ait:[ait.aBreasts, ait.tSlap], text:":ANAME: slaps :TARGET:'s :TBREASTS:, multiple times!"});
                 
-                Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.PENIS], sound:'stretch', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s bulge through :THIS: clothes, squeezing painfully!"});
-                Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.BREASTS], sound:'stretch', ait:[ait.aBreasts, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s :TBREASTS: through :THIS: clothes, squeezing painfully!"});
+                Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.PENIS, C.HAS_BOTTOM], sound:'stretch', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s bulge through :THIS: clothes, squeezing painfully!"});
+                Text.insert({conditions:[abil, humanoid, C.ARMOR_TIGHT, C.BREASTS, C.HAS_TOP], sound:'stretch', ait:[ait.aBreasts, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s :TBREASTS: through :THIS: clothes, squeezing painfully!"});
                 
-                Text.insert({conditions:[abil, humanoid, race_imp, C.ARMOR_TIGHT, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around :TARGET:'s bulge. Wrapping under the :TRACE:'s balls, :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :CROTCH:!"});
-                Text.insert({conditions:[abil, humanoid, race_imp, C.NAKED, C.BREASTS], sound:'wet_squeeze', ait:[ait.aBreasts, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around one of :TARGET:'s :TBREASTS:, hooping around. :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :TBREASTS:!"});
+                Text.insert({conditions:[abil, humanoid, race_imp, C.ARMOR_TIGHT, C.PENIS, C.HAS_BOTTOM], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around :TARGET:'s bulge. Wrapping under the :TRACE:'s balls, :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :CROTCH:!"});
+                Text.insert({conditions:[abil, humanoid, race_imp, C.BREASTS, C.NO_TOP], sound:'wet_squeeze', ait:[ait.aBreasts, ait.tSqueeze, ait.tLick], text:":ANAME: lashes :AHIS: long demonic tongue around one of :TARGET:'s :TBREASTS:, hooping around. :ATTACKER: contracts the tongue, painfully squeezing :TARGET: and leaving a mark of demonic saliva across :THIS: :TBREASTS:!"});
                 
-                Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED], sound:'squish', ait:[ait.aButt, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TBUTT:!"});
-                Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NAKED, C.VAG], sound:'squish', ait:[ait.aVag, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TVAG:!"});
+                Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NO_BOTTOM], sound:'squish', ait:[ait.aButt, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TBUTT:!"});
+                Text.insert({conditions:[abil, humanoid, race_imp, C.A_NAKED, C.A_PENIS, C.NO_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tCumInside, ait.tPin], text:":ANAME: lands a quick punch to :TARGET:'s throat, causing :THIM: to black out briefly! As the :TRACE: comes to, :THE: finds :THIM:self on top of :ATTACKER:, riding on :AHIS: :APENIS:. Before :TARGET: manages to get to :THIS: bearings, :THE: feels :ATTACKER:'s :APENIS: twitch as it launches a squirt of demonic jizz inside :TARGET:'s :TVAG:!"});
                 
                 Text.insert({conditions:[abil, humanoid, race_imp, C.ARMOR_TIGHT, C.VAG, C(CO.TAGS, ["a_swimsuit"])], sound:'slap', ait:[ait.aGroin, ait.tSlap], text:":ANAME: grabs a hold of the front of :TARGET:'s :TCLOTHES:, near the groin and tugs up, revealing a camel toe! :attacker: throws a couple of slaps at it, sending short bursts of pain through :TARGET:'s :TGROIN:!"});
             
 
                 // Hydromancer
-                Text.insert({conditions:[abil, humanoid, hydromancer, C.CLOTHED, C.ARMOR_TIGHT, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob lashes beneath the :TRACE:'s balls and around :THIS: package, contracting and squeezing it painfully!"});
-                Text.insert({conditions:[abil, humanoid, hydromancer, C.CLOTHED, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob slips into :THIS: :TCLOTHES:, encircling :THIS: package before contracting painfully!"});
-                Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob encircles :THIS: package and contracts painfully!"});
+                Text.insert({conditions:[abil, humanoid, hydromancer, C.ARMOR_TIGHT, C.PENIS, C.HAS_BOTTOM], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob lashes beneath the :TRACE:'s balls and around :THIS: package, contracting and squeezing it painfully!"});
+                Text.insert({conditions:[abil, humanoid, hydromancer, C.PENIS, C.HAS_BOTTOM], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob slips into :THIS: :TCLOTHES:, encircling :THIS: package before contracting painfully!"});
+                Text.insert({conditions:[abil, humanoid, hydromancer, C.NO_BOTTOM, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob encircles :THIS: package and contracts painfully!"});
                 Text.insert({conditions:[abil, humanoid, hydromancer, C.PENIS], sound:'wet_squeeze', ait:[ait.aGroin, ait.tSqueeze, ait.tWet], text:":ANAME: casts a glob of water towards :TARGET:'s :TGROIN:! A long piece of watermilfoil within the glob encircles :THIS: penis and wrings, choking the :TRACE:'s :TPENIS: tightly!"});
                 Text.insert({conditions:[abil, humanoid, hydromancer], sound:'slap_wet', ait:[ait.aGroin, ait.tSlap, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, lashing at the :TRACE:'s :TGROIN:!"});
                 Text.insert({conditions:[abil, humanoid, hydromancer, C.BREASTS], sound:'slap_wet', ait:[ait.aBreasts, ait.tSlap, ait.tWet], text:":ANAME: summons a watery tendril before :TARGET:, lashing at the :TRACE:'s :TBREASTS:!"});
-                Text.insert({conditions:[abil, humanoid, hydromancer, C.NAKED, C.PENIS], sound:'slap_wet', ait:[ait.aGroin, ait.tSlap, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, lashing at the :TRACE:'s :TPENIS: multiple times!"});
+                Text.insert({conditions:[abil, humanoid, hydromancer, C.NO_BOTTOM, C.PENIS], sound:'slap_wet', ait:[ait.aGroin, ait.tSlap, ait.tWet], text:":ANAME: summons a watery tendril between :TARGET:\'s legs, lashing at the :TRACE:'s :TPENIS: multiple times!"});
                 
 
             // GRASP
                 abil = C(CO.ABILITY, "GRASP");
                 Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', text:":ANAME: grasps :TARGET: in a vice-like grip, painfully squeezing :thim:!"});
                 Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down with :THIS: :TGROIN: against the :ARACE:'s knee!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.A_NAKED, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down :BUTT: first onto the :ARACE:'s :APENIS:, letting :TARGET: bounce up and down on :AHIS: length for a while!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.A_NAKED, C.A_PENIS, C.VAGINA], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down :TVAGINA: first onto the :ARACE:'s :APENIS:, letting :TARGET: bounce up and down on :AHIS: length for a while!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground, flipping :THIM: upside-down! :ANAME: forces :AHIS: :APENIS: into :TARGET:'s mouth and starts raising and lowering :THIM:, causing :AHIS: :APENIS: to be thrust back and forth into :TARGET:'s mouth!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NAKED, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down :BUTT: first onto the :ARACE:'s :APENIS:, letting :TARGET: bounce up and down on :AHIS: length for a while!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NAKED, C.A_PENIS, C.VAGINA], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down :TVAGINA: first onto the :ARACE:'s :APENIS:, letting :TARGET: bounce up and down on :AHIS: length for a while!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground, flipping :THIM: upside-down! :ANAME: forces :AHIS: :APENIS: into :TARGET:'s mouth and starts raising and lowering :THIM:, causing :AHIS: :APENIS: to be thrust back and forth into :TARGET:'s mouth!"});
                 Text.insert({conditions:[abil, humanoid], sound:'stretch', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs wide apart, causing :THIM: great pain and lifting :TARGET:'s hips towards the :ARACE:'s face. :ATTACKER: gives the struggling :TRACE: a quick lick across :THIS: :TGROIN:!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.A_NAKED, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs wide apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :BUTT: and starts thrusting firmly!"});
-                Text.insert({conditions:[abil, humanoid, C.NAKED, C.A_NAKED, C.A_PENIS, C.VAGINA], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :TVAGINA: and starts thrusting firmly!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NAKED, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs wide apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :BUTT: and starts thrusting firmly!"});
+                Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NAKED, C.A_PENIS, C.VAGINA], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :TVAGINA: and starts thrusting firmly!"});
                 
 
             
@@ -986,6 +1232,12 @@ var DB = {
                 abil = C(CO.ABILITY, "counterAttack");
                 Text.insert({conditions:[abil], sound:'punch_heavy', text:":ANAME: counterattacks :TARGET:, dealing a large amount of damage!"});
             
+            // Counter
+                abil = C(CO.ABILITY, "corrupt");
+                Text.insert({conditions:[abil], sound:'dark_cast', text:":ANAME: is surrounded by a dark aura!"});
+            
+
+
         //
 
 
@@ -1005,16 +1257,40 @@ var DB = {
 
                     // Non-Vag fixation
                         abil = C(CO.ABILITY, "NONVAG_FIXATION");
-                        Text.insert({conditions:[abil, C.PENIS, C.NAKED], sound:'squeeze', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s exposed :TPENIS:, rubbing it sensually!"});
-                        Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tPin], text:":ANAME: gets behind :TARGET: and forces :AHIS: :APENIS: up inside the :TRACE:'s :TBUTT:, thrusting into :THIM: a couple of times!"});
-                        Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps at :TARGET:'s head and forces :AHIS: :APENIS: into the :TRACE:'s mouth, thrusting into :THIM: a couple of times!"});
-                        Text.insert({conditions:[abil, C.NAKED, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tLick], text:":ANAME: slips behind :TARGET:, pressing :AHIS: head against the :TRACE:'s :TBUTT:! :ATTACKER: pushes :AHIS: long tongue inside of the :TRACE:, forcing :THIM: to squirm as the demonic tongue swirls around inside :THIM:!"});
+                        Text.insert({conditions:[abil, C.PENIS], sound:'squeeze', ait:[ait.aGroin, ait.tSqueeze], text:":ANAME: grabs a hold of :TARGET:'s exposed :TPENIS:, rubbing it sensually!"});
+                        Text.insert({conditions:[abil, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tPin], text:":ANAME: gets behind :TARGET: and forces :AHIS: :APENIS: up inside the :TRACE:'s :TBUTT:, thrusting into :THIM: a couple of times!"});
+                        Text.insert({conditions:[abil, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps at :TARGET:'s head and forces :AHIS: :APENIS: into the :TRACE:'s mouth, thrusting into :THIM: a couple of times!"});
+                        Text.insert({conditions:[abil, C.A_PENIS, C.A_NAKED], sound:'squeeze', ait:[ait.aButt, ait.tLick], text:":ANAME: slips behind :TARGET:, pressing :AHIS: head against the :TRACE:'s :TBUTT:! :ATTACKER: pushes :AHIS: long tongue inside of the :TRACE:, forcing :THIM: to squirm as the demonic tongue swirls around inside :THIM:!"});
                         
 
                     //
                     
                 //
 
+                // WING C (Succubus)
+                    abil = C(CO.ABILITY, "SUCCUBUS_AURA");
+                    Text.insert({conditions:[abil], ait:[], sound:'dark_aura', text:":ANAME: is surrounded by a dark aura!"});
+                    
+                    abil = C(CO.ABILITY, "KISS");
+                    Text.insert({conditions:[abil], ait:[ait.aMouth, ait.tKiss], sound:'kiss', text:":ANAME: places a kiss on :TARGET:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil], ait:[ait.aButt, ait.tKiss], sound:'kiss', text:":ANAME: places a kiss on :TARGET:'s :TBUTT:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil, C.ARMOR_TIGHT, C.PENIS, C.HAS_BOTTOM], ait:[ait.aGroin, ait.tKiss], sound:'kiss', text:":ANAME: places a kiss on :TARGET:'s :TGROIN: through :THIS: :TCLOTHES:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil, C.ARMOR_TIGHT, C.BREASTS, C.HAS_TOP], ait:[ait.aBreasts, ait.tKiss], sound:'kiss', text:":ANAME: gently kisses :TARGET:'s :TBREASTS: through :THIS: :TCLOTHES:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil, C.NO_BOTTOM, C.PENIS], ait:[ait.aGroin, ait.tKiss], sound:'kiss', text:":ANAME: places a quick kiss at the tip of :TARGET:'s :TPENIS:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil, C.NO_TOP, C.BREASTS], ait:[ait.aBreasts, ait.tKiss], sound:'kiss', text:":ANAME: places some quick kisses on :TARGET:'s :TBREASTS:, lowering :THIS: defenses!"});
+                    Text.insert({conditions:[abil, C.NO_BOTTOM, C.VAG], ait:[ait.aVag, ait.tKiss], sound:'kiss', text:":ANAME: slips between :TARGET:'s legs and plants a kiss on the :TRACE:'s clit, lowering :THIS: defenses!"});
+                    
+
+                    abil = C(CO.ABILITY, "WHIPCRACK");
+                    Text.insert({conditions:[abil], ait:[ait.aButt, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across :TARGET:'s :TBUTT:!"});
+                    Text.insert({conditions:[abil], ait:[ait.aGroin, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across :TARGET:'s :TGROIN:!"});
+					Text.insert({conditions:[abil, C.PENIS, C.ARMOR_TIGHT, C.HAS_BOTTOM], ait:[ait.aGroin, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across the :TGROIN: of :TARGET:'s :TCLOTHES:, smacking :THIS: bulge around!"});
+					Text.insert({conditions:[abil, C.PENIS, C.NO_BOTTOM], ait:[ait.aGroin, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across target's :TPENIS:, smacking it around!"});
+					
+                    Text.insert({conditions:[abil, C.BREASTS, C.ARMOR_TIGHT, C.HAS_TOP], ait:[ait.aBreasts, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across :TARGET:'s :TBREASTS:, smacking them around within :THIS: :TCLOTHES:!"});
+					Text.insert({conditions:[abil, C.BREASTS, C.NO_TOP], ait:[ait.aBreasts, ait.tWhip], sound:'whip', text:":ANAME: lashes :AHIS: whip across :TARGET:'s :TBREASTS:, smacking them around!"});
+					
+                //
 
 
             //
@@ -1041,7 +1317,7 @@ var DB = {
                 Text.insert({conditions:[abil], sound:'squish', text:"This is a SADISTIC punishment placeholder"});
                 Text.insert({conditions:[abil, C.PENIS, C(CO.NOT_TAGS, ["c_uncut"])], sound:'squish', text:":ATTACKER: picks up a remote with various buttons and a cock ring, motioning for :TARGET: to come over. The :ARACE: slips the ring over :TARGET:'s :TPENIS:, right behind the tip, and pushes a button with a lightning bolt on it. :TARGET: winces as a short burst of electricity jolts through :THIS: :TPENIS:. :ATTACKER: throws the remote into the audience, who take turns pushing the various buttons. The poor :TRACE:'s :TPENIS: is treated to a range of various settings, including rapid shock pulses, long jolts, painful squeezes as some settings cause the ring to contract, and powerful vibrations. A few minutes later, a horn sounds, signifying that the battle is over, and letting the :TRACE: remove the ring."});
                 Text.insert({conditions:[abil, C.PENIS, C(CO.TAGS, ["c_uncut"])], sound:'squish', text:":ATTACKER: picks up a remote with various buttons and a cock ring, motioning for :TARGET: to come over. The :ARACE: slips the ring under :TARGET:'s foreskin, nestling it at the back, and pushes a button with a lightning bolt on it. :TARGET: winces as a short burst of electricity jolts through :THIS: :TPENIS:. :ATTACKER: throws the remote into the audience, who take turns pushing the various buttons. The poor :TRACE:'s :TPENIS: is treated to a range of various settings, including rapid shock pulses, long jolts, painful squeezes as some settings cause the ring to contract, and powerful vibrations. A few minutes later, a horn sounds, signifying that the battle is over, and letting the :TRACE: remove the ring."});
-                
+            
         //
 
 

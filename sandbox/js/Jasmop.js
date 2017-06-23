@@ -224,7 +224,7 @@ var Jasmop = {};
             $("#menu > div.button").html(html);
         },
         close : function(){
-            $("#menu > div.rollout").toggleClass('hidden');
+            $("#menu > div.rollout").toggleClass('hidden', true);
         }
     };
 })();
@@ -1271,11 +1271,9 @@ var Jasmop = {};
             '>': '&gt;',
             '"': '&quot;',
             "'": '&#39;',
-            '/': '&#x2F;',
-            '`': '&#x60;',
-            '=': '&#x3D;'
+            '`': '&#x60;'
         };
-        return String(input).replace(/[&<>"'`=\/]/g, function (s) {
+        return String(input).replace(/[&<>"'`]/g, function (s) {
             return entityMap[s];
         });
     };

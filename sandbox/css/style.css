@@ -493,9 +493,31 @@ div{
         color:#DDD;
     }
 
-    #wrap[data-page=index] div.disclaimer a{
+    #wrap[data-page=index] div.bottom{
+        color:#DDD;
+        left:0; right:0;
+        bottom:1vw;
+        text-align: center;
+        position:absolute;
+    }
+
+    #wrap[data-page=index] div.bottom a{
+        background:rgba(0,0,0,.75);
+        margin:0.25vw;
+        border-radius:0.25vw;
+        padding:0.25vw;
+        display:inline-block;
         text-decoration: none;
         color:#FFF;
+    }
+    #wrap[data-page=index] div.bottom a:hover{
+        background:rgba(0,0,0,.5);
+    }
+
+    #wrap[data-page=index] div.bottom img{
+        width:3vw;
+        height:3vw; 
+        vertical-align: middle;
     }
     
     
@@ -761,6 +783,39 @@ div{
         font-size:2vw;
     }
 
+    #wrap[data-page=battle] #talkingHead{
+        position:fixed;
+        bottom:50%; right:10vw;
+        transform:scale(1,1) translateY(-50%);
+        transition:transform 0.25s cubic-bezier(.81,1,.18,.86);
+    }
+    #wrap[data-page=battle] #talkingHead.hidden{
+        transform:scale(0,0) translateY(-50%);
+        display:block;
+    }
+
+    #wrap[data-page=battle] #talkingHead div.text{
+        background:rgba(0,0,0,.75);
+        max-width:50vw; 
+        color:#FFF;
+        padding:1vw;
+        border-radius:0.25vw;
+        border:0.2vw solid #FFF;
+        padding-right:5vw;
+    }
+    #wrap[data-page=battle] #talkingHead div.head{
+        width:10vw;
+        height:10vw;
+        background-color:rgba(0,0,0,.75);
+        background-size:cover;
+        border-radius:10vw;
+        position: absolute;
+        right:0; top:50%;
+        transform:translate(50%, -50%);
+        border:0.2vw solid #FFF;
+    }
+    
+
     #wrap[data-page=battle] div.top{
         display:flex;
         height:75%; 
@@ -927,13 +982,26 @@ div{
         animation:gemsOffered 1s ease-in-out alternate infinite;
     }
 
+    @keyframes pickedFade{
+        from{opacity:1; transform:scale(1,1);}
+        to{opacity:1; transform:scale(0,0);}
+    }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.picked{
-        visibility: hidden;
         pointer-events: none;
-        
+        animation:pickedFade 0.25s ease-out forwards !important;
+    }
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full{
+        border-color: #AAA;
+        animation:none;
+    }
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full div.bg{
+        opacity:0.5;
+    }
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full:hover{
+        transform:none;
     }
 
-    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem:hover{
+    #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem:hover:not(.picked){
         transform:scale(1.1,1.1);
     }
 
@@ -1414,7 +1482,9 @@ div{
     }
 
 
-    #wrap[data-page=home].skirmish{
+    #wrap[data-page=home].skirmish,
+    #wrap[data-page=home].campaignRoot
+    {
         background-image:url(../media/backgrounds/lockers.jpg);
     }
     #wrap[data-page=home].skirmish div.player div.bg{
@@ -1466,6 +1536,184 @@ div{
 
 
 
+    #wrap[data-page=home].campaignRoot #content > div.flex{
+        height:100%;
+    } 
+
+    #wrap[data-page=home].campaignRoot div.left
+    {
+        width:30%;
+        overflow:auto;
+        background:rgba(0,0,0,.75);
+        padding:1vw;
+        color:#FFF;
+    }
+
+    #wrap[data-page=home].campaignRoot div.right
+    {
+        width:69%;
+        overflow:auto;
+        height:100%;
+        
+        text-align: center;
+    }
+
+    #wrap[data-page=home].campaignRoot div.selected{
+        border-color:#AFA;
+    }
+
+    #wrap[data-page=home].campaignRoot div.right div.bar{
+        background:rgba(0,0,0,.75);
+        padding:1vw;
+        color:#FFF;
+        overflow:visible;
+        margin-bottom:1vw;
+    }
+
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses{
+        display:flex;
+        justify-content: center;
+        overflow:visible;
+    }
+    #wrap[data-page=home].campaignRoot div.right div.bar h1,
+    #wrap[data-page=home].campaignRoot div.right div.bar p,
+    #wrap[data-page=home].campaignRoot div.right div.bar h3
+    {
+        margin:0;
+    }
+    
+
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss{
+        display:inline-block;
+        margin:0.5vw;
+        background-size:cover;
+        width:10vw; height: 10vw;
+        background-color:rgba(0,0,0,.75);
+        border:0.2vw solid #AAA;
+        border-radius:5vw;
+        padding:1vw;
+        cursor:url('../media/cursors/pointer.svg') 5 5, auto;
+        background-image:url('../media/challenge_locked.jpg');
+        background-size:cover;
+    }
+
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss:hover{
+        border-color:#FFF;
+    }
+    
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward{
+        background-image:url('../media/treasure.png');
+        background-position:left;
+        background-size:200% 100%;
+        border-color:#DDD;
+    }
+
+    @keyframes nextBoss{
+        from{transform:scale(1,1);}
+        to{transform:scale(1.05,1.05);}
+    }
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.unlocked:not(.completed){
+        border-color:#AFA;
+        animation:nextBoss ease-in-out 2s infinite alternate;
+    }
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.unlocked.completed{
+        border-color:#FFF;
+    }
+
+    @keyframes openChest{
+        0%{
+            transform: translateY(0) scale(1,1);
+        }
+        5%{
+            transform: translateX(-5%) scale(0.95,0.95);
+        }
+        10%{
+            transform: translateX(-4%);
+        }
+        15%{
+            transform: translateX(3%) scale(0.95,0.95);
+        }
+        20%{
+            transform: translateX(0);
+        }
+        25%{
+            transform: translateX(-2%);
+        }
+        30%{
+            transform: translateY(0) scale(0.95,0.95);
+        }
+        35%{
+            transform: translateX(-5%) scale(0.9,0.9);
+        }
+        40%{
+            transform: translateX(-4%);
+        }
+        45%{
+            transform: translateX(3%) scale(0.95,0.95);
+        }
+        50%{
+            transform: translateX(0);
+        }
+        55%{
+            transform: translateX(-2%) scale(0.95,0.95);
+        }
+        60%{
+            transform: translateY(0);
+        }
+        75%{
+            transform: translateX(-5%) scale(0.95,0.95);
+        }
+        85%{
+            transform: translate(-5%, 5%) scale(0.9,0.9);
+        }
+        90%{
+            transform: scale(1.05,1.05);
+        }
+        100%{
+            transform: scale(0,0);
+        }
+    }
+    @keyframes chestPop{
+        0%{transform:scale(0,0);}
+        50%{transform:scale(1.1,1.1);}
+        75%{transform:scale(0.95,0.95);}
+        100%{transform:scale(1,1);}
+    }
+
+    #challengeRewardScreen{
+        text-align: center;
+    }
+
+    #challengeRewardScreen  > div.button{
+        cursor:url('../media/cursors/inspect.svg') 7 8, auto;
+        display:inline-block;
+    }
+    #challengeRewardScreen  > div.button:hover{
+        border-color:#FFF;
+    }
+    
+    
+
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed{
+        animation:nextBoss 1s ease-in-out alternate infinite;
+        border-color:#AFA;
+    }
+    
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed.anim{
+        animation:openChest 1s ease-in forwards;
+    }
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed.collected.anim{
+        animation:chestPop .25s ease-in-out forwards;
+    }
+    #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.collected{
+        animation:none;
+        background-position: right;
+        border-color:#FFF;
+    }
+
+    #overlay #challengeOffer{
+        text-align: center;
+    }
 
 
 

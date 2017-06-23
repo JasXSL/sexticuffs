@@ -33,7 +33,8 @@
             html+= '<img src="media/sxtitle.png" class="logo" />';
 
             html+= '<div class="border disclaimer">';
-            html+= '<p>This is a completely immoral <strong>adult game</strong>. Minors and puritans beware! It\'s currently just a concept.<br /><a href="https://www.patreon.com/jasx_games">Please feed my back at patreon</a>.<br /><a href="https://github.com/JasXSL/sexticuffs">Please help develop this on github</a>.</p>';
+            html+= '<p>This is a completely immoral <strong>adult game</strong>. Minors and puritans beware!</p>';
+            html+= '<p>Alpha r'+Game.version+(Game.isSandbox() ? ' Unstable' : ' Stable')+'</p>';
             html+= '</div>';
 
             if(Game.player){
@@ -46,6 +47,13 @@
             }
 
         html+= '</div>';
+
+        html+= '<div class="bottom">'+
+            '<a href="https://www.patreon.com/jasx_games"><img src="media/Patreon_logo.svg" /> Support this at Patreon</a>'+
+            '<a href="https://github.com/JasXSL/sexticuffs"><img src="media/github-logo.svg" /> Fork on github</a>'+
+            '<a href="https://discord.gg/6RdBZMU"><img src="media/Discord-Logo-White.svg" /> Join the discord!</a>'+
+            
+        '</div>';
 
 
         page.setContent(html);
@@ -146,8 +154,6 @@
             page.drawSplashscreen();
             Game.clickSound();
         });
-
-        console.log($("input[name=image]"));
 
         $("input[name=image]").on('change', function(){
             console.log("Image changed");
@@ -336,11 +342,9 @@
                     html+= '<p class="description">'+hsc(activeChar.description)+'</p>';
 
                     html+= '<table class="stats">';
-                        html+= '<tr><td>Level:</td><td>'+activeChar.getLevel()+'</td></tr>';
                         html+= '<tr><td>Sex:</td><td>'+activeChar.getGender().toUpperCase()+'</td></tr>';
-                        html+= '<tr><td>Species:</td><td>'+activeChar.race.name_male.toUpperCase()+'</td></tr>';
+                        html+= '<tr><td>Species:</td><td>'+activeChar.getRaceName().toUpperCase()+'</td></tr>';
                         html+= '<tr><td>Affinity:</td><td>'+activeChar.affinity.toUpperCase()+'</td></tr>';
-                        
                     html+= '</table>';
 
                     html+= '<input type="button" value="Select" id="selectCharacter" />';

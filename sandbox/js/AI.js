@@ -170,7 +170,7 @@ AI.ini = function(){
             }
 
             // This target doesn't need healing
-            if(~ability.ai_tags.indexOf("heal") && p.hp > p.max_hp*0.75)
+            if(~ability.ai_tags.indexOf("heal") && p.hp > p.getMaxHP()*0.75)
                 continue;
 
             // All done

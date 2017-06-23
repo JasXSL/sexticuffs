@@ -45,6 +45,18 @@ Netcode.ini = function(){
 };
 
 // HELPERS
+    // Returns an integer with nr of player characters
+    Netcode.getNumPCs = function(){
+        var i, out = 0;
+        for(i=0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].is_pc)
+                ++out;
+        }
+        if(out < 1)
+            out = 1;
+        return out;
+    };
+
     // Sends to server
     Netcode.output = function(task, args){
         if(!Netcode.Socket)
@@ -118,9 +130,30 @@ Netcode.ini = function(){
         return Netcode.hosting || !Netcode.Socket;
     };
 
+    Netcode.isHost = Netcode.isHosting;
+
 
 //
 
+/** Stuff for hosts */
+    Netcode.hostStartChallenge = function(challengeobj, stageobj){
+        var B = Game.Battle;
+        B.campaign = challengeobj;
+        B.stage = stageobj;
+        var p = [];
+        // Purge previous NPCs
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].is_pc){
+                Netcode.players[i].team = Character.TEAM_PC;
+                p.push(Netcode.players[i]);
+            }
+        }
+        Netcode.players = p.concat(stageobj.npcs);
+        Netcode.refreshParty();
+        Netcode.hostRefreshBattle();
+        
+        Jasmop.Page.set('battle', []);
+    };
 
 
 /* TASKS YOU CAN SEND */
@@ -166,7 +199,9 @@ Netcode.ini = function(){
         var obj = {
             turn : B.turn,
             punishment_done : B.punishment_done,
-            ended : B.ended
+            ended : B.ended,
+            campaign : (B.campaign ? B.campaign.id : false),
+            stage : (B.stage ? B.stage.id : false),
         };
         Netcode.output("RefreshBattle", [obj]);
     };
@@ -189,6 +224,21 @@ Netcode.ini = function(){
     Netcode.pickGem = function(index){
         Netcode.output("PickGem", [index]);
     };
+
+    // Scrolling battle text
+    Netcode.hostSBT = function(uuid, amount, detrimental){
+        if(!Netcode.Socket || !Netcode.isHosting)
+            return;
+        Netcode.output("SBT", [uuid, amount, detrimental]);
+    };
+
+    // Hit visual
+    Netcode.hostHitVisual = function(uuid, detrimental){
+        if(!Netcode.Socket || !Netcode.isHosting)
+            return;
+        Netcode.output("HitVisual", [uuid, detrimental]);
+    };
+    
 
     // Adds HTML to all players battle logs
     Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
@@ -416,7 +466,35 @@ Netcode.input = function(byHost, socketID, task, args){
         if(!Netcode.hosting)
             Jasmop.Page.set('battle');
     };
-    this.pubRefreshBattle = function(){};
+
+
+    // Scrolling battle text
+    this.pubSBT = function(uuid, amount, detrimental){
+        if(Netcode.isHosting())
+            return;
+        var player = Netcode.getCharacterByUuid(uuid);
+        if(player)
+            player.generateSBT(amount, detrimental);
+    };
+
+    this.pubHitVisual = function(uuid, detrimental){
+        if(Netcode.isHosting())
+            return;
+        var player = Netcode.getCharacterByUuid(uuid);
+        if(player)
+            player.hitVisual(detrimental);
+    };
+
+    // Refreshes campaigns
+    this.pubRefreshBattle = function(){
+        // updates turn and generic properties
+        var data = args[0];
+        var B = Game.Battle;
+        if(data.campaign)
+            B.campaign = Challenge.get(data.campaign);
+        if(data.stage)
+            B.stage = B.campaign.getStage(data.stage);
+    };
     this.pubUseAbility = function(){};
     this.pubAddToBattleLog = function(){};
     this.pubEndTurn = function(){};

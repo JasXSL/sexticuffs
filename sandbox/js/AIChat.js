@@ -358,4 +358,43 @@ class AIChat{
             
     //
 
+
+    // Succubus
+        race = 'succubus';
+
+        // Lick generic
+            aitl = [[ait.tLick]];
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'Oooh what a lovely taste you have!'});
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'Delicious!'});
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'What an exquisite flavor!'});
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'I can\'t help myself when you look so delicious!'});
+            add(race, char, aitl, {conditions:[C.NAKED], text: 'Can\'t blame a girl for wanting a taste!'});
+
+        // Whipping
+            aitl = [[ait.tWhip]];
+            add(race, char, aitl, {conditions:[], text: 'Naughty!'});
+            add(race, char, aitl, {conditions:[C.PENIS, C(CO.NOT_TAGS, ["c_vagina", "c_breasts"])], text: 'Naughty boys need to be punished!'});
+            add(race, char, aitl, {conditions:[], text: 'Aw did that hurt? Should I kiss and make better?'});
+            add(race, char, aitl, {conditions:C.FEMALE, text: 'Bad girls need to be put in their place!'});
+                    
+        // Crotch lick
+            aitl = [[ait.aGroin, ait.tLick]];
+            add(race, char, aitl, {conditions:[C.PENIS, C.CLOTHED], text: 'Seems someone has a nice package for me!'});
+            add(race, char, aitl, {conditions:[C.PENIS, C.CLOTHED], text: 'That seems constrained, you should let it all out!'});
+
+        // Top Strip
+            aitl = [[ait.aBreasts, ait.aCloth]];
+            add(race, char, aitl, {conditions:[C.BREASTS], text: 'You should let them out for me to play with!'});
+            add(race, char, aitl, {conditions:[C.BREASTS], text: 'I can\'t wait to play with those!'});
+
+            aitl = [[ait.aBreasts, ait.tRub]]; 
+            add(race, char, aitl, {conditions:[C.BREASTS], text: 'Mmm those feel lovely!'});
+        
+        // Pussy rub
+            aitl = [[ait.aVag, ait.tRub]];
+            add(race, char, aitl, {conditions:[], text: 'Feels good, doesn\'t it?'});
+        
+
+    //
+
 })();

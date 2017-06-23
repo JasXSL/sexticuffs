@@ -8,7 +8,8 @@ var Game = {};
     Game.Battle = null;
     Game.soundVolume = 0.5;
     Game.musicVolume = 0.5;
-
+    Game.mute = false;
+    Game.version = 1;
 
 
     Game.ini = function(){
@@ -38,7 +39,7 @@ var Game = {};
             }
         };
 
-        if(window.location.pathname === '/sandbox/'){
+        if(Game.isSandbox()){
             console.log("sandbox mode");
             $("body").append('<div id="sandbox" style="position:fixed; bottom:1vw; right:1vw; color:#FFF; font-weight:bold; font-size:2vmax;">Sandbox!</div>');
 
@@ -87,6 +88,17 @@ var Game = {};
             {id:'laser_close', src:'laser_close.ogg'},
             {id:'gem_pick', src:'gem_pick.ogg'},
             {id:'charge', src:'charge.ogg'},
+            {id:'kiss', src:'kiss.ogg'},
+            {id:'mez', src:'mez.ogg'},
+            {id:'dark_aura', src:'dark_aura.ogg'},
+            {id:'whip', src:'whip.ogg'},
+            {id:'dark_cast', src:'dark_cast.ogg'},
+            
+            // Start opening
+            {id:'chest_open', src:'chest_open.ogg'},
+            // Finish opening
+            {id:'treasure_open', src:'treasure_open.ogg'},
+            
             
             
             
@@ -113,7 +125,11 @@ var Game = {};
                         Game.soundVolume = +val;
                     else if(type === 'musicVolume')
                         Game.musicVolume = +val;
-                    
+                    else if(type === 'mute'){
+                        Game.mute = val > 0;
+                        createjs.Sound.muted = Game.mute;
+                    }
+                        
                 }
                 res();
             });
@@ -205,14 +221,18 @@ var Game = {};
         ]);
     };
 
+    Game.isSandbox = function(){
+        return window.location.pathname === '/sandbox/';
+    };
+
 
     // Constants
     Game.Consts = {
 
         // Used for conditions
         TARG_VICTIM : 'VICTIM',
-        TARG_ATTACKER : 'ATTACKER'
-
+        TARG_ATTACKER : 'ATTACKER',
+        TARG_RAISER : 'RAISER',             // Used only in events, person who raised the event
     };
 
 
@@ -321,7 +341,8 @@ var Game = {};
         {"id":'town', src:'media/audio/soundtracks/town.ogg'},
         {"id":'home', src:'media/audio/soundtracks/home.ogg'},
         {"id":'store', src:'media/audio/soundtracks/store.ogg'},
-        
+        {"id":'rocket_power', src:'media/audio/soundtracks/rocket_power.ogg'},
+          
     ];
     Game.Music.song = '';
     Game.Music.obj = null;  // Play object
@@ -388,6 +409,8 @@ var Game = {};
     Game.updateMenu = function(){
         var html = '<div class="entry button noclick effectVolume">Effect Volume<br/><input type="range" min=0 max=100 value='+Math.floor(Game.soundVolume*100)+' step=1 /></div>';
             html+= '<div class="entry button noclick musicVolume">Music<br /><input type="range" min=0 max=100 value='+Math.floor(Game.musicVolume*100)+' step=1 /></div>';
+            html+= '<div class="entry button noclick mute"><input type="checkbox" '+(Game.mute ? 'checked':'')+' /> Mute</div>';
+            
             html+= '<div class="entry button mainMenu">Main Menu</div>';
             
         Jasmop.Menu.set(html);
@@ -419,6 +442,14 @@ var Game = {};
             Jasmop.Page.set('index');
             Game.clickSound();
             Jasmop.Menu.close();
+        });
+
+        $("#menu div.mute").off('click').on('click', function(){
+            Game.mute = !Game.mute;
+            createjs.Sound.muted = Game.mute;
+            Game.clickSound();
+            $("input", this).prop('checked', Game.mute);
+            IDB.put('config', {'type':'mute', value:Game.mute});
         });
     };
 

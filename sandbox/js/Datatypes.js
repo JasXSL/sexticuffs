@@ -202,6 +202,9 @@ class Character extends Asset{
         this.hp = 20;			// 
 
 
+		// Challenges
+		this.challengesDone = {};		// challengeID:{wingID:{RW:(bool)reward_claimed, stages:{stageid:(bool)completed}}}
+
         this.mana = {
 			offensive : 0,
 			defensive : 0,
@@ -228,8 +231,8 @@ class Character extends Asset{
 		this.aiChat = null;
 		this.social = 50;		// Chance at each ability to talk
 		this.ignore_default_abils = false;		// Don't use default abilities
-		this.attack_text_conditions = [];		// Additional conditions for text filtering when you're the attacker
-		this.victim_text_conditions = [];		// Additional conditions for text filtering when you're the victim
+		//this.attack_text_conditions = [];		// Not currently supported since I don't know how...
+		//this.victim_text_conditions = [];		// 
 
         this.load(data); 
 
@@ -247,12 +250,23 @@ class Character extends Asset{
 			
 			var text, i;
 
-			var preArmor = this.armor;
+			var preArmor = this.armor, preHP = this.hp;
 			
+			// Healing to damage conversion
+			if(attacker.getEffectsWithStaticValue(EffectData.Types.heal_to_damage, attacker, this).length){
+				if(type === EffectData.Types.heal)
+					type = EffectData.Types.damage;
+				if(type === EffectData.Types.armorHeal)
+					type = EffectData.Types.armorDamage;
+			}
+
 			var takeDamage =  (type === EffectData.Types.damage || type == EffectData.Types.armorDamage || type === EffectData.Types.hpDamage);
 			// Detrimental
 			if(takeDamage){
 				amount += this.getDmgTakenAdder(attacker);
+				amount *= this.getDmgTakenMultiplier(attacker);
+				amount *= attacker.getDmgDoneMultiplier(this);
+				amount = Math.ceil(amount);
 
 				this.applyEffectEvent(EffectData.Triggers.takeDamage, [amount], attacker, this);
 				attacker.applyEffectEvent(EffectData.Triggers.dealDamage, [amount], attacker, this);
@@ -262,36 +276,29 @@ class Character extends Asset{
 			if(type === EffectData.Types.damage){
 				
 				this.armor -= amount;
-				text = ":TNAME: loses "+amount+" armor.";
 				if(this.armor < 0){
-					text = ":TNAME: loses ";
-					if(Math.abs(this.armor) != amount){
-						text+= (amount+this.armor)+" armor and "+Math.abs(this.armor)+" HP.";
-					}
-					else{
-						text+= Math.abs(this.armor)+" HP.";
-					}
 					this.hp += this.armor;
 				}
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this), true);
 			}
 			else if(type === EffectData.Types.heal){
+				
 				this.hp += amount;
-				if(this.hp > this.max_hp){amount -= this.hp-this.max_hp;}
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: gains "+amount+" HP."}).convert(attacker, this));
+
+				if(this.hp > this.getMaxHP()){
+
+					amount = this.hp-this.getMaxHP();
+					this.armor += amount;
+
+				}
 			}
 			else if(type === EffectData.Types.armorDamage){
 				this.armor -= amount;
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: loses "+amount+" armor."}).convert(attacker, this), true);
 			}
 			else if(type === EffectData.Types.hpDamage){
 				this.hp -= amount;
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: loses "+amount+" HP."}).convert(attacker, this), true);
 			}
 			else if(type === EffectData.Types.armorHeal){
 				this.armor += amount;
-				if(this.armor > this.max_armor){amount -= this.armor-this.max_armor;}
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: gains "+amount+" armor."}).convert(attacker, this));
 			}
 
 			// Mana
@@ -331,20 +338,32 @@ class Character extends Asset{
 			}
 
 			
-			if(preArmor > 0 && this.armor <= 0){
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME:'s "+this.armorSet.name+" was torn off!"}, true, false, false, 'cloth_rip').convert(attacker, this), true);
-			}
-
+			
 			// Constraints
-			if(this.hp > this.max_hp){this.hp = this.max_hp;}
-			else if(this.hp <= 0){
-				text = new Text({text:":TNAME: surrenders"});
-				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this), true, false, false, 'knockout');
-				
+			if(this.hp > this.getMaxHP())
+				this.hp = this.getMaxHP();
+			else if(this.hp <= 0)
 				this.hp = 0;
+			
+			if(this.armor > this.getMaxArmor())
+				this.armor = this.getMaxArmor();
+			else if(this.armor < 0)
+				this.armor = 0;
+
+			if(preArmor !== this.armor || preHP !== this.hp){
+				text = ':TNAME: ';
+				if(preArmor !== this.armor){
+					text += (preArmor > this.armor ? 'loses' : 'gains')+' '+Math.abs(this.armor-preArmor)+' armor';
+				}
+				if(preHP !== this.hp){
+					if(preArmor !== this.armor)
+						text+= ' and ';
+					text += (preHP > this.hp ? 'loses' : 'gains')+' '+Math.abs(this.hp-preHP)+' HP';
+				}
+
+				text += ".";
+				Game.Battle.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this), takeDamage);
 			}
-			if(this.armor > this.max_armor){this.armor = this.max_armor;}
-			else if(this.armor < 0){this.armor = 0;}
 			
 			for(i in this.mana){
 				if(this.mana[i] > this.max_mana)
@@ -352,6 +371,13 @@ class Character extends Asset{
 				else if(this.mana[i] < 0)
 					this.mana[i] = 0;
 			}
+
+
+			if(this.hp <= 0){
+				text = new Text({text:":TNAME: surrenders"});
+				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this), true, false, false, 'knockout');
+			}
+
 
 			if(takeDamage){
 				this.applyEffectEvent(EffectData.Triggers.takeDamageAfter, [amount], attacker, this);
@@ -363,32 +389,20 @@ class Character extends Asset{
 			
 		}
 
-		// Generates scrolling battle text
-		generateSBT(amount, detrimental){
-			if(isNaN(amount)){
-				return;
-			}
+		getMaxHP(){
+			// Player character or skirmish doesn't scale HP
+			if(this.is_pc || !Game.Battle.campaign)
+				return this.max_hp;
+			
+			return this.max_hp*Netcode.getNumPCs();
+		}
 
-			var playerElement = $("div.character[data-uuid="+this.UUID+"]");
-			var contentElement = $("#content");
-			var pos = playerElement.offset(),
-				base = contentElement.offset(),
-				height = contentElement.height(),
-				width = contentElement.width()
-			;
+		getMaxArmor(){
+			// Player character or skirmish doesn't scale HP
+			if(this.is_pc || !Game.Battle.campaign)
+				return this.max_armor;
 			
-			var left = pos.left+playerElement.width()/2 - base.left,
-				top = pos.top+playerElement.height()/2 - base.top
-			;
-			left /= width;
-			top /= height;
-			
-			var elem = $('<div class="SBT'+(!detrimental ? ' good':'')+'" style="left:'+(left*100)+'%; top:'+(top*100)+'%;">'+amount+'</div>');
-			// SBT
-			$("#content").append(elem);
-			setTimeout(function(){
-				elem.remove();
-			}, 2000);
+			return this.max_armor*Netcode.getNumPCs();
 		}
 
 		isDead(){
@@ -410,9 +424,25 @@ class Character extends Asset{
 			return this.getStaticValuePoints(EffectData.Types.damage_boost, attacker, this);
 		}
 
+		getDmgTakenMultiplier(attacker){
+			return this.getStaticValuePoints(EffectData.Types.damage_taken_multi, attacker, this, true);
+		}
+
+		getDmgDoneMultiplier(victim){
+			var out = this.getStaticValuePoints(EffectData.Types.damage_done_multi, this, victim, true);
+			if(!this.is_pc && Game.Battle.campaign)
+				out *= Netcode.getNumPCs();
+			return out;
+		}
+		
+
 		// Flat stat, does not need to be checked against anyone
 		getIsStunned(){
 			return this.getEffectsWithStaticValue(EffectData.Types.stun, this, this).length;
+		}
+
+		getIsInvul(){
+			return this.getEffectsWithStaticValue(EffectData.Types.invul, this, this).length;
 		}
 
 		hasEnoughMana(input){
@@ -431,11 +461,18 @@ class Character extends Asset{
 		}
 
 		// Gets a static value from effects
-		getStaticValuePoints(effectType, attacker, victim){
-			var out = 0;
+		getStaticValuePoints(effectType, attacker, victim, multiplicative){
+			var out = multiplicative ? 1 : 0;
 			for(var i =0; i<this.effects.length; ++i){
 				var fx = this.effects[i];
-				out += fx.getStaticValue(effectType, attacker, victim);
+				var n = fx.getStaticValue(effectType, attacker, victim);
+				if(!n)
+					continue;
+
+				if(multiplicative)
+					out *= n;
+				else	
+					out += n;
 			}
 			return out;
 		}
@@ -695,7 +732,7 @@ class Character extends Asset{
 
 			var image = this.image;
 
-			if(this.image.substr(0,6) !== 'https:'){
+			if(this.image.substr(0,6) !== 'https:' && this.image.substr(0,6) !== 'media/'){
 				if(this.image.substr(0,5) === 'http:')
 					image = 'https'+image.substr(4);
 				else
@@ -715,12 +752,15 @@ class Character extends Asset{
 			return false;
 		}
 
-		unlockArmor(id){
+		unlockArmor(id, no_equip){
+			var armor = Armor.get(id);
+			if(!armor)
+				return false;
 			if(this.ownsArmor(id))
 				return true;
-			if(!this.equipArmor(id))
-				return false;
-				
+			if(!no_equip)
+				this.equipArmor(id);
+
 			this.armor_unlocked.push(id);
 			this.save();
 		}
@@ -894,7 +934,7 @@ class Character extends Asset{
 
 				gainedLevel = true;
 				this.experience -= this.getMaxExperience();
-				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained a level! Welcome to level "+this.getLevel()+"!"}).convert(this, this));
+				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained an ability point! Visit the gym to spend it!"}).convert(this, this));
 			}
 
 			if(this.isMaxLevel())
@@ -908,8 +948,8 @@ class Character extends Asset{
 
 		getMaxExperience(){
 			var out = this.getLevel();
-			if(out>5){
-				out = 5;
+			if(out>20){
+				out = 20;
 			}
 			return out;
 		}
@@ -919,7 +959,7 @@ class Character extends Asset{
 				return false;
 			}
 
-			if(amount > 0)
+			if(amount > 0 && Game.Battle)
 				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: was rewarded "+amount+" Ð."}).convert(this, this), false, false, true);
 
 			this.cash+= amount;
@@ -938,9 +978,9 @@ class Character extends Asset{
 			var html = '<div id="characterInspect">';
 				html+= '<img class="icon" src="'+this.getImage()+'" />';
 				html+= '<h1>'+hsc(this.name)+'</h1>';
-				html+= '<p class="race">Level '+this.getLevel()+' '+hsc(this.getGender())+' '+hsc(this.race.getName())+' - '+hsc(this.affinity.toUpperCase())+' Affinity</p>';
+				html+= '<p class="race">'+hsc(this.getGender())+' '+hsc(this.getRaceName())+' - '+hsc(this.affinity.toUpperCase())+' Affinity</p>';
 				html+= '<p class="description">'+hsc(this.description)+'</p>';
-				html+= '<p class="armor">'+(this.armor ? 'Wearing '+hsc(this.armorSet.name) : 'Nude')+'</p>';
+				html+= '<p class="armor">'+'Wearing '+hsc(this.armorSet.name)+'</p>';
 				if(Netcode.isHosting() && this.UUID !== Game.player.UUID && this.is_pc){
 					html+= '<input type="button" class="kickPlayer" data-uuid="'+hsc(this.UUID)+'" value="Kick" />';
 				}
@@ -954,6 +994,219 @@ class Character extends Asset{
 				Netcode.kick(th.socket_id);
 			});
 
+		}
+
+		// Generates scrolling battle text
+		generateSBT(amount, detrimental){
+			if(isNaN(amount)){
+				return;
+			}
+
+			Netcode.hostSBT(this.UUID, amount, detrimental);
+
+
+			var playerElement = $("div.character[data-uuid="+this.UUID+"]");
+			var contentElement = $("#content");
+			var pos = playerElement.offset(),
+				base = contentElement.offset(),
+				height = contentElement.height(),
+				width = contentElement.width()
+			;
+			
+			var left = pos.left+playerElement.width()/2 - base.left,
+				top = pos.top+playerElement.height()/2 - base.top
+			;
+			left /= width;
+			top /= height;
+			
+			var elem = $('<div class="SBT'+(!detrimental ? ' good':'')+'" style="left:'+(left*100)+'%; top:'+(top*100)+'%;">'+amount+'</div>');
+			// SBT
+			$("#content").append(elem);
+			setTimeout(function(){
+				elem.remove();
+			}, 2000);
+		}
+
+		hitVisual(detrimental){
+
+			// Hit visual
+			var visual = (detrimental ? 'hitDetrimental' : 'hitBeneficial');
+
+			var uuid = this.UUID;
+			$("div.character[data-uuid="+uuid+"]").toggleClass("hitDetrimental hitBeneficial", false);
+			setTimeout(function(){
+				$("div.character[data-uuid="+uuid+"]").toggleClass(visual, true);
+			}, 10);
+			Netcode.hostHitVisual(uuid, detrimental);
+		}
+
+
+	//
+
+	// Challenges
+
+		// challengeID:{wingID:{RW:(bool)reward_claimed, stages:(arr)stage_ids_completed}}
+
+		// Checks if a challenge step is unlocked and can be played
+		challengeStepUnlocked(challengeID, stepID){
+			var challenge = Challenge.get(challengeID);
+			if(!challenge){
+				console.error("Challenge not found", challengeID);
+				return false;
+			}
+
+			
+			for(var i =0; i<challenge.wings.length; ++i){
+				var steps = challenge.wings[i].stages;
+				for(var x =0; x<steps.length; ++x){
+					var cc = this.challengeStepCompleted(challengeID, challenge.wings[i].id, steps[x].id);
+					if(steps[x].id !== stepID && !cc){
+						return false;
+					}
+					if(steps[x].id === stepID)
+						return true;
+				}
+			}
+
+			return false;
+		}
+
+		// Returns true if the a challenge step is completed
+		challengeStepCompleted(challengeID, wingID, stepID){
+			// No step completed
+			if(
+				!this.challengesDone[challengeID] ||
+				!this.challengesDone[challengeID][wingID] ||
+				!this.challengesDone[challengeID][wingID].stages[stepID]
+			)
+				return false;
+			return true;
+		}
+
+		// Returns true if a whole challenge is completed
+		challengeCompleted(challengeID){
+			var challenge = Challenge.get(challengeID);
+			if(!challenge){
+				console.error("Challenge not found", challengeID);
+				return false;
+			}
+			var wings = challenge.wings;
+			// Checks if all wings are done
+			for(var i =0; i<wings.length; ++i){
+				var stages = wings[i].stages;
+				for(var x =0; x<stages.length; ++x){
+					if(!this.challengeStepCompleted(challengeID, wings[i].id, stages[x].id))
+						return false;
+				}
+			}
+			return true;
+		}
+
+		// Returns true if the challenge was newly unlocked
+		challengeCompleteStep(challengeID, stepID){
+			var challenge = Challenge.get(challengeID);
+			if(!challenge){
+				console.error("Challenge not found", challengeID);
+				return false;
+			}
+
+			var wings = challenge.wings;
+			// Checks if all wings are done
+			for(var i =0; i<wings.length; ++i){
+				var stages = wings[i].stages, wingID = wings[i].id;
+				for(var x =0; x<stages.length; ++x){
+					if(stages[x].id === stepID){
+						if(!this.challengesDone[challengeID])
+						 	this.challengesDone[challengeID] = {};
+						if(!this.challengesDone[challengeID][wingID])
+						 	this.challengesDone[challengeID][wingID] = {RW:false, stages:{}};
+						// Step already completed
+						if(this.challengesDone[challengeID][wingID].stages[stepID])
+							return false;
+						this.challengesDone[challengeID][wingID].stages[stepID] = true;
+						return true;
+					}
+				}
+			}
+			console.error("No such step ID in challenge", stepID);
+			return false;
+		}
+
+		challengeRewardCollected(challengeID, wingID){
+			var challenge = Challenge.get(challengeID);
+			if(!challenge){
+				console.error("Challenge not found", challengeID);
+				return false;
+			}
+			if(
+				!this.challengesDone[challengeID] ||
+				!this.challengesDone[challengeID][wingID] ||
+				!this.challengesDone[challengeID][wingID].RW
+			)
+				return false;
+			
+			return true;
+		}
+
+		// Returns true if wing is completed
+		challengeWingCompleted(challengeID, wingID){
+			var challenge = Challenge.get(challengeID);
+			if(!challenge){
+				console.error("Challenge not found", challengeID);
+				return false;
+			}
+			for(var i =0; i<challenge.wings.length; ++i){
+				var wing = challenge.wings[i];
+				if(wing.id !== wingID)
+					continue;
+
+				for(var x = 0; x<wing.stages.length; ++x){
+					if(!this.challengeStepCompleted(challengeID, wingID, wing.stages[x].id))
+						return false;
+				}
+			}
+
+			return true;
+		}
+
+		challengeCollectReward(challengeID, wingID){
+			if(this.challengeRewardCollected(challengeID, wingID))
+				return false;
+			var challenge = Challenge.get(challengeID);
+			if(!challenge)
+				return false;
+
+			var wing = challenge.getWing(wingID), hsc = Jasmop.Tools.htmlspecialchars;
+			if(!wing)
+				return;
+
+			var rewards = wing.rewards;
+
+			var html = '<div id="challengeRewardScreen">'+
+				'<h1>Treasure found!</h1>';
+
+			for(var i =0; i<rewards.length; ++i){
+				var r = rewards[i];
+				if(r.type === ChallengeReward.Types.money){
+					this.addMoney(+Math.round(r.data));
+					html+= '<div class="button money">'+Math.round(r.data)+' Ð</div><br />';
+				}
+				else if(r.type === ChallengeReward.Types.clothes){
+					var armor = Armor.get(r.data);
+					if(!armor)
+						continue;
+					this.unlockArmor(armor.id, true);
+					html+= '<div class="button clothes">Clothes: <strong>'+hsc(armor.name)+'</strong><span class="tooltip">'+hsc(armor.description)+'</span></div><br />';
+				}
+			}
+			html+= '</div>';
+
+			Jasmop.Overlay.set(html);
+
+			this.challengesDone[challengeID][wingID].RW = true;
+
+			this.save();
+			return true;
 		}
 	//
 
@@ -1008,7 +1261,8 @@ class Character extends Asset{
 					(!all.beneficial && !beneficial)
 				){
 					this.removeEffect(fx.UUID, false);
-					--max;
+					if(max !== -1)
+						--max;
 				}
 			}
 
@@ -1117,8 +1371,8 @@ class Character extends Asset{
 				this.mana[i] = 0;
 			}
 			
-            this.hp = this.max_hp;
-            this.armor = this.max_armor;
+            this.hp = this.getMaxHP();
+            this.armor = this.getMaxArmor();
             this.effects = [];
 
 			this.aiChat = new AIChat(this);
@@ -1131,9 +1385,33 @@ class Character extends Asset{
         }
 
 		// A battle has been won
-		onVictory(){
-			this.addMoney(5);
-			this.addExperience(1); // Saves
+		onBattleEnded(won, campaignObj, stageObj){
+
+			var exp = 1, money = 5;			// 5 dosh for competing, regardless of win
+			// This was a campaign
+			if(campaignObj && stageObj && won){
+				
+				exp = 4;			// 4 experience
+				money = 20;			// 20 gold
+				
+				if(this.challengeCompleteStep(campaignObj.id, stageObj.id)){
+					this.save();
+					Game.Battle.statusTexts.add(this, this, new Text({text:"Challenge stage completed! Return for the next stage or a reward!"}).convert(this, this), false, false, true);
+				}
+
+			}
+			// 2 exp, 10 D for a skirmish win
+			else if(won){
+				exp = 2;
+				money = 10;
+			}
+
+			this.addMoney(money);
+			this.addExperience(exp); // Saves
+
+
+			// Player stats might have changed, so best send it again to host
+			Netcode.setCharacter();			
 		}
 
         onTurnStart(){
@@ -1182,26 +1460,51 @@ class Character extends Asset{
 
 		// Validates global text conditions for this character. Can be used to make a character straight for an instance.
 		// Does not affect abilities, only texts
-		validateAttackerConditions(victim, ability, success, verbose){
+		validateAttackerConditions(text){
+			/*
 			for(var i =0; i<this.attack_text_conditions.length; ++i){
-				if(!this.attack_text_conditions[i].validate(this, victim, ability, success, verbose))
+				if(!this.validateTextCondition(text, attack_text_conditions[i]))
 					return false;
 			}
+			*/
 			return true;
 		}
-		validateVictimConditions(attacker, ability, success, verbose){
+		validateVictimConditions(text){
+			/*
 			for(var i =0; i<this.victim_text_conditions.length; ++i){
-				if(!this.victim_text_conditions[i].validate(attacker, this, ability, success, verbose))
+				if(!this.validateTextCondition(text, victim_text_conditions[i]))
 					return false;
 			}
+			*/
 			return true;
 		}
-		
+
+		/*
+		validateTextCondition(text, condition){
+
+			var ctype = condition.type, cdata = condition.data;
+			var conds = text.conditions;
+			for(var i =0; i<conds.length; ++i){
+
+				var comp = conds[i];
+				// Make sure the two conditions being compared are the same type
+				if(comp.type !== ctype)
+					continue;
+
+				if(ctype === Condition.NOT_TAGS){
+					if()
+				}
+
+			}
+
+			return true;
+		}
+		*/
 
 	//
 
 	// Export - Import can just use new Character
-		export(){
+		export(full){
 			var out = {
 				UUID : this.UUID,
 				id : this.id,
@@ -1214,17 +1517,24 @@ class Character extends Asset{
 				race : this.race.id,
 				body_tags : this.body_tags,
 				armorSet : this.armorSet.id,
-				modified : this.modified,
 				affinity : this.affinity,
-				experience : this.experience,
-				unspent_points : this.unspent_points,
-				abilities_unlocked : this.abilities_unlocked,
-				cash : this.cash,
-				armor_unlocked : this.armor_unlocked,
 				is_pc : this.is_pc,
 				size : this.size,
 				strength : this.strength
 			};
+
+			// Stuff that the game host doesn't need, but we need to put in the DB
+			// Pretty much only used for loading and saving
+			if(full){
+				out.challengesDone = this.challengesDone;
+				out.modified = this.modified;
+				out.experience = this.experience;
+				out.unspent_points = this.unspent_points;
+				out.abilities_unlocked = this.abilities_unlocked;
+				out.cash = this.cash;
+				out.armor_unlocked = this.armor_unlocked;
+			}
+
 			return out;
 		}
 
@@ -1267,7 +1577,7 @@ class Character extends Asset{
 			if(this !== Game.player && !force)
 				return;
 			this.modified = Date.now();
-			return IDB.put('characters', this.export());
+			return IDB.put('characters', this.export(true));
 		}
 
 }
@@ -1291,6 +1601,7 @@ class Armor extends Asset{
         this.description = '';
         this.tags = [];
 		this.in_store = true;
+		this.cost = 50;
 
         this.load(data); 
 
@@ -1340,17 +1651,21 @@ class Ability extends Asset{
         this.effects = [];				// [[Effect, stacks]...] || [Effect...]
         this.cooldown = 1;
 		this.detrimental = true;
-		this.ai_tags = [];				// Tags for AI, ex healing
-		this.allow_dead = false;		// Usable on dead
+		this.ai_tags = [];					// Tags for AI, ex healing
+		this.allow_dead = false;			// Usable on dead
 		this.playable = false;		
-		this.icon = '';					// Should be an SVG	
-		this.charged = 0;				// Num turns it takes to charge it
+		this.icon = '';						// Should be an SVG	
+		this.charged = 0;					// Num turns it takes to charge it
+		this.charge_hit_conditions = false;	// Conditions to validate when charge hits. If false, use same as this.conditions, otherwise an array of conditions
+		this.always_hit = false;			// Ignore dodge/hit
+
+		this.passives = [];					// TODO Passive effects granted by having this ability
 
         // Gameplay values
         this._cooldown = 0;
 		this._charged = 0;				// Num turns until it should execute
 		this._charge_targs = [];		// Targets it should hit once it executes
-
+		
         this.load(data); 
 
         return this;
@@ -1381,7 +1696,8 @@ class Ability extends Asset{
 			allow_dead : this.allow_dead,
 			playable : this.playable,
 			icon : this.icon,
-			_cooldown : this._cooldown
+			_cooldown : this._cooldown,
+			always_hit : this.always_hit,
 		};
 	}
 
@@ -1417,6 +1733,11 @@ class Ability extends Asset{
 		}
 	}
 
+	getChargeHitConditions(){
+		if(this.charge_hit_conditions.constructor !== Array)
+			return this.conditions;
+		return this.charge_hit_conditions;
+	}
 
     // Returns an array of viable players for this spell or false if none
     usableOn(targ, verbose, allowError, isCharged){
@@ -1424,7 +1745,7 @@ class Ability extends Asset{
             targ = [targ];
         }
 
-        var out = [], i;
+        var out = [], i, t = [];
 
 		// Currently charging
 		if(this._charged){
@@ -1477,23 +1798,31 @@ class Ability extends Asset{
 			return false; 
 		}
         
-		// Manage taunt
-		var taunts = this.parent.getTaunting(), t = [];
+		// Manage taunt. Only relevant when starting a charge, not executed
+		if(!isCharged){
+			var taunts = this.parent.getTaunting();
 
-		// Calculate taunts. Should not work against buffs.
-		if(taunts.length && this.detrimental){
-			t = [];
-			for(i = 0; i<taunts.length; ++i){
-				if(~targ.indexOf(taunts[i])){
-					t.push(taunts[i]);
+			// Calculate taunts. Should not work against buffs.
+			if(taunts.length && this.detrimental){
+				t = [];
+				for(i = 0; i<taunts.length; ++i){
+					if(~targ.indexOf(taunts[i])){
+						t.push(taunts[i]);
+					}
 				}
+				targ = t;
 			}
-			targ = t;
 		}
+
 
 		if(verbose)
 			console.log("Scanning", this.name, "against", targ.length, "players");
         
+		var conds = this.conditions;
+		if(isCharged)
+			conds = this.getChargeHitConditions();
+
+		// Cycle players
 		for(var x =0; x<targ.length; ++x){
 
             t = targ[x];
@@ -1502,9 +1831,9 @@ class Ability extends Asset{
 				continue;
 
 			var success = true;
-            for(i=0; i<this.conditions.length && success; ++i){
+            for(i=0; i<conds.length && success; ++i){
 
-                var cond = this.conditions[i];
+                var cond = conds[i];
                 if(!cond.validate(this.parent, t)){
 					if(verbose){
 						console.log(this.name, "fail because condition", cond, 'against', t.name);
@@ -1535,7 +1864,7 @@ class Ability extends Asset{
 		if(targ.constructor !== Array){
 			targ = [targ];
 		}
-
+		var targs = targ;
 
 		var usr, successes = [], attacker = this.parent, i, text;
 		
@@ -1543,16 +1872,12 @@ class Ability extends Asset{
 		targ = this.usableOn(targ, false, false, chargeHit);
 
 		if(this.charged){
-			console.log("This is charged. ChargeHit:", chargeHit, "targs:", targ);
+			if(!targ){
+				Game.Battle.addToBattleLog(this.parent, this._charge_targs[0], new Text({text:":ATTACKER:'s :ABIL: failed."}).convert(this.parent, this._charge_targs[0], this), "rptext ability", false, 'fail');
+			}
 		}
 
-		// No viable targets
-		if(!targ){
-			console.error("No viable targets");
-			return [];
-		}
 
-		
 		// Handle charge
 		if(this.charged && !chargeHit){
 
@@ -1571,19 +1896,20 @@ class Ability extends Asset{
 		// Non-charged ability or charge execs
 		else{
 
-			for(usr = 0; usr<targ.length; ++usr){
+
+			for(usr = 0; usr<targ.length && targ; ++usr){
 
 				var t = targ[usr];
 				// Dodge, invul etc
 				var fail = false;
 
 				// Check dodge
-				if(this.detrimental){
+				if(this.detrimental && !this.always_hit){
 
 					var d = t.getDodgeFloat(attacker)-this.parent.getHitFloat(t);
 					if(verbose)
 						console.log(attacker.name, "hit chance against", t.name, d);
-					if(Math.random() < d){
+					if(Math.random() < d || t.getIsInvul()){
 						fail = true;
 					} 
 
@@ -1604,14 +1930,8 @@ class Ability extends Asset{
 						fx[0].useAgainst( this.parent, t, (fx[1] || 1) );
 					}
 
-					// Hit visual
-					var visual = (this.detrimental ? 'hitDetrimental' : 'hitBeneficial');
-					$("div.character[data-uuid="+t.UUID+"]").toggleClass("hitDetrimental hitBeneficial", false);
-
-
-					setTimeout(function(){
-						$("div.character[data-uuid="+t.UUID+"]").toggleClass(visual, true);
-					}, 10);
+					t.hitVisual(this.detrimental);
+					
 					
 				}
 
@@ -1631,7 +1951,6 @@ class Ability extends Asset{
 
 
 				
-
 				var out = text.convert(this.parent, t, this);
 				var sound = text.sound;
 				if(!sound)
@@ -1640,7 +1959,7 @@ class Ability extends Asset{
 
 				Game.Battle.addToBattleLog(this.parent, t, textblock, "rptext ability", false, sound);
 				Game.Battle.statusTexts.output();	// This flushes queued battle texts and ends capture
-
+				text.exec(this.parent, t);
 				
 
 				if(!fail){
@@ -1697,7 +2016,6 @@ class Ability extends Asset{
 		if(this._charged){
 			--this._charged;
 			if(!this._charged){
-				console.log("Using against", this._charge_targs);
 				this.useAgainst(this._charge_targs, false, true);
 			}
 		}
@@ -1866,23 +2184,22 @@ class Effect extends Asset{
 	// Specific
 	remove(triggerer){
 
-		// Removes from victim
-		this.on(EffectData.Triggers.remove, [], triggerer, this._victim);
-
-		this.victim.removeEffect(this.UUID);
+		// Removes from victim 
+		this.on(EffectData.Triggers.remove, [], triggerer, this.getVictim());
+		this.getVictim().removeEffect(this.UUID);
 
 	}
 
 	
 
-	// Generic event listener
+	// Generic event listener. Data is custom data that can be passed such as amount of damage etc
     on(evtName, data, attacker, victim){
 
 
 		for(var i =0; i<this.events.length; ++i){
 			var evt = this.events[i];
 			if(evt.hasTrigger(evtName, data, attacker, victim)){
-				this.runEvt(evt);
+				this.runEvt(evt, attacker, data);
 			}
 		}
 
@@ -1896,7 +2213,7 @@ class Effect extends Asset{
 		){
 			--this._duration;
 			if(this._duration <= 0){
-				this.getVictim().removeEffect(this.UUID);
+				this.remove(this.getVictim());
 			}
 		}
 
@@ -1908,6 +2225,7 @@ class Effect extends Asset{
 		var fxs = evt.effects.slice();
 		var attacker = this.getAttacker();
 		var victim = this.getVictim();
+		var a, v;
 
 		if(fxs.target === Game.Consts.TARG_ATTACKER){
 			attacker = this.getVictim();
@@ -1950,7 +2268,49 @@ class Effect extends Asset{
 				var max = fx[1] !== undefined ? +fx[1] : -1;
 				victim.dispel(ben, max);
 			}
+
+			// Apply an effect
+			if(type === EffectData.Types.applyEffect){
+				var dta = fx[0];
+				if(!dta || typeof dta !== 'object'){
+					console.error("Error in applyEffect, ", dta, "is not an object");
+				}
+				if(dta.constructor !== 'Effect'){
+					dta = new Effect(dta);
+				}
+				
+				var targ = dta.target;
+				a = this.getVictim();
+				v = a;
+				dta.target = Game.Consts.TARG_VICTIM;	// Reset target
+				if(targ === Game.Consts.TARG_ATTACKER)
+					v = this.getAttacker();
+				else if(targ === Game.Consts.TARG_RAISER)
+					v = triggerer;
+
+				dta.useAgainst(a, v, 1);
+
+			}
 			
+			// Output a text
+			if(type === EffectData.Types.text){
+
+				var text = new Text({
+					text : fx[0]
+				});
+
+				a = Netcode.getCharacterByUuid(this._attacker);
+				v = Netcode.getCharacterByUuid(this._victim);
+				
+
+				var out = text.convert(a, v, false);
+				var sound = fx[1];
+				var textblock = out;
+
+				Game.Battle.addToBattleLog(a, v, textblock, "rptext ability", false, sound);
+
+			}
+
 		}
 
 
@@ -2138,7 +2498,7 @@ EffectData.Triggers = {
 
 EffectData.Types = {
     damage : "dmg",                     // (int)points - Straight up damage
-    heal : "heal",                      // (int)points - HP healing
+    heal : "heal",                      // (int)points - Opposite of above
     armorDamage : "ardmg",              // (int)points - Damage only armor
 	hpDamage : "hpdmg",              	// (int)points - Damage only hp
 	armorHeal : "arheal",              	// (int)points - Heal only armor
@@ -2152,8 +2512,15 @@ EffectData.Types = {
 	dispel : "dispel",					// (bool)beneficial = false, (int)max = -1 - Removes one or more effects
 	manaDamage : "manadmg",				// [{offensive|defensive|support:(int)val}] - Remove mana
 	manaHeal : "manaheal",				// [{offensive|defensive|support:(int)val}] - Add mana
-};
+	// interrupt : "interrupt",			// (bool)all - Interrupts  
+	invul : "invul",					// Void - Makes target completely invulnerable
+	applyEffect : "applyeffect",		// (obj/Effect)effect - Applies an effect. Use target: Game.Consts.TARG_RAISER for the character that raised the event, target:Game.Consts.TARG_ATTACKER for the person who added the original event, and Game.Consts.TARG_VICTIM for self
+	text : "text",						// (str)text, (str)sound - Outputs a text
+	damage_taken_multi : "DmgTM",		// (float)multiplier - HP and armor damage will be multiplied against this value and rounded up.
+	damage_done_multi : 'DmgDM',		// Same as above but done
+	heal_to_damage : 'htdmg',			// void - Converts all attacker's healing to damage
 
+};
 
 
 // Conditions
@@ -2263,7 +2630,7 @@ class Condition extends Asset{
 					console.error("No such mana type:", i);
 					return false;
 				}
-				if(victim.mana[i] < this.data[0][i]){
+				if(victim.mana[i] <= this.data[0][i]){
 					return false;
 				}
 			}
@@ -2296,7 +2663,6 @@ Condition.SIZE_LESS_THAN_N = "SLTN";		// (int)amount - Target size is smaller th
 
 
 
-
 // Texts
 // This class expects arguments when instantiated
 class Text extends Asset{
@@ -2308,6 +2674,10 @@ class Text extends Asset{
 		this.text = "";
 		this.sound = "";
 		this.debug = false;		// Enables debugging
+
+		this.a_turntags = [];	// Apply turntags to attacker
+		this.v_turntags = [];	// Apply turntags to victim
+
 		this.load(data);
 		return this;
 	}
@@ -2406,9 +2776,13 @@ class Text extends Asset{
 					allowed = [new Text({text:":ANAME: used :ABIL: on :TNAME:."})];
 				
 			}
-			else
-				allowed = [new Text({text:":ANAME: tried to use :ABIL: on :TNAME:, but failed!", sound:'fail'})];
-			
+			else{
+				var end = 'but failed';
+				if(victim.getIsInvul() && ability.detrimental){
+					end = 'but :TARGET: is invulnerable!';
+				}
+				allowed = [new Text({text:":ANAME: tried to use :ABIL: on :TNAME:, "+end+"!", sound:'fail'})];
+			}
 		}
 		
 		if(verb){
@@ -2418,6 +2792,12 @@ class Text extends Asset{
 
 		
 		return text;
+	}
+
+	// Make sure to run this after outputting a Text.generate text
+	exec(attacker, victim){
+		attacker.addTurnTags(this.a_turntags);
+		victim.addTurnTags(this.v_turntags);
 	}
 
 	onAdd(){
@@ -2469,6 +2849,8 @@ Text.AIT = {
 	tPen : 'tPen',							// Penetrative, but not with a penis
 	tExpose : 'tExpose',					// Expose a player through their clothes
 	tFist : 'tFist',						// Fisting
+	tKiss : 'tKiss',
+	tWhip : 'tWhip',
 
 
 };
@@ -2529,7 +2911,7 @@ class Race extends Asset{
 
 	getName(isFemale){
 
-		if(isFemale && this.name_female){
+		if(isFemale && this.name_female.length){
 			return this.name_female;
 		}
 
@@ -2549,7 +2931,7 @@ class Race extends Asset{
 }
 
 
-
+// Stages in challenges need to have unique IDs
 class Challenge extends Asset{
 
     constructor(data){
@@ -2557,13 +2939,34 @@ class Challenge extends Asset{
         this.id = '';
 		this.name = '';
 		this.description = '';
+		this.buttonbg = '';
         this.wings = [];
-        this.rewards = [];
 		this.conditions = [];
 
         this.load(data);
         return this;
     }
+
+	getWing(id){
+		for(var i =0; i<this.wings.length; ++i){
+			if(this.wings[i].id === id)
+				return this.wings[i];
+		}
+		return false;
+	}
+	
+
+	getStage(id){
+		for(var i =0; i<this.wings.length; ++i){
+			var stages = this.wings[i].stages;
+			for(var x = 0; x<stages.length; ++x){
+				if(stages[x].id === id)
+					return stages[x];
+			}
+		}
+		return false;
+	}
+	
 
 }
 
@@ -2593,8 +2996,25 @@ class ChallengeStage extends Asset{
 		this.name = '';
 		this.description = '';
         this.npcs = [];
+		this.intro = [];			// Should contain talking heads
+		this.music = 'battle';
+		this.background = 'media/backgrounds/skirmish.jpg';
 
+        this.load(data);
+        return this;
+    }
 
+}
+
+class ChallengeTalkingHead extends Asset{
+
+	constructor(data){
+
+        super();
+        this.icon = '';					// Image of head
+		this.text = '';					// Text
+		this.sound = '';				// Sound ID
+		this.left = true;				// Alignment of head
         this.load(data);
         return this;
     }
@@ -2606,12 +3026,15 @@ class ChallengeReward extends Asset{
 	constructor(data){
 
         super();
-        this.id = '';
-        this.type = '';
+        this.type = ChallengeReward.Types.money;
+		this.data = 5;
 
         this.load(data);
         return this;
     }
 
 }
-
+ChallengeReward.Types = {
+	money : 'money',				// (int)amount
+	clothes : 'clothes',			// (str)id
+};

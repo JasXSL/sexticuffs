@@ -22,11 +22,13 @@
     };
     
 
-    page.CLOTH_COST = 50;
 
     page.onLoaded = function(){
         if(this.getArg(0) === 'lobby')
             page.drawSkirmish();
+        else if(this.getArg(0) === 'campaignRoot')
+            page.drawCampaignRoot();
+        
         else
             page.drawMap();        
     };
@@ -257,6 +259,10 @@
         $("div.button.skirmish").on('click', function(){
             page.drawSkirmish();
         });
+
+        $("div.button.campaigns").on('click', function(){
+            page.drawCampaignRoot();
+        });
         
 
         Game.rebindSounds();
@@ -264,8 +270,122 @@
 
 
 
+    page.selectedCampaign = 0;
+
+    page.drawCampaignRoot = function(){
+        // Refresh on change
+        page.onSocketSub = function(task, args, byHost, byMe, isHost){};
+        Game.setMusic('skirmish');
+        $("#wrap").attr('class', 'campaignRoot'); 
+        var html = '<div class="flex">';
+        
+            html+= '<div class="left root">';
+                html+= 'Campaign listing';
+                for(var i =0; i<DB.Challenge.length; ++i){
+                    var c = DB.Challenge[i];
+                    html+= '<div class="challenge button'+(i === page.selectedCampaign ? ' selected':'')+'" data-id="'+hsc(c.id)+'" style="background-image:url('+hsc(c.buttonbg)+')">';
+                        html+= hsc(c.name);
+                    html+= '</div>';
+                }
+
+                html+= '<div class="button back">Back</div>';
+
+            html+= '</div>';
+
+            html+= '<div class="right info">';
+                
+                var camp = DB.Challenge[page.selectedCampaign];
+                html+= '<div class="bar header">';
+                    html+= '<h1>'+hsc(camp.name)+'</h1>';
+                    html+= '<p class="subtitle">'+hsc(camp.description)+'</p>';
+                html+= '</div>';
+                
+                for(i=0; i<camp.wings.length; ++i){
+
+                    var wing = camp.wings[i];
+                    html+= '<div class="bar wing">';
+                        html+= '<h3>'+hsc(wing.name)+'</h3>';
+                        html+= '<p class="subtitle">'+hsc(wing.description)+'</p>';
+                        html+= '<div class="bosses">';
+
+                        for(var x =0; x<wing.stages.length; ++x){
+
+                            var unlocked = Game.player.challengeStepUnlocked(camp.id, wing.stages[x].id),
+                                completed = Game.player.challengeStepCompleted(camp.id, wing.id, wing.stages[x].id)
+                            ;
+                            html+= '<div data-id="'+hsc(wing.stages[x].id)+'" class="boss '+(completed ? ' completed' : '')+(unlocked ? ' unlocked' : '')+'" '+(unlocked ? 'style="background-image:url('+hsc(wing.stages[x].icon)+')"' : '')+'><span class="tooltip">'+(unlocked ? hsc(wing.stages[x].name) : 'Complete the previous stage to unlock this.' )+'</span></div>';
+
+                        }
+
+                            html+= '<div data-challenge="'+hsc(camp.id)+'" data-wing="'+hsc(wing.id)+'" class="boss reward '+(Game.player.challengeWingCompleted(camp.id, wing.id) ? ' completed' : '')+(Game.player.challengeRewardCollected(camp.id, wing.id) ? ' collected' : '')+'"></div>';
+
+                        html+= '</div>';
+                    html+= '</div>';
+
+                }
+
+            html+= '</div>';
+        
+        html+= '</div>';
+
+        
 
 
+
+        page.setContent(html);
+
+        $("div.button.back").on('click', function(){
+            page.drawSexticuffs();
+        });
+
+        $("#content div.button").on('click', function(){
+            Game.clickSound();
+        });
+
+        $("div.bosses div.boss.reward.completed:not(.collected)").on('click', function(){
+
+            var th = $(this);
+            th.toggleClass('anim', true);
+            Game.playSound('chest_open');
+            setTimeout(function(){
+                th.toggleClass('collected', true);
+                Game.playSound('treasure_open');
+                setTimeout(function(){
+                    Game.player.challengeCollectReward(th.attr('data-challenge'), th.attr('data-wing'));
+                }, 500);
+            }, 1000);
+
+            $(this).off('click');
+
+        });
+
+        $("div.bosses div.boss.unlocked[data-id]").on('click', function(){
+            var stage = $(this).attr('data-id');
+            var st = camp.getStage(stage);
+            if(!st)
+                return;
+
+            Game.clickSound();
+            var html = '<div id="challengeOffer">';
+                    html+= '<h1>'+hsc(st.name)+'</h1>';
+                    html+= '<p class="subtitle">'+hsc(st.description)+'</p>';
+                    if(Netcode.isHost())
+                        html+= '<input type="button" id="startChallenge" value="Start Battle" />';
+                html+= '</div>';
+
+            Jasmop.Overlay.set(html);
+
+            $("#startChallenge").on('click', function(){
+                // Start a challenge
+                Game.clickSound();
+                Netcode.hostStartChallenge(camp, st);
+            });
+        });
+        
+
+        Game.rebindSounds();
+
+    };
 
 
 
@@ -371,6 +491,11 @@
 
 
         $("div.right > div.startBattle").on('click', function(){
+            var b = Game.Battle;
+            // Wipe any previous campaign
+            b.campaign = null;
+            b.stage = null;
+
             Jasmop.Page.set('battle', []);
             Game.clickSound();
         });
@@ -642,7 +767,11 @@
                 // Active abilities
                 html+= '<div class="border shop">';
 
-                var all = Armor.search({in_store:true});
+                var all = Armor.search().filter(function(val){
+                    if(!val.in_store && !char.ownsArmor(val.id))
+                        return false;
+                    return true;
+                });
 
                 all.sort(function(a, b){
                     if(a.id === char.armorSet.id)
@@ -667,7 +796,7 @@
                 for(i =0; i<all.length; ++i){
                     var piece = all[i]; 
                     var owned = char.ownsArmor(piece.id);
-                    html+= '<div class="shopitem button armor'+(owned ? ' owned' : '')+(piece.id === char.armorSet.id ? ' worn' : '')+'" data-id="'+hsc(piece.id)+'">'+hsc(piece.name)+(!owned ? ' ['+page.CLOTH_COST+' &ETH;]' : '')+(piece.id === char.armorSet.id ? ' [Equipped]' : '')+'</div>';
+                    html+= '<div class="shopitem button armor'+(owned ? ' owned' : '')+(piece.id === char.armorSet.id ? ' worn' : '')+'" data-id="'+hsc(piece.id)+'">'+hsc(piece.name)+(!owned ? ' ['+(+piece.cost)+' &ETH;]' : '')+(piece.id === char.armorSet.id ? ' [Equipped]' : '')+'</div>';
                 }
                 html+= '</div>';
 
@@ -707,7 +836,7 @@
                     html+= '<p class="description">'+hsc(piece.description)+'</p>';
                     html+= '<hr />';
                     if(!owned)
-                        html+= '<input type="button" value="Purchase ('+page.CLOTH_COST+' &ETH;)" class="purchaseItem" />';
+                        html+= '<input type="button" value="Purchase ('+(piece.cost)+' &ETH;)" class="purchaseItem" />';
                     else if(piece.id !== char.armorSet.id)
                         html+= '<input type="button" value="Equip" class="equipItem" />';
                 
@@ -727,7 +856,7 @@
 
             $("#overlay div.shop input.purchaseItem").on('click', function(){
                  // Buy the armor
-                if(!char.addMoney(-50, false)){
+                if(!char.addMoney(-piece.cost, false)){
                     Jasmop.Errors.addErrors('Insufficient funds');
                     return;
                 }
