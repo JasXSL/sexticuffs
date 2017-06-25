@@ -1035,7 +1035,7 @@
             B.talkingHeadQueue = false;
             B.talkingHeads = [];
             if(B.isHost()){
-                if(B.stage.intro)
+                if(B.stage && B.stage.intro)
                     B.addTalkingHeads(B.stage.intro);
                 B.turn = Math.floor(Math.random()*Netcode.players.length);
             }
