@@ -239,6 +239,13 @@ function SocketHandler(socket, task, args){
 				this.respondToRoom([uuid, amount, detrimental]);
 			};
 
+			// Forwards Talking heads from host to party.
+			this.pubTalkingHeads = function(headsArr){
+				if(!th.isHost())
+					return;
+				this.respondToRoom([headsArr]);
+			};
+
 			// Forwards hit visual from host to party
 			this.pubHitVisual = function(uuid, detrimental){
 				if(!th.isHost())
@@ -292,6 +299,7 @@ io.on('connection', function(socket){
 	
 	// Generic input
 	socket.on('_GAME_', function(method, args){
+		console.log("GAME method", method, "from", socket.id);
 		new SocketHandler(socket, method, args);
 	});
 

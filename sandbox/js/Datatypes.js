@@ -216,6 +216,8 @@ class Character extends Asset{
 		this.offeredGems = [];
 		this.offeredGemsPicked = 0;
         this.effects = [];
+		this.passives = [];			// Same as effects
+		this.arena_passives = [];	// Passives fetched from the arena. These should be samey for all players in the arena.
 		this.color = "#EFE";	// Color is set when the battle starts
 
 		this.turn_tags = [];	// Tags that are wiped at the end of each turn
@@ -899,6 +901,26 @@ class Character extends Asset{
 
 		}
 
+		getAbilityById(id){
+			for(let abil of this.abilities){
+				if(abil.id === id)
+					return abil;
+			}
+			return false;
+		}
+
+		// interrupt a charged effect
+		interrupt(ids, attacker){
+			if(ids.constructor !== Array)
+				ids = [ids];
+			for(let id of ids){
+				var abil = this.getAbilityById(id);
+				if(abil){
+					abil.interrupt(attacker);
+				}
+			}
+		}
+
 	//
 
 	// Experience, leveling & money
@@ -1208,10 +1230,12 @@ class Character extends Asset{
 			this.save();
 			return true;
 		}
+
 	//
 
 
 	// Effects
+		// Removes active effects
 		removeEffect(uuid, silent){
 			for(var i =0; i<this.effects.length; ++i){
 				if(this.effects[i].UUID === uuid){
@@ -1226,6 +1250,7 @@ class Character extends Asset{
 			}
 		}
 
+		// Removes active effects
 		removeEffectsByIds(ids, silent){
 			for(var i =0; i<this.effects.length && this.effects.length; ++i){
 				if(~ids.indexOf(this.effects[i].id)){
@@ -1235,13 +1260,20 @@ class Character extends Asset{
 			}
 		}
 
+		// Applies events to active and passive
 		applyEffectEvent(evt, data, attacker, victim){
-			var fx = this.effects.slice();		// Makes sure effects get removed properly
+			var fx = this.getEffects();		// Makes sure effects get removed properly
 			for(var i=0; i<fx.length; ++i){
 				fx[i].on(evt, data, attacker, victim);
 			}
+			var abil = this.abilities.slice();
+
+			for(i=0; i<abil.length; ++i){
+				abil[i].on(evt, data, attacker, victim);
+			}
 		}
 
+		// Checks active effects
 		hasEffectByCaster(id, casterUUID){
 			for(var i=0; i<this.effects.length; ++i){
 				if(this.effects[i].id === id && this.effects[i]._attacker === casterUUID){
@@ -1251,6 +1283,7 @@ class Character extends Asset{
 			return false;
 		}
 
+		// Dispel active effects
 		dispel(beneficial, max){
 
 			var all = this.effects.slice();
@@ -1268,6 +1301,33 @@ class Character extends Asset{
 
 		}
 
+		// Returns a list of effects including passives and arena passives
+		getEffects(){
+			var out = this.effects.concat(this.passives, this.arena_passives);
+			return out;
+		}
+
+		// Remove a single passive by ID
+		removeArenaPassive(id){
+			for(let i = 0; i<this.arena_passives.length; ++i){
+				if(this.arena_passives[i].id === id){
+					this.arena_passives.splice(i,1);
+					return;
+				}
+			}
+		}
+
+		// Removes an array of passives by IDs
+		removeArenaPassives(passives){
+			if(passives.constructor !== Array){
+				passives = [passives];
+			}
+			for(let p of passives){
+				this.removeArenaPassive(p);
+			}
+		}
+
+		
 
     //
 	
@@ -1365,7 +1425,7 @@ class Character extends Asset{
             this.armorSet = this.armorSet.clone();
         }
 
-        onBattleStart(){
+        onBattleStart(stage){
 
 			for(var i in this.mana){
 				this.mana[i] = 0;
@@ -1377,7 +1437,20 @@ class Character extends Asset{
 
 			this.aiChat = new AIChat(this);
 
-			this.turn_tags = [];			
+			this.turn_tags = [];
+			this.arena_passives = [];
+
+			if(stage){
+				for(i=0; i<stage.passives.length; ++i){
+					var p = stage.passives[i].clone();
+					p.onBattleStart(this);
+					this.arena_passives.push(p);
+				}
+			}
+
+			for(i=0; i<this.passives.length; ++i){
+				this.passives[i].onBattleStart(this);
+			}		
 
 			for(i =0; i<this.abilities.length; ++i){
 				this.abilities[i].onBattleStart();
@@ -1391,8 +1464,8 @@ class Character extends Asset{
 			// This was a campaign
 			if(campaignObj && stageObj && won){
 				
-				exp = 4;			// 4 experience
-				money = 20;			// 20 gold
+				exp = 1+stageObj.difficulty*2;			// 1-9 experience
+				money = 10+stageObj.difficulty*10;		// 10-40 doge
 				
 				if(this.challengeCompleteStep(campaignObj.id, stageObj.id)){
 					this.save();
@@ -1659,7 +1732,7 @@ class Ability extends Asset{
 		this.charge_hit_conditions = false;	// Conditions to validate when charge hits. If false, use same as this.conditions, otherwise an array of conditions
 		this.always_hit = false;			// Ignore dodge/hit
 
-		this.passives = [];					// TODO Passive effects granted by having this ability
+		this.passives = [];					// Passive effects granted by having this ability
 
         // Gameplay values
         this._cooldown = 0;
@@ -1670,6 +1743,14 @@ class Ability extends Asset{
 
         return this;
     }
+
+	interrupt(attacker){
+		if(!this._charged)
+			return;
+		this.setCooldown();
+		this._charged = 0;
+		Game.Battle.statusTexts.add(attacker, this.parent, new Text({text:":TNAME:'s :ABIL: was interrupted!"}).convert(attacker, this.parent, this), true);
+	}
 
 	// Netgame export
 	export(){
@@ -1730,6 +1811,9 @@ class Ability extends Asset{
 		
 		for(i=0; i<this.conditions.length; ++i){
 			this.conditions[i] = new Condition(this.conditions[i]);
+		}
+		for(i=0; i<this.passives.length; ++i){
+			this.passives[i] = new Effect(this.passives[i]);
 		}
 	}
 
@@ -1890,6 +1974,7 @@ class Ability extends Asset{
 
 			text = new Text({text:txt});
 			Game.Battle.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this), "rptext ability", false, 'charge');
+			this.parent.applyEffectEvent(EffectData.Triggers.abilityCharged, [this.id], attacker, targ[0]);
 
 		}
 
@@ -1969,10 +2054,14 @@ class Ability extends Asset{
 						this.parent.aiChat.get(AIChat.Events.ability, text, this.parent, t, this);
 
 				}
+
+				// Regardless of fail or not, raise event
+				this.parent.applyEffectEvent(EffectData.Triggers.abilityUsed, [this.id, !fail], attacker, t);
+
 			}
 
 			// Add cooldown
-			this._cooldown = this.cooldown;
+			this.setCooldown();
 		}
 
 		// Don't consume mana if it was a charge hit, but do if it was a charge start
@@ -1983,8 +2072,22 @@ class Ability extends Asset{
 			}
 		}
 
+		
+
 		return successes;
     }
+
+	// Sets a cooldown
+	setCooldown(){
+		this._cooldown = this.cooldown;
+	}
+
+	// Event has been raised, run it on passives
+	on(evt, data, attacker, victim){
+		for(let passive of this.passives){
+			passive.on(evt, data, attacker, victim);
+		}
+	}
 
     // Events
     onClone(){
@@ -2023,6 +2126,9 @@ class Ability extends Asset{
 
 	onBattleStart(){
 		this._cooldown = 0;
+		for(let passive of this.passives){
+			passive.onBattleStart(this.parent);
+		}
 	}
 
 	getManaCost(){
@@ -2084,7 +2190,7 @@ class Effect extends Asset{
 		this.target = Game.Consts.TARG_VICTIM;
 		this.icon = '';
 		this.tags = [];							// Custom tags to apply to the victim
-
+		this.depletable = false;				// Blocks this effect after it runs. Useful for passives.
 		this.name = '';
 		this.description = '';
 
@@ -2092,7 +2198,7 @@ class Effect extends Asset{
         this._attacker = null;
         this._victim = null;
 		this._stacks = 1;
-        
+        this._depleted = false;
 
         this.load(data); 
 
@@ -2185,6 +2291,10 @@ class Effect extends Asset{
 	remove(triggerer){
 
 		// Removes from victim 
+		if(!this.getVictim()){
+			console.error("Unable to remove this effect, victim not found", this);
+			return;
+		}
 		this.on(EffectData.Triggers.remove, [], triggerer, this.getVictim());
 		this.getVictim().removeEffect(this.UUID);
 
@@ -2194,13 +2304,28 @@ class Effect extends Asset{
 
 	// Generic event listener. Data is custom data that can be passed such as amount of damage etc
     on(evtName, data, attacker, victim){
+		
+		if(this._depleted)
+			return;
 
-
+		
+		var verb =false;
+		if(verb)console.log("Checking game ended against", this.events);
+		
 		for(var i =0; i<this.events.length; ++i){
+
 			var evt = this.events[i];
-			if(evt.hasTrigger(evtName, data, attacker, victim)){
+			if(evt.hasTrigger(evtName, data, attacker, victim, verb)){
+				
+				if(verb)console.log("Trigger exists in", evt);
+		
 				this.runEvt(evt, attacker, data);
+				if(this.depletable)
+					this._depleted = true;
 			}
+			else if(verb)console.log("Trigger does not exist in", evt, EffectData.Triggers.gameEnded);
+
+
 		}
 
 
@@ -2240,7 +2365,7 @@ class Effect extends Asset{
 			if(fx.constructor !== Array){fx = [fx];}
 			else{ fx = fx.slice(); }
 
-			var type = fx[0].toLowerCase();
+			var type = fx[0];
 			fx.splice(0,1);
 
 			// Standard damage types
@@ -2311,6 +2436,29 @@ class Effect extends Asset{
 
 			}
 
+			if(type === EffectData.Types.talking_head){
+				Game.Battle.addTalkingHeads(fx);
+			}
+
+			if(type === EffectData.Types.removeArenaPassive){
+				var passives = fx[0];
+				if(passives.constructor !== Array)
+					passives = [passives];
+				
+				let pos;
+				while(~ (pos = passives.indexOf('_THIS_'))){
+					passives.splice(pos, 1, this.id);
+				}
+
+				for(let p of Netcode.players){
+					p.removeArenaPassives(passives);
+				}
+			}
+
+			if(type === EffectData.Types.interrupt){
+				victim.interrupt(fx[0], attacker);
+			}
+
 		}
 
 
@@ -2327,9 +2475,21 @@ class Effect extends Asset{
 		this.tags = this.tags.slice();
 	}
 
+	// Only used for passives
+	onBattleStart(character){
+		this._duration = this.duration;
+        this._attacker = character.UUID;
+        this._victim = character.UUID;
+		this._stacks = this.max_stacks;
+        this._depleted = false;
+	}
+
 	// Gets a flat value such as dodge
 	getStaticValue(type, attacker, victim){
 		var out = 0;
+		if(this._depleted)
+			return out;
+
 		var fxs = this.events;
 		for(var i=0; i<fxs.length; ++i){
 			out+= fxs[i].getStaticValue(type, attacker, victim);
@@ -2340,6 +2500,9 @@ class Effect extends Asset{
 	// Checks if a flat value such as taunt exists, and returns those values
 	getStaticValueEffects(type, attacker, victim){
 		var out = [];
+		if(this._depleted)
+			return out;
+			
 		var fxs = this.events;
 		for(var i=0; i<fxs.length; ++i){
 			if(fxs[i].hasStaticValue(type, attacker, victim))
@@ -2355,9 +2518,10 @@ class EffectData extends Asset{
     constructor(data, parent){
         super();
 
-        // Types are case insensitive
         this.triggers = [];         				// [[type, arg1, arg2...]...] || [type...]
-        this.effects = [];          				// [[type, arg1, arg2...]...] || [type...]
+        this.conditions = [];						// (arr)Condition - Conditions that have to be met before allowing this to trigger
+		this.effects = [];          				// [[type, arg1, arg2...]...] || [type...]
+
 		this.target = Game.Consts.TARG_VICTIM;
 		this.parent = parent;
 		this.victim_on_attacker = 0;				// 0 = either, 1 = this.parent._victim raised event against this.parent._attacker, -1 = this.parent._attacker raised event against this.parent._victim
@@ -2371,7 +2535,8 @@ class EffectData extends Asset{
 			triggers : this.triggers.slice(),
 			effects : this.effects.slice(),
 			target : this.target,
-			victim_on_attacker : this.victim_on_attacker
+			victim_on_attacker : this.victim_on_attacker,
+			conditions : this.conditions.map(function(val){ return val.export(); }),
 		};
 	}
 
@@ -2403,17 +2568,27 @@ class EffectData extends Asset{
 	
 	}
 
-	hasTrigger(evtName, data, attacker, victim){
+	hasTrigger(evtName, data, attacker, victim, verbose){
 
-		evtName = evtName.toLowerCase();
+
 		var triggers = this.triggers.slice();
 		var effects = this.effects.slice();
+		var i ;
 
 		// Victim on attacker limits
-		if(!this.validateVoA(attacker, victim))
+		if(!this.validateVoA(attacker, victim)){
+			if(verbose)console.log("Validation failed due to VoA");
 			return false;
+		}
 
-		for(var i =0; i<triggers.length; ++i){
+		// Conditions
+		for(i=0; i<this.conditions.length; ++i){
+			if(!this.conditions[i].validate(attacker, victim, null, true, verbose)){
+				return false;
+			}
+		}
+
+		for(i =0; i<triggers.length; ++i){
 			var tr = triggers[i];
 			if(tr === undefined){
 				console.error("Invalid trigger in effectData", this);
@@ -2425,18 +2600,30 @@ class EffectData extends Asset{
 
 			tr = tr.slice(); // Copies the array
 
-			var type = tr[0];
-			tr.splice(0,1);		// Tr is now args
+			var type = tr.shift();
+			// Tr is now args
 
 			if(type === evtName){
 
 				// Todo: Validate tr against data
+				for(let d in tr){
+					// Undefined is a wildcard
+					if(tr[d] === undefined)
+						continue;
+					if(data[d] != tr[d]){
+						if(verbose)
+							console.log("Vailidation failed because data mismatch:", data[d], "!=", tr[d]);
+						return false;
+					}
+				}
+
 				return true;
 
 			}
 
 		}
 
+		if(verbose)console.log("Validation failed due to trigger not found in triggers");
 		return false;
 	}
 
@@ -2483,19 +2670,26 @@ class EffectData extends Asset{
 
 }
 
-// A list of possible triggers. Case insensitive
+// A list of possible triggers. CASE SENSITIVE
 EffectData.Triggers = {
     apply : 'apply',    // Raised when the effect is added
 	remove : 'remove',
     turnStart : "turnstart",			// Raised on turn start
     turnEnd : "turnend",				// Raised on turn end 
-    takeDamage : "takedamage",			// *Raised before you take any damage
-    dealDamage : "dealdamage",			// *Raised before you successfully deal damage
-	takeDamageAfter : "takedamageafter",			// *Raised after you take any damage
-    dealDamageAfter : "dealdamageafter",			// *Raised after you successfully deal damage
+    takeDamage : "takedamage",			// Raised before you take any damage
+    dealDamage : "dealdamage",			// Raised before you successfully deal damage
+	takeDamageAfter : "takedamageafter",			// Raised after you take any damage
+    dealDamageAfter : "dealdamageafter",			// Raised after you successfully deal damage
 	attacked : "attacked",				// Raised when receiving an attack, no matter if it hit or not
+	gameStarted : "gameStarted",		// Raised when game starts (after talking heads)
+	gameEnded : "gameEnded",			// (int)winning_team - Raised when game ends
+	gameWon : "gameWon",				// void - Victim won
+	gameLost : "gameLost",				// void - Victim lost
+	abilityUsed : "abilityUsed",		// (str)abilityID, (bool)success - Raised when victim uses an ability (or a charge executes)
+	abilityCharged : "abilityCharged",	// (str)abilityID - Raised when victim uses a charged ability
 };
 
+// CASE SENSITIVE
 EffectData.Types = {
     damage : "dmg",                     // (int)points - Straight up damage
     heal : "heal",                      // (int)points - Opposite of above
@@ -2512,13 +2706,16 @@ EffectData.Types = {
 	dispel : "dispel",					// (bool)beneficial = false, (int)max = -1 - Removes one or more effects
 	manaDamage : "manadmg",				// [{offensive|defensive|support:(int)val}] - Remove mana
 	manaHeal : "manaheal",				// [{offensive|defensive|support:(int)val}] - Add mana
-	// interrupt : "interrupt",			// (bool)all - Interrupts  
+	interrupt : "interrupt",			// (bool)all - Interrupts  
 	invul : "invul",					// Void - Makes target completely invulnerable
 	applyEffect : "applyeffect",		// (obj/Effect)effect - Applies an effect. Use target: Game.Consts.TARG_RAISER for the character that raised the event, target:Game.Consts.TARG_ATTACKER for the person who added the original event, and Game.Consts.TARG_VICTIM for self
 	text : "text",						// (str)text, (str)sound - Outputs a text
 	damage_taken_multi : "DmgTM",		// (float)multiplier - HP and armor damage will be multiplied against this value and rounded up.
 	damage_done_multi : 'DmgDM',		// Same as above but done
 	heal_to_damage : 'htdmg',			// void - Converts all attacker's healing to damage
+	talking_head : 'talking_head',				// [(obj)ChallengeTalkingHead1, (obj)ChallengeTalkingHead2...] - Draws talking heads
+	removeArenaPassive : 'removeArenaPassive',	// (arr)ids || (str)id || "_THIS_" - Removes arena passives
+
 
 };
 
@@ -2620,6 +2817,9 @@ class Condition extends Asset{
 		if(this.type === Condition.SIZE_LESS_THAN_N && victim.size >= this.data[0])
 			return false;
 
+		if(this.type === Condition.PC && !victim.is_pc)
+			return false;
+
 		if(this.type === Condition.MANA_GREATER_THAN){
 			if(typeof this.data[0] !== 'object'){
 				console.error("condition MANA_GREATER_THAN expects an object");
@@ -2635,6 +2835,16 @@ class Condition extends Asset{
 				}
 			}
 
+		}
+
+		// BP = hp+armor
+		if(this.type === Condition.BP_LESS_THAN){
+			var max = victim.getMaxArmor()+victim.getMaxHP(),
+				cur = victim.hp+victim.armor
+			;
+			if(cur/max >= this.data[0]){
+				return false;
+			}
 		}
 
 		return true;
@@ -2660,8 +2870,8 @@ Condition.LARGER_THAN = "LARGER";			// void - Attacker is larger than target
 Condition.SMALLER_THAN = "SMALLER";			// void - Attacker is smaller than target
 Condition.MANA_GREATER_THAN = "MGT";		// [{offensive|defensive|support:(int)val}] - Mana is greater than this value
 Condition.SIZE_LESS_THAN_N = "SLTN";		// (int)amount - Target size is smaller than N
-
-
+Condition.BP_LESS_THAN = "BPLT";			// (float)percent - Battle points (hp+armor) less than percent of max
+Condition.PC = "PC";						// void - Victim is PC
 
 // Texts
 // This class expects arguments when instantiated
@@ -2726,7 +2936,7 @@ class Text extends Asset{
 			var short = spl[i].toLowerCase();
 
 			// Special case non-player tags
-			if(short === ':abil:'){
+			if(short === ':abil:' || short === ':ability:'){
 				short = ability.name;
 			}
 			else if(short.charAt(1) === "a"){
@@ -2999,12 +3209,24 @@ class ChallengeStage extends Asset{
 		this.intro = [];			// Should contain talking heads
 		this.music = 'battle';
 		this.background = 'media/backgrounds/skirmish.jpg';
+		this.difficulty = ChallengeStage.difficulty.normal;
+
+		// Effects to be passively applied to all players
+		this.passives = [];
 
         this.load(data);
         return this;
     }
 
 }
+
+ChallengeStage.difficulty = {
+	none : 0,
+	easy : 1,
+	normal : 2,
+	hard : 3,
+	veryHard : 4
+};
 
 class ChallengeTalkingHead extends Asset{
 

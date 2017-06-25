@@ -44,7 +44,8 @@ Netcode.ini = function(){
 
 };
 
-// HELPERS
+
+// PLAYER HELPERS
     // Returns an integer with nr of player characters
     Netcode.getNumPCs = function(){
         var i, out = 0;
@@ -56,6 +57,55 @@ Netcode.ini = function(){
             out = 1;
         return out;
     };
+    
+    // Gets the host
+    Netcode.getHost = function(){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].socket_id === Netcode.host_id && Netcode.players[i].is_pc && Netcode.host_id){
+                return Netcode.players[i];
+            }
+        }
+        return Netcode.getMe();
+    };
+
+    // gets my character
+    Netcode.getMe = function(){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].UUID === Game.player.UUID)
+                return Netcode.players[i];
+        }
+        return Game.player;
+    };
+
+    // Returns a character by socket ID
+    Netcode.getPlayerBySocketID = function(id){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].socket_id === id){
+                return Netcode.players[i];
+            }
+        }
+        return false;
+    };
+
+    Netcode.getCharacterByUuid = function(uuid){
+        for(var i =0; i<Netcode.players.length; ++i){
+            if(Netcode.players[i].UUID === uuid){
+                return Netcode.players[i];
+            }
+        }
+        return false;
+    };
+
+    // Runs a fn(player); on all players
+    Netcode.runOnPlayers = function(fn){
+        for(var i =0; i<Netcode.players.length; ++i){
+            fn(Netcode.players[i]);
+        }
+    };
+
+
+
+// HELPERS
 
     // Sends to server
     Netcode.output = function(task, args){
@@ -87,44 +137,6 @@ Netcode.ini = function(){
         Netcode.Socket = null;
     };
 
-    // Gets the host
-    Netcode.getHost = function(){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].socket_id === Netcode.host_id && Netcode.players[i].is_pc && Netcode.host_id){
-                return Netcode.players[i];
-            }
-        }
-        return Netcode.getMe();
-    };
-
-
-    // gets my character
-    Netcode.getMe = function(){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].UUID === Game.player.UUID)
-                return Netcode.players[i];
-        }
-        return Game.player;
-    };
-
-    // Returns a character by socket ID
-    Netcode.getPlayerBySocketID = function(id){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].socket_id === id){
-                return Netcode.players[i];
-            }
-        }
-        return false;
-    };
-
-    Netcode.getCharacterByUuid = function(uuid){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].UUID === uuid){
-                return Netcode.players[i];
-            }
-        }
-        return false;
-    };
 
     Netcode.isHosting = function(){
         return Netcode.hosting || !Netcode.Socket;
@@ -161,11 +173,34 @@ Netcode.ini = function(){
     Netcode.partyJoin = function(id){
         Netcode.output('JoinParty', [id]);
     };
-
     // Sends my character data
     Netcode.setCharacter = function(){
         Netcode.output('SetCharacter', [Game.player.hostExportFull()]);
     };
+    // Send a chat message
+    Netcode.chat = function(message){
+        Netcode.output('Chat', [message]);
+    };
+    // Sends a punishment selection to host
+    Netcode.selectPunishment = function(victimUUID, abilityID){
+        Netcode.output("SelectPunishment", [victimUUID, abilityID]);
+    };
+    // Uses an ability
+    Netcode.useAbility = function(victimUUID, abilityUUID){
+        Netcode.output("UseAbility", [victimUUID, abilityUUID]);
+    };
+    // Picks a gem
+    Netcode.pickGem = function(index){
+        Netcode.output("PickGem", [index]);
+    };
+    // Ends your turn
+    Netcode.endTurn = function(){
+        Netcode.output("EndTurn");
+    };
+
+
+/** HOST only */
+
 
     // Sends lobby data to players
     Netcode.refreshParty = function(){
@@ -179,6 +214,7 @@ Netcode.ini = function(){
         Netcode.output('UpdateCharacters', [p]);
     };
 
+    // Kick a player
     Netcode.kick = function(socketid){
         if(!Netcode.hosting)
             return;
@@ -186,10 +222,6 @@ Netcode.ini = function(){
         Netcode.output('Kick', [socketid]);
     };
 
-    Netcode.chat = function(message){
-        Netcode.output('Chat', [message]);
-    };
-    
     // refreshes battle data
     Netcode.hostRefreshBattle = function(){
         if(!Netcode.hosting)
@@ -206,23 +238,12 @@ Netcode.ini = function(){
         Netcode.output("RefreshBattle", [obj]);
     };
 
+    // Starts the battle
     Netcode.startBattle = function(){
         if(!Netcode.hosting)
             return;
         Netcode.output("StartBattle", []);
         Netcode.battleInProgress = true;
-    };
-
-    Netcode.selectPunishment = function(victimUUID, abilityID){
-        Netcode.output("SelectPunishment", [victimUUID, abilityID]);
-    };
-
-    Netcode.useAbility = function(victimUUID, abilityUUID){
-        Netcode.output("UseAbility", [victimUUID, abilityUUID]);
-    };
-
-    Netcode.pickGem = function(index){
-        Netcode.output("PickGem", [index]);
     };
 
     // Scrolling battle text
@@ -239,6 +260,12 @@ Netcode.ini = function(){
         Netcode.output("HitVisual", [uuid, detrimental]);
     };
     
+    // Sends talking heads to players.
+    Netcode.hostTalkingHeads = function(heads){
+        if(!Netcode.Socket || !Netcode.isHosting)
+            return;
+        Netcode.output("TalkingHeads", [heads]);
+    };
 
     // Adds HTML to all players battle logs
     Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
@@ -249,6 +276,7 @@ Netcode.ini = function(){
         Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound]);
     };
 
+    // Game over!
     Netcode.hostGameOver = function(teamWon){
         if(!Netcode.hosting)
             return;
@@ -265,9 +293,7 @@ Netcode.ini = function(){
 
     };
 
-    Netcode.endTurn = function(){
-        Netcode.output("EndTurn");
-    };
+    
 
 
 //
@@ -469,21 +495,8 @@ Netcode.input = function(byHost, socketID, task, args){
 
 
     // Scrolling battle text
-    this.pubSBT = function(uuid, amount, detrimental){
-        if(Netcode.isHosting())
-            return;
-        var player = Netcode.getCharacterByUuid(uuid);
-        if(player)
-            player.generateSBT(amount, detrimental);
-    };
-
-    this.pubHitVisual = function(uuid, detrimental){
-        if(Netcode.isHosting())
-            return;
-        var player = Netcode.getCharacterByUuid(uuid);
-        if(player)
-            player.hitVisual(detrimental);
-    };
+    this.pubSBT = function(uuid, amount, detrimental){};
+    this.pubHitVisual = function(uuid, detrimental){};
 
     // Refreshes campaigns
     this.pubRefreshBattle = function(){
@@ -501,7 +514,7 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubSelectPunishment = function(){};
     this.pubChat = function(){};    
     this.pubPickGem = function(){};    
-    
+    this.pubTalkingHeads = function(){};    
 
     // Run tasks before letting page know
     this._construct();

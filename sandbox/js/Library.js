@@ -93,6 +93,8 @@ var DB = {
                 "a_loincloth",  // has a flappy front bit
                 "a_stockings",
                 "a_swimsuit",   // Swimsuit type
+                "a_armored",
+                "a_wettable",   // See through when wet
 
                 // Species specific
                 "s_tail",
@@ -114,6 +116,7 @@ var DB = {
             // Not in store
             Armor.insert({id:'loincloth', name:'Tattered Loincloth', description:'A tattered loincloth.', tags:['a_loose', 'a_loincloth', 'a_bottom'], in_store:false});
             Armor.insert({id:'plateBikini', name:'Plate Bikini', description:'An adorned plate bra and panties.', tags:['a_tight', 'a_thong', 'a_shiny', 'a_upper', 'a_lower'], in_store:false});
+            Armor.insert({id:"sexticuffsShirt", name:"Sexticuffs Shirt", description:"It's just a T-Shirt with the Sexticuffs logo, and a thong. All in cotton.", tags:["a_tight", "a_upper", "a_lower", "a_wettable"], in_store:false});
             
             // Public
             Armor.insert({id:"goldenThong", name:"Golden Thong", cost:25, description:"A shiny gold-colored thong that fits tight over your crotch.", tags:["a_shiny", "a_tight", "a_thong", "a_lower"]});
@@ -121,6 +124,7 @@ var DB = {
             Armor.insert({id:"slingBikini", name:"Sling Bikini", cost:30, description:"A shiny sling bikini.", tags:["a_shiny", "a_tight", "a_thong", "a_sling", "a_upper", "a_lower"]});
             Armor.insert({id:"latexSet", name:"Latex Set", cost:150, description:"An outfit made of tight and shiny black latex. Comes with a top, thong and stockings.", tags:["a_shiny", "a_tight", "a_thong", "a_stockings", "a_upper", "a_lower"]});
             Armor.insert({id:"latexSwimsuit", name:"Latex Swimsuit", cost:95, description:"A shiny tight black latex swimsuit with a thong back.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_swimsuit"]});
+            Armor.insert({id:"techSuit", name:"Tech Swimsuit", cost:295, description:"A high tech one-piece with armored breasts and legs.", tags:["a_shiny", "a_tight", "a_upper", "a_lower", "a_swimsuit", "a_armored"]});
             
 
         //
@@ -892,7 +896,47 @@ var DB = {
                 ]
             });
 
-
+        // CHALLENGER_SLAM
+            Ability.insert({
+                id : 'CHALLENGER_SLAM',   // Should be unique
+                name : 'Challenger Slam',
+                icon: 'gavel.svg',
+                description : 'Deals 12 damage. Interrupted by taking damage.',
+                manacost : {offensive:2, support:2},
+                cooldown: 3,
+                detrimental : true,
+                charged : 1,
+                passives : [
+                    new Effect({
+                        id : 'challengerSlamInterrupt',
+                        max_stacks : 1,
+                        duration : Infinity,
+                        detrimental : false,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.takeDamage],
+                                effects:[[EffectData.Types.interrupt, 'CHALLENGER_SLAM']]
+                            })
+                        ]
+                    })
+                ],
+                conditions : [new Condition({type:Condition.SELF, inverse:true})],
+                ai_tags : ["damage", "stun"],
+                effects:[
+                    new Effect({
+                        id : 'GRASP',
+                        max_stacks : 1,
+                        duration : 0,
+                        detrimental : true,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[[EffectData.Types.damage, 12]]
+                            })
+                        ]
+                    }),               
+                ]
+            });
 
 
         // Base characters here
@@ -920,7 +964,7 @@ var DB = {
                 "KISS",						// Kiss a player, destroying 3 defensive crystals
                 "SUCCUBUS_AURA",			// Adds 100% dodge chance for 1 turn and stuns all players that attack her for 2 turns
                 "WHIPCRACK"					// Whips a player, inflicting extra damage
-            ], max_armor:15, max_hp:15, social:75, size:3, tags:["c_vagina", "c_breasts", "s_demon"], armorSet:Armor.get('plateBikini')});
+            ], max_armor:15, max_hp:15, social:75, size:5, tags:["c_vagina", "c_breasts", "s_demon"], armorSet:Armor.get('plateBikini')});
 
 
 
@@ -939,12 +983,279 @@ var DB = {
         sucb.name = 'Vylnila';
 
 
+        // Tutorial
+        Challenge.insert({
+            id : 'tutorial',
+            name : 'Welcome to Sexticuffs',
+            description : 'A primer for new fighters!',
+            buttonbg : '',
+            wings : [
+
+                // Only one wing for tutorial
+                new ChallengeWing({
+
+                    id : 'tutorial',
+                    name : 'Tutorial',
+                    description : 'Think you got what it takes to perform in Sexticuffs? Try the crash course!',
+                    stages:[
+
+                        // Target Dummy
+                        new ChallengeStage({
+                            difficulty: ChallengeStage.difficulty.none,
+                            id : 'targetDummy',
+                            icon : 'media/npc/barrel.svg',
+                            name : 'Target Dummy',
+                            //music : 'rocket_power',
+                            //background : '',
+                            description : 'Learn the ropes, fight a target dummy!',
+							intro : [
+								new ChallengeTalkingHead({icon:'', text:'Instructor: Welcome to the sexticuffs holo-arena!', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Instructor: All combat is digitally managed by our computers.', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Instructor: Reduce your opponent\'s hit points by using the provided abilities to win.', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Instructor: Abilities are charged with power gems.', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Instructor: You will gain bonus power each round based on your affinity.', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Instructor: Familiarize yourself with these gems while defeating the target dummy!', sound:''}),
+                            ],
+                            npcs : [
+                                new Character({
+                                    "id":"dummy", name:'Target Dummy', 
+                                    race:new Race({
+                                        id : 'targetDummy',
+                                        name_male : 'Target Dummy',
+                                        humanoid : false
+                                    }), 
+                                    image: 'media/npc/barrel.svg',
+                                    description:"A target dummy.", 
+                                    abilities:[], 
+                                    max_armor:0, max_hp:10, size:5, 
+                                    ignore_default_abils : true,
+                                    passives : [
+                                        new Effect({
+                                            id : 'alertAt5hp',
+                                            duration : Infinity,
+                                            depletable : true,
+                                            detrimental : false,
+                                            events : [
+                                                new EffectData({
+                                                    triggers : [[EffectData.Triggers.takeDamageAfter]],
+                                                    conditions : [C(CO.BP_LESS_THAN, [0.5])],
+                                                    effects : [
+                                                        [EffectData.Types.talking_head, new ChallengeTalkingHead({icon:'', text:'Instructor: Good job! Half way there!', sound:''})]
+                                                    ]
+                                                })
+                                            ]
+                                        })
+                                    ]
+                                }),
+                            ],
+                            passives : [
+                                new Effect({
+                                    id : 'alertAtGameEnd',
+                                    duration : Infinity,
+                                    detrimental : false,
+                                    events : [
+                                        new EffectData({
+                                            triggers : [[EffectData.Triggers.gameEnded]],
+                                            effects : [
+                                                [
+                                                    EffectData.Types.talking_head, 
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: Nicely done! The victor decides the punishment!', sound:''}),
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: Return to the arena when you are ready to fight a trainer!', sound:''}),
+                                                ],
+                                                [EffectData.Types.removeArenaPassive, '_THIS_']
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        // Trainer
+                        new ChallengeStage({
+                            difficulty: ChallengeStage.difficulty.easy,
+                            id : 'trainer',
+                            icon : 'media/npc/dogbot.jpg',
+                            name : 'Virtual Trainer',
+                            //music : 'rocket_power',
+                            //background : '',
+                            description : 'Time for a real fight, even if it\'s just against a virtual trainer!',
+							intro : [
+								new ChallengeTalkingHead({icon:'', text:'Instructor: Next up you will fight our trainer droid!', sound:''}),
+                            ],
+                            npcs : [
+                                new Character({
+                                    "id":"droid", name:'Virtual Trainer', 
+                                    race:Race.get('dog'), 
+                                    image: 'media/npc/dogbot.jpg',
+                                    description:"A female AI, used for training.", 
+                                    abilities:[], 
+                                    armorSet : Armor.get('techSuit'),
+                                    tags:["c_vagina", "c_breasts"], 
+                                    max_armor:10, max_hp:10, size:5, 
+                                    passives : [
+                                        new Effect({
+                                            id : 'alertAtHalf',
+                                            duration : Infinity,
+                                            depletable : true,
+                                            detrimental : false,
+                                            events : [
+                                                new EffectData({
+                                                    triggers : [[EffectData.Triggers.takeDamageAfter]],
+                                                    conditions : [C(CO.BP_LESS_THAN, [0.501])],
+                                                    effects : [
+                                                        [EffectData.Types.talking_head, new ChallengeTalkingHead({icon:'', text:'Instructor: Nice! You got her clothes off!', sound:''})]
+                                                    ]
+                                                })
+                                            ]
+                                        })
+                                    ]
+                                }),
+                            ],
+                            passives : [
+                                new Effect({
+                                    id : 'alertAtGameVictory',
+                                    duration : Infinity,
+                                    detrimental : false,
+                                    events : [
+                                        new EffectData({
+                                            triggers : [[EffectData.Triggers.gameWon]],
+                                            conditions: [C(CO.PC, [])],
+                                            effects : [
+                                                [
+                                                    EffectData.Types.talking_head, 
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: Nicely done!', sound:''}),
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: Only one battle left to earn our matching shirt and underwear set!', sound:''}),
+                                                ],
+                                                [EffectData.Types.removeArenaPassive, '_THIS_']
+                                            ],
+                                        }),
+                                        new EffectData({
+                                            triggers : [[EffectData.Triggers.gameLost]],
+                                            conditions: [C(CO.PC, [])],
+                                            effects : [
+                                                [
+                                                    EffectData.Types.talking_head, 
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: No luck this time! Go for a rematch!', sound:''}),
+                                                ],
+                                                [EffectData.Types.removeArenaPassive, '_THIS_']
+                                            ],
+                                        }),
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        // Challenger
+                        new ChallengeStage({
+                            difficulty: ChallengeStage.difficulty.easy,
+                            id : 'challenger',
+                            icon : 'media/npc/muscle-up.svg',
+                            name : 'Challenger',
+                            //music : 'rocket_power',
+                            //background : '',
+                            description : 'To win the fabulous official T-shirt and underwear set, you must defeat the other challenger!',
+							intro : [
+								new ChallengeTalkingHead({icon:'', text:'Instructor: Your final challenge will be to defeat a fellow challenger!', sound:''}),
+                                new ChallengeTalkingHead({icon:'media/npc/muscle-up.svg', text:'Challenger: That shirt is mine! You\'re going down, chump!', sound:''}),
+                            ],
+                            npcs : [
+                                new Character({
+                                    "id":"challenger", name:'', 
+                                    race:Race.get('dog'), 
+                                    image: 'media/npc/muscle-up.svg',
+                                    description:"Another challenger trying out for Sexticuffs.", 
+                                    abilities:[
+                                        "CHALLENGER_SLAM"
+                                    ], 
+                                    armorSet : Armor.get('goldenThong'),
+                                    tags:["c_penis"], 
+                                    max_armor:20, max_hp:20, size:5, 
+                                    passives:[
+                                        new Effect({
+                                            id : 'alertOnChallengerSlam',
+                                            duration : Infinity,
+                                            depletable : true,
+                                            detrimental : false,
+                                            events : [
+                                                new EffectData({
+                                                    triggers : [[EffectData.Triggers.abilityCharged, "CHALLENGER_SLAM"]],
+                                                    effects : [
+                                                        [
+                                                            EffectData.Types.talking_head, 
+                                                            new ChallengeTalkingHead({icon:'', text:'Instructor: He\'s charging an attack!', sound:''}),
+                                                            new ChallengeTalkingHead({icon:'', text:'Instructor: This one can be interrupted by damaging him!', sound:''}),
+                                                            new ChallengeTalkingHead({icon:'media/npc/muscle-up.svg', text:'Challenger: Uncool yo, you\'re supposed to be impartial!', sound:''}),
+                                                        ]
+                                                    ]
+                                                })
+                                            ]
+                                        })
+                                    ]
+                                }),
+                            ],
+                            passives : [
+                                new Effect({
+                                    id : 'alertAtGameVictory',
+                                    duration : Infinity,
+                                    detrimental : false,
+                                    events : [
+                                        new EffectData({
+                                            triggers : [[EffectData.Triggers.gameWon]],
+                                            conditions: [C(CO.PC, [])],
+                                            effects : [
+                                                [
+                                                    EffectData.Types.talking_head, 
+                                                    new ChallengeTalkingHead({icon:'media/npc/muscle-up.svg', text:'Challenger: So uhh, we\'re still pals right?', sound:''}),
+                                                    new ChallengeTalkingHead({icon:'', text:'Instructor: Good job! Return backstage for your reward!', sound:''}),
+                                                ],
+                                                [EffectData.Types.removeArenaPassive, '_THIS_']
+                                            ],
+                                        }),
+                                        new EffectData({
+                                            triggers : [[EffectData.Triggers.gameLost]],
+                                            conditions: [C(CO.PC, [])],
+                                            effects : [
+                                                [
+                                                    EffectData.Types.talking_head, 
+                                                    new ChallengeTalkingHead({icon:'media/npc/muscle-up.svg', text:'Challenger: Hah, now you\'re mine!', sound:''}),
+                                                ],
+                                                [EffectData.Types.removeArenaPassive, '_THIS_']
+                                            ],
+                                        }),
+                                    ]
+                                })
+                            ]
+                        }),
+                    ],
+                    rewards : [
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.clothes,
+                            data: 'sexticuffsShirt',
+                        }),
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.money,
+                            data: 50,
+                        }),
+                    ],
+                }),
+            ],
+            
+            conditions : []
+        });
+
+
+
+
+
+
+
+
         // Hell bent for latex
         Challenge.insert({
             id : 'sexyHell',
             name : 'Hell Bent for Latex',
             description : 'Raid the sexy demonic dimension. Defeat the denizens to receive a reward!',
-            buttonbg : '',
+            buttonbg : 'media/backgrounds/hell.jpg',
             wings : [
                 new ChallengeWing({
                     id : 'gatesOfHell',
@@ -1031,9 +1342,8 @@ var DB = {
             rewards : [
 
             ],
-            conditions : [
-
-            ],
+            // Not yet supported
+            conditions : [],
         });
 
     };
@@ -1149,7 +1459,7 @@ var DB = {
                 
 
             // Low blow
-                abil = C(CO.ABILITY, "LOW_BLOW");
+                abil = C(CO.ABILITY, ["LOW_BLOW", "CHALLENGER_SLAM"]);
                 Text.insert({conditions:[abil], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch between :TNAME:'s legs!"});
                 Text.insert({conditions:[abil], sound:'punch_heavy', ait:[ait.aGroin, ait.tKick], text:":ANAME: throws a swift kick between :TNAME:'s legs!"});
                 Text.insert({conditions:[abil, humanoid, C.BREASTS, C.HAS_TOP], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around within :THIS: :TCLOTHES:"});
@@ -1318,6 +1628,14 @@ var DB = {
                 Text.insert({conditions:[abil, C.PENIS, C(CO.NOT_TAGS, ["c_uncut"])], sound:'squish', text:":ATTACKER: picks up a remote with various buttons and a cock ring, motioning for :TARGET: to come over. The :ARACE: slips the ring over :TARGET:'s :TPENIS:, right behind the tip, and pushes a button with a lightning bolt on it. :TARGET: winces as a short burst of electricity jolts through :THIS: :TPENIS:. :ATTACKER: throws the remote into the audience, who take turns pushing the various buttons. The poor :TRACE:'s :TPENIS: is treated to a range of various settings, including rapid shock pulses, long jolts, painful squeezes as some settings cause the ring to contract, and powerful vibrations. A few minutes later, a horn sounds, signifying that the battle is over, and letting the :TRACE: remove the ring."});
                 Text.insert({conditions:[abil, C.PENIS, C(CO.TAGS, ["c_uncut"])], sound:'squish', text:":ATTACKER: picks up a remote with various buttons and a cock ring, motioning for :TARGET: to come over. The :ARACE: slips the ring under :TARGET:'s foreskin, nestling it at the back, and pushes a button with a lightning bolt on it. :TARGET: winces as a short burst of electricity jolts through :THIS: :TPENIS:. :ATTACKER: throws the remote into the audience, who take turns pushing the various buttons. The poor :TRACE:'s :TPENIS: is treated to a range of various settings, including rapid shock pulses, long jolts, painful squeezes as some settings cause the ring to contract, and powerful vibrations. A few minutes later, a horn sounds, signifying that the battle is over, and letting the :TRACE: remove the ring."});
             
+
+
+            // Target dummy
+                Text.insert({conditions:[C(CO.ABILITY, '__PUNISHMENT_DOM__'), C(CO.RACE, "targetDummy")], sound:'punch', text:":ATTACKER: humps at the wooden dummy a few times. Yeah that's right you wooden bastard, owned!"});
+                Text.insert({conditions:[C(CO.ABILITY, '__PUNISHMENT_SUB__'), C(CO.RACE, "targetDummy")], sound:'squish', text:":ATTACKER: licks the wooden dummy where its crotch would have been if it had one, carefully avoiding getting splinters in :AHIS: tongue!"});
+                Text.insert({conditions:[C(CO.ABILITY, '__PUNISHMENT_SAD__'), C(CO.RACE, "targetDummy")], sound:'slap', text:":ATTACKER: slaps the wooden dummy across its \"face\". Take that you pile of wood!"});
+                
+
         //
 
 

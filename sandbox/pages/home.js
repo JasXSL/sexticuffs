@@ -283,7 +283,7 @@
                 html+= 'Campaign listing';
                 for(var i =0; i<DB.Challenge.length; ++i){
                     var c = DB.Challenge[i];
-                    html+= '<div class="challenge button'+(i === page.selectedCampaign ? ' selected':'')+'" data-id="'+hsc(c.id)+'" style="background-image:url('+hsc(c.buttonbg)+')">';
+                    html+= '<div class="challenge button'+(i === page.selectedCampaign ? ' selected':'')+'" data-id="'+hsc(c.id)+'" data-index="'+i+'" style="background-size:cover; background-image:url('+hsc(c.buttonbg)+')">';
                         html+= hsc(c.name);
                     html+= '</div>';
                 }
@@ -295,7 +295,7 @@
             html+= '<div class="right info">';
                 
                 var camp = DB.Challenge[page.selectedCampaign];
-                html+= '<div class="bar header">';
+                html+= '<div class="bar header" style="background-size:cover; background-image:url('+hsc(camp.buttonbg)+')">';
                     html+= '<h1>'+hsc(camp.name)+'</h1>';
                     html+= '<p class="subtitle">'+hsc(camp.description)+'</p>';
                 html+= '</div>';
@@ -340,6 +340,11 @@
 
         $("#content div.button").on('click', function(){
             Game.clickSound();
+        });
+
+        $("#content div.left div.challenge.button").on('click', function(){
+            page.selectedCampaign = +$(this).attr('data-index');
+            page.drawCampaignRoot();
         });
 
         $("div.bosses div.boss.reward.completed:not(.collected)").on('click', function(){

@@ -33,8 +33,9 @@ class AIChat{
                 continue;
 
             // Not the right event
-            if(asset.charname && asset.charname !== this.character.name)
+            if(asset.charname && asset.charname !== this.character.id){
                 continue;
+            }
 
             // Not the right race
             if(asset.race && asset.race !== this.character.race.id)
@@ -121,7 +122,7 @@ class AIChat{
             super();
 
             this.race = false;      // Specific race name to tie it to
-            this.charname = false;  // Specific character name to tie it to
+            this.charname = false;  // Specific character id to tie it to
             this.ait = [];          // AI tags. Each element is a single tag or an array of tags that are ANDED. [["a", "b"], "c"]  = (a && b) || c
             this.text = new Text(); // Text object - Basic restrictions work here too
             this.event = 'ability'; // Event
@@ -358,7 +359,6 @@ class AIChat{
             
     //
 
-
     // Succubus
         race = 'succubus';
 
@@ -396,5 +396,35 @@ class AIChat{
         
 
     //
+
+    // TUTORIAL : challenger
+        // Butt slap
+            aitl = [[ait.aButt, ait.tSlap]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Smack!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Watch your back... hah!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Nice ass!'});
+            
+            aitl = [[ait.aButt, ait.tPin], [ait.aGroin, ait.tPin]];
+            add(false, "challenger", aitl, {conditions:[], text: 'I better get bonus points for this!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'How does it feel to have a winner inside you?!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Dominated!'});
+            
+            aitl = [[ait.aGroin, ait.tPunch], [ait.aGroin, ait.tKick], [ait.aGroin, ait.tTwist], [ait.aBreasts, ait.tPunch], [ait.aBreasts, ait.tKick], [ait.aBreasts, ait.tTwist]];
+            add(false, "challenger", aitl, {conditions:[], text: 'That\'s right, I went there!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Weak!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Gotta keep weak dudes like you out of the arena!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Hah, you suck!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'That all you got? Weak!'});
+            
+            aitl = [[ait.aBreasts]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Nice tits!'});
+            add(false, "challenger", aitl, {conditions:[], text: "Don't expect me to go easy on you just 'cause you have those crowd pleasers!"});
+            
+
+            aitl = [[ait.aGroin]];
+            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: 'Don\'t worry, once I beat you I\'ll make your :TCROTCHEX: feel real good!'});
+            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: "I can't resist a nice :TCROTCHEX:!"});
+            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: "Hey, nice :TCROTCHEX:! Can't wait to pound it after I defeat you!"});
+            
 
 })();

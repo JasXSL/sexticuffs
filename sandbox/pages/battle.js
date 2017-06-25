@@ -41,7 +41,9 @@
     B.campaign = null;                  // If this fight is a part of a campaign, this is the campaign object
     B.stage = null;                     // If this fight is part of a campaign, this is the stage object
     B.intro = false;                    // Intro is ongoing
-    B.talkingHeadStage = 0;
+    B.talkingHeads = [];                // Talking head queue
+    B.talkingHeadQueue = false;         // A talking head is active
+    B.talkingHeadTimer = null;
 
     B.statusTexts = {};                 // Status text info
         B.statusTexts.texts = [];           // Texts yet to be output
@@ -87,6 +89,27 @@
             return (B.getTurnCharacter() === B.getMyCharacter());
         };
 
+        // Raises an event on all players, with attacker and victim same as player
+        B.raiseEventOnPlayers = function(type, data){
+            for(var i =0; i<Netcode.players.length; ++i){
+                var player = Netcode.players[i];
+                player.applyEffectEvent(type, data, player, player);
+            }
+        };
+
+        // Data should be an array or a single object. Generic objects and ChallengeTalkingHead class objects are allowed
+        B.addTalkingHeads = function(data){
+            if(data.constructor !== Array){
+                data = [data];
+            }
+            for(var i =0; i<data.length; ++i){
+                if(data[i].constructor !== ChallengeTalkingHead)
+                    data[i] = new ChallengeTalkingHead(data);
+            }
+            B.talkingHeads = B.talkingHeads.concat(data);
+            B.advanceTalkingHead();
+            Netcode.hostTalkingHeads(data);
+        };
 
 
     // Battle events
@@ -233,6 +256,7 @@
             var hosting = B.isHost();
             // This was a punishment, let the punishment handler deal with it
             if(~Ability.PUNISHMENTS.indexOf(ability.id)){
+                B.closeTargetSelector();
                 if(!hosting)
                     return Netcode.selectPunishment(victim.UUID, ability.id);
                 return B.drawPunishment(me, victim, ability.id);
@@ -303,16 +327,19 @@
                 }
             }
 
-
+            // Game has ended. Waiting to pick punishment
+            B.raiseEventOnPlayers(EffectData.Triggers.gameEnded, []);
 
             var punishmentPicker = victors[Math.floor(Math.random()*victors.length)];
             B.addToBattleLog(punishmentPicker, null, '%a picks a punishment', 'important');
 
-            // Set turn to the player who picks punishment
-            for(i=0; i<Netcode.players.length; ++i){
-                if(Netcode.players[i].UUID === punishmentPicker.UUID){
+            // Set turn to the player who picks punishment, also raise win/loss events
+            for(i= 0; i< Netcode.players.length; ++i){ 
+                var player = Netcode.players[i];
+                if(player.UUID === punishmentPicker.UUID){
                     B.turn = i;
                 }
+                B.raiseEventOnPlayers(player.team === B.winning_team ? EffectData.Triggers.gameWon : EffectData.Triggers.gameLost, [], player, player);
             }
 
             B.onTurnChange();
@@ -719,17 +746,27 @@
         
 
         B.advanceTalkingHead = function(){
+            
+            if(B.talkingHeadQueue)
+                return;
 
             $("#talkingHead").toggleClass('hidden', true);
 
             // Start the battle
-            if(!B.stage || B.talkingHeadStage >= B.stage.intro.length){
+            if(!B.stage || !B.talkingHeads.length){
+                // This talking head was not a part of an intro
+                if(!B.intro) 
+                    return;
+
+                // This talking head was the final of the intro. Start the game  here
                 B.advanceTurn();
                 B.intro = false;
+                B.raiseEventOnPlayers(EffectData.Triggers.gameStarted, []);
+                
             }
             // Output talking head
             else{
-                var head = B.stage.intro[B.talkingHeadStage],
+                var head = B.talkingHeads.shift(),
                     text = head.text,
                     icon = head.icon,
                     sound = head.sound
@@ -737,15 +774,22 @@
                 if(!sound)
                     sound = 'shake';
                 
-                ++B.talkingHeadStage;
+                B.talkingHeadQueue = true;
 
-                setTimeout(function(){
+                B.talkingHeadTimer = setTimeout(function(){
                     $("#talkingHead").toggleClass('hidden', false);
                     $("#talkingHead div.text").html(hsc(text));
                     $("#talkingHead div.head").attr('style', 'background-image:url('+hsc(icon)+')');
                     Game.playSound(sound);
+
+                    B.talkingHeadTimer = setTimeout(function(){
+                        B.talkingHeadQueue = false;
+                        B.advanceTalkingHead();
+
+                    }, 4000);
+
                 }, 250);
-                setTimeout(B.advanceTalkingHead, 4000);
+                
             }
         };
 
@@ -780,7 +824,7 @@
                 Netcode.players[i] = c;
 
                 // This resets their status
-                c.onBattleStart();
+                c.onBattleStart(B.stage);
             }
 
             // Build the skeleton
@@ -974,13 +1018,25 @@
                 return false;
             });
 
+            /// Bind talking head click
+            $("#talkingHead").on('click', function(){
+                B.talkingHeadQueue = false;
+                clearTimeout(B.talkingHeadTimer);
+                B.advanceTalkingHead();
+            });
 
-            B.talkingHeadStage = 0;
-            if(B.stage && B.stage.intro.length){
-                B.intro = true;
-            }
 
+
+            // Begin
+
+            
+
+            B.intro = true;
+            B.talkingHeadQueue = false;
+            B.talkingHeads = [];
             if(B.isHost()){
+                if(B.stage.intro)
+                    B.addTalkingHeads(B.stage.intro);
                 B.turn = Math.floor(Math.random()*Netcode.players.length);
             }
 
@@ -997,7 +1053,7 @@
     // NETCODE
         page.onSocket = function(task, args, byHost, byMe, isHost, byPlayer){
 
-            var data = args;
+            var data = args, player;
             if(args)
                 data = args[0];
             
@@ -1044,12 +1100,28 @@
 
                     B.addToBattleLog(a, b, args[2], args[3], false, args[4]);
 
-
                 }
 
                 if(task === 'GameOver'){
                     B.onVictory(+args[0]);
                 }
+
+                if(task === 'TalkingHeads'){
+                    B.addTalkingHeads(args[0]);
+                }
+
+                if(task === 'HitVisual'){
+                    player = Netcode.getCharacterByUuid(data[0]);
+                    if(player)
+                        player.hitVisual(data[1]);
+                }
+
+                if(task === 'SBT'){
+                    player = Netcode.getCharacterByUuid(data[0]);
+                    if(player)
+                        player.generateSBT(data[1], data[2]);
+                }
+                
 
             }
 
@@ -1138,6 +1210,7 @@
     page.onUnload = function(){
         // Clear custom background
         $("#wrap").attr('style', '');
+        clearTimeout(B.talkingHeadTimer);
     };
     page.onUserData = function(){};
 

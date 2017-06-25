@@ -788,6 +788,7 @@ div{
         bottom:50%; right:10vw;
         transform:scale(1,1) translateY(-50%);
         transition:transform 0.25s cubic-bezier(.81,1,.18,.86);
+        user-select: none;
     }
     #wrap[data-page=battle] #talkingHead.hidden{
         transform:scale(0,0) translateY(-50%);
