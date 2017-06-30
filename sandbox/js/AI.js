@@ -16,22 +16,36 @@ AI.ini = function(){
     var B = Game.Battle; 
 
     // Adds an intermission to talk
-    AI.talk = function(attacker, victim, text){
+    AI.talk = function(attacker, victim, text, resume){
 
 
-        AI.blocked = true;
+        if(resume)
+            AI.blocked = true;
 
         
         new Promise(function(res){
 
-            setTimeout(res, 1000);
+            let t = 1000;
+            if(!resume)
+                t = 500;
+            setTimeout(res, t);
 
         }).then(function(){
 
-            return new Promise(function(res){
+            return new Promise(function(res, rej){
 
-                Game.Battle.statusTexts.add(attacker, victim, text, false, true);
+                let a = attacker, v = victim;
+                // JS code for swapping variables
+                if(!resume)
+                    [a,v] = [v,a]; // Swaps attacker and victim, otherwise the chat would come from the PC.
+
+                Game.Battle.statusTexts.add(a, v, text, false, true);
                 Game.playSound("shake");
+
+                if(!resume){
+                    rej();
+                    return;
+                }
                 setTimeout(res, 1000);
 
             });
@@ -42,6 +56,8 @@ AI.ini = function(){
             AI.blocked = false;
             AI.nextActionTimer = setTimeout(AI.nextAction, 500);
 
+        }).catch(function(){
+            // No need to continue here since we're the victim and it's not our turn
         });
         
 
@@ -61,8 +77,8 @@ AI.ini = function(){
         // Max nr of random spells to pick
         AI.numPlays = Math.ceil(Math.random()*3);
 
-        // 1/3 to skip when no mana is full
-        var skip = 1/3;
+        // 1/5 to skip when no mana is full
+        var skip = 1/5;
         for(var i in player.mana){
             if(player.mana[i] >= player.max_mana){
                 skip = 0;
@@ -103,11 +119,10 @@ AI.ini = function(){
 
     AI.performAction = function(){
 
-
         var run = function(){
 
             // Pick an ability if abilities are proper
-            if(AI.numPlays > 0){
+            if(AI.numPlays > 0 && !Game.Battle.ended){
 
                 var player = AI.player, abilities = player.abilities, all = AI.all;
 
@@ -125,7 +140,10 @@ AI.ini = function(){
                     // Use an ability
 
                     // If an RP text exists, if an RP text exists, this function might cause AI to become blocked
-                    B.useAbility(ability, players[Math.floor(Math.random()*players.length)]);
+                    let targ = players[Math.floor(Math.random()*players.length)];
+                    if(ability.aoe)
+                        targ = players;
+                    B.useAbility(ability, targ);
 
                     // Then continue
                     AI.performAction();
@@ -186,18 +204,25 @@ AI.ini = function(){
 
     // Gets a random viable ability
     AI.getViable = function(abilities, player, all){
-        var viable = [];
-        for(var i=0; i<abilities.length; ++i){
+        let viable = [], important = [];
+        for(let ability of abilities){
 
-            if(AI.getViablePlayers(player, abilities[i], all)){
-                viable.push(abilities[i]);
+            if(AI.getViablePlayers(player, ability, all)){
+                viable.push(ability);
+                if(~ability.ai_tags.indexOf('important'))
+                    important.push(ability);
             }
             
         }
 
+
         if(!viable.length){
             return false;
         }
+
+        // Important gets priority
+        if(important.length)
+            return important[Math.floor(Math.random()*important.length)];
 
         return viable[Math.floor(Math.random()*viable.length)];
         

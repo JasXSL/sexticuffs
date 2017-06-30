@@ -1371,6 +1371,12 @@ var Jasmop = {};
         return false;
     };
 
+    Jasmop.Tools.array_replace = function(search, replace, subject){
+        for(var i =0; i<subject.length; ++i){
+            if(subject[i] === search)
+                subject[i] = replace;
+        }
+    };
 
     // Generates a more readable time
     Jasmop.Tools.fuzzy_time = function(seconds){
@@ -1392,7 +1398,12 @@ var Jasmop = {};
         return '';
     };
 
-
+    Jasmop.Tools.array_shuffle = function(a) {
+        for(let i = a.length; i; i--) {
+            let j = Math.floor(Math.random() * i);
+            [a[i - 1], a[j]] = [a[j], a[i - 1]];
+        }
+    };
 
     Jasmop.Tools.copyTextToClipboard = function(text) {
         // By Dean Taylor @ Stackoverflow

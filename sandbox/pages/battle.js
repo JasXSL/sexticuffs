@@ -23,7 +23,11 @@
         "#DFF",
         "#FFD",
         "#FFF",
-        "#DDD"
+        "#DDD",
+        "#EFD",
+        "#DFE",
+        "#DEF",
+        "#FED",
     ];
 
     B.MANA_TYPES = [
@@ -33,6 +37,7 @@
     ];
 
 
+    B.total_turns = 0;                  // Total turns played
     B.turn = 0;                         // Turn from netcode
     B.page = null;                      // Jquery DOM object of this page
     B.turn_done_alert = false;          // Alerted that turn is done
@@ -55,7 +60,6 @@
     
     B.queued_ability = null;            // Ability selected for the target picker
     B.winning_team = 0;                 // Cache of winning team after battle ends
-    
 
 
 
@@ -72,6 +76,7 @@
                     return Netcode.players[i];
                 }
             }
+            return false;
         };
 
         // Returns the character object whose turn it is
@@ -139,7 +144,6 @@
 
         // Battle has ended
         B.onVictory = function(winningTeam){
-            var me = B.getMyCharacter();
             Game.player.onBattleEnded(+winningTeam === B.getMyCharacter().team, B.campaign, B.stage);
             Netcode.refreshParty();
         };
@@ -158,6 +162,7 @@
 
             Netcode.players[B.turn].onTurnEnd();
 
+
             for(var i=0; i<Netcode.players.length; ++i){
                 ++B.turn;
                 if(B.turn >= Netcode.players.length){ B.turn = 0; }
@@ -167,7 +172,7 @@
 
 
                     Netcode.players[B.turn].onTurnStart();
-
+                    ++B.total_turns;
                     // Player might have died
                     if(Netcode.players[B.turn].isDead()){
                         B.advanceTurn();
@@ -196,8 +201,12 @@
             
             var viable = ability.usableOn(Netcode.players, false, true);
             if(!viable){console.error("no viable targets for ability", ability, ability.usableOn(Netcode.players, true)); return;}
-            if(viable.length === 1){
-                B.useAbility(ability, viable[0]);
+
+            if(viable.length === 1 || ability.aoe){
+                if(viable.length === 1)
+                    viable = viable[0];
+                
+                B.useAbility(ability, viable);
                 return;
             }
 
@@ -242,6 +251,7 @@
             // Make sure we only loop through this at start
             player.offeredGemsPicked = 3;
 
+            // Output will be handled by the NPC actually running an action immediately
             AI.makePlay(player, Netcode.players);
         };
 
@@ -264,7 +274,7 @@
             
 
             if(!hosting){
-                Netcode.useAbility(victim.UUID, ability.UUID);
+                Netcode.useAbility(victim.UUID, ability.id);
                 B.closeTargetSelector();
                 return;
             }
@@ -289,13 +299,16 @@
 
         // Checks if battle has ended, and if so, selects the punishment picker
         B.checkBattleEnded = function(){
+            if(!B.isHost())
+                return;
+
             var teams = {}, p;
             for(var i =0; i<Netcode.players.length; ++i){
                 p = Netcode.players[i];
                 if(!teams.hasOwnProperty("t_"+p.team)){
                     teams["t_"+p.team] = 0;
                 }
-                if(Netcode.players[i].hp > 0){
+                if(p.hp > 0 && !p.summoned){
                     ++teams["t_"+p.team];
                 }
             }
@@ -309,6 +322,9 @@
             }
             B.ended = true;
             B.addToBattleLog(null, null, 'The battle has ended!', 'important');
+
+            // Clear all summoned players
+            Netcode.wipeSummonedPlayers();
             
             // Get punishment
             var victors = [];
@@ -318,7 +334,7 @@
                     // This is the winning team
                     for(var x =0; x<Netcode.players.length; ++x){
                         p = Netcode.players[x];
-                        if(!p.isDead()){
+                        if(!p.isDead() && !p.summoned){
                             victors.push(p);
                         }
                     }
@@ -422,6 +438,10 @@
             log.append('<div class="'+hsc(c)+'"><p>'+txt+'</p></div>');
             log[0].scrollTop = log[0].scrollHeight;
 
+            while($('#battlescreen > #text > *').length > 100){
+                $('#battlescreen > #text > *:first').remove();
+            }
+
             // In an online game and hosting
             if(B.isHost() && !overrideNetwork){
                 Netcode.hostAddToBattleLog((attacker ? attacker.UUID : null), (victim ? victim.UUID : null), text, classes, sound);
@@ -487,33 +507,20 @@
     // VISUALS
 
         // Returns HTML with icon and info of an active effect on a player or a charge
-        B.getFxIcon = function(asset){
+        B.getFxIcon = function(name, description, icon, number, stacks, detrimental, attacker, victim, charged){
             
-            // no icon
-            if(!asset.icon)
-                return '';
-            
-            var isAbil  = asset.constructor === Ability;
+            let desc = new Text({text:Jasmop.Tools.htmlspecialchars(description)});
 
-            if(isAbil && !asset._charged)
+            if(!name.length && !description.length)
                 return '';
 
-            var desc = new Text({text:Jasmop.Tools.htmlspecialchars(asset.description)});
-
-            var attacker = null, victim = null;
-            if(isAbil){
-                attacker = asset.parent;
-                victim = asset._charge_targs[0];
-            }else{
-                attacker = asset.getAttacker();
-                victim = asset.getVictim();
-            }
-
-            var out = '<div class="spellIcon '+(asset.detrimental ? 'detrimental' : '')+(isAbil ? ' charged' : '')+'">';
-                out+= '<div class="icon"><img src="media/effects/'+asset.icon+'" /></div>';
-                out+= '<div class="turns">'+(isAbil ? asset._charged : asset._duration)+'</div>';
-                out+= '<span class="tooltip">'+asset.name+(!isAbil && asset._stacks > 1 ? ' x'+asset.stacks : '')+'<br />'+
-                    desc.convert(attacker, victim).split('%a').join(attacker.getName())+
+            var out = '<div class="spellIcon '+(detrimental ? 'detrimental' : '')+(charged ? ' charged' : '')+'">';
+                out+= '<div class="icon"><img src="'+hsc(icon)+'" /></div>';
+                out+= '<div class="turns">'+(number === Infinity || number === null ? '' : number)+'</div>';
+                out+= '<span class="tooltip">'+hsc(name)+(stacks > 1 ? ' x'+stacks : '')+'<br />'+
+                    desc.convert(attacker, victim)
+                        .split('%a').join(attacker ? attacker.getName() : 'Unknown')
+                        .split('%t').join(victim ? victim.getName() : 'Unknown')+
                 '</span>';
             out+= '</div>';
 
@@ -532,6 +539,11 @@
                 var p = Netcode.players[i];
 
                 var portrait = $("div.character[data-uuid='"+p.UUID+"']", B.page);
+                if(!portrait.length){
+                    B.addPlayerPortrait(p);
+                    portrait = $("div.character[data-uuid='"+p.UUID+"']", B.page);
+                }
+
                 $("div.armor > span", portrait).html(p.armor);
                 $("div.hp > span", portrait).html(p.hp);
                 $("div.mana.offensive > span", portrait).html(p.mana.offensive);
@@ -553,17 +565,37 @@
 
 
                 var fx = '';
-                for(var f = 0; f < p.effects.length; ++f){
-                    fx+= B.getFxIcon(p.effects[f]);
+                if(p.grappled_by){
+                    fx+= B.getFxIcon("Grappled", 'Grappled by :ATTACKER:', p.grappled_by.getImage(), '', '', true, p.grappled_by, p, false);
                 }
-                for(f = 0; f < p.abilities.length; ++f){
-                    fx+= B.getFxIcon(p.abilities[f]);
+                
+                for(let targ of p.getGrappling()){
+                    fx+= B.getFxIcon("Grapple", 'Grappling :TARGET:', targ.getImage(), '', '', false, p, targ, false);
                 }
+
+                for(let f of p.effects){
+                    fx+= B.getFxIcon(f.name, f.description, f.icon, f._duration, f._stacks, f.detrimental, f.getAttacker(), f.getVictim(), false);
+                }
+
+                let abilities = p.getAbilities();
+                for(let f of abilities){
+                    if(!f._charged)
+                        continue;
+                    fx+= B.getFxIcon(f.name, f.description, f.icon, f._charged, 0, f.detrimental, p, f._charge_targs[0], true);
+                }
+
                 
                 $("div.effects", portrait).html(fx);
 
             }
 
+            // Remove any non-existing players
+            $("div.character[data-uuid]", B.page).each(function(){
+                let uuid = $(this).attr('data-uuid');
+                if(!Netcode.getCharacterByUuid(uuid)){
+                    $(this).remove();
+                }
+            });
 
 
             if(me.isDead() && !B.punishment_done){
@@ -577,8 +609,8 @@
             
 
 
-
-            if(B.myTurn() && !B.punishment_done){
+            // Update abilities
+            if(B.myTurn() && !B.punishment_done && !B.intro){
 
                 // We pick punishment
                 if(B.ended){
@@ -603,18 +635,30 @@
                 }
 
                 // Update ability buttons
-                var successfulAbilities = 0;
-                for(i=0; i<me.abilities.length; ++i){
-                    var a = me.abilities[i];
-                    var active = a.usableOn(Netcode.players).length > 0;
-                    var element = $("#abilities div.ability[data-uuid="+a.UUID+"]", B.page);
+                let successfulAbilities = 0, abilities = me.getAbilities();
+                for(let a of abilities){
+                    let active = a.usableOn(Netcode.players).length > 0;
+                    let element = $("#abilities div.ability[data-uuid="+a.UUID+"]", B.page);
+                    // Temp ability
+                    if(!element.length){
+                        $("#abilities", B.page).prepend(a.getButton());
+                        element = $("#abilities div.ability[data-uuid="+a.UUID+"]", B.page);
+                    }
+
                     element.toggleClass('active', active);
 
-                    var cooldown = a._cooldown;
+                    let cooldown = a._cooldown;
                     $('span.cooldown', element).html(cooldown ? ' ['+cooldown+']' : '');
 
                     successfulAbilities+= active;
                 }
+
+                $("#abilities > div.ability.button[data-uuid]").each(function(){
+                    let uuid = $(this).attr('data-uuid');
+                    if(!me.getAbilityByUuid(uuid)){
+                        $(this).remove();
+                    }
+                });
                 
                 // Handle turn done checks
                 if(!successfulAbilities && !B.turn_done_alert && B.getMyCharacter().offeredGemsPicked >= 3){
@@ -631,6 +675,25 @@
                 // Toggle end turn active
                 $("#abilities div.ability.endTurn").toggleClass('active', successfulAbilities === 0);
 
+                // Rebind ability buttons
+                $("#abilities div.ability[data-uuid]", B.page).off('click').on('click', function(){
+
+                    if(!B.myTurn()){
+                        console.error("Not your turn");
+                        return;
+                    }
+
+                    var ability = B.getMyCharacter().getAbilityByUuid($(this).attr('data-uuid'));
+                    if(ability === false){
+                        console.error("Ability not found", $(this).attr('data-uuid'));
+                        return;
+                    }
+
+                    if($(this).hasClass('active'))
+                        Game.playSound('shake');
+                    B.selectTarget(ability);
+
+                });
 
 
                 // Handle gem picker
@@ -693,6 +756,7 @@
         B.updateGems = function(event){
 
             var me = B.getMyCharacter();
+            
 
             // this might be an event you can parse with jquery
             // Update mana crystals
@@ -762,7 +826,8 @@
                 B.advanceTurn();
                 B.intro = false;
                 B.raiseEventOnPlayers(EffectData.Triggers.gameStarted, []);
-                
+                Netcode.hostRefreshBattle();
+                B.updateUI();
             }
             // Output talking head
             else{
@@ -793,6 +858,79 @@
             }
         };
 
+        // Adds a player portrait thingy
+        B.addPlayerPortrait = function(p){
+
+            // Find a free color
+            for(let color of B.COLORS){
+                let found = false;
+                for(let player of Netcode.players){
+                    if(player.color === color){
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    p.color = color; 
+                    break;
+                }
+            }
+
+
+            let me = B.getMyCharacter();
+            let html = '<div class="character'+(p === me ? ' PC ME' : '')+'" data-uuid="'+p.UUID+'" style="background-image:url('+p.getImage()+')">';
+                html+= '<div class="center">';
+                    html+= '<h3 class="name" style="color:'+p.color+'";>'+p.name+'</h3>';
+                html+= '</div>';
+
+                html+= '<div class="resources">';
+                    html+= '<div class="armor full"><div class="bg"></div><span></span></div>';
+                    html+= '<div class="hp full"><div class="bg"></div><span></span></div>';
+                    html+= '<div class="mana offensive full"><div class="bg"></div><span></span></div>';
+                    html+= '<div class="mana defensive full"><div class="bg"></div><span></span></div>';
+                    html+= '<div class="mana support full"><div class="bg"></div><span></span></div>';
+                    
+                html+= '</div>';
+
+                html+= '<div class="effects"></div>';
+
+            html+= '</div>';
+
+            var targ = "friends";
+            if(p.team !== me.team){targ = "enemies";}
+            $("#"+targ+' > div.bottom', B.page).prepend(html);
+
+            // Bind
+            // Select a target or get info
+            $("div.character[data-uuid]").off('click').on('click', function(){
+                if($(this).hasClass('selectable') && B.myTurn()){
+                    B.useAbility(
+                        B.queued_ability,
+                        B.getCharacterByUuid($(this).attr('data-uuid'))
+                    );
+                    return;
+                }
+
+                var char = B.getCharacterByUuid($(this).attr('data-uuid'));
+
+                char.inspect();
+            });
+
+            
+
+        };
+
+        // Updates mana and offered gems for the active player. Greatly reduces the amount of data needed to be sent for gem picking
+        B.sendPlayerGems = function(){
+            let p = B.getTurnCharacter();
+            Netcode.refreshData({
+                UUID:p.UUID,
+                mana : p.mana,
+                offeredGems : p.offeredGems,
+                offeredGemsPicked : p.offeredGemsPicked,
+            });
+        };
+
         // Builds the DOM and binds events
         page.onLoaded = function(){
 
@@ -808,21 +946,16 @@
             ;
 
             // Reset defaults
+            B.total_turns = 0;                          // Total nr of turns played
             B.turn = 0;                                 // Set turn to the first player (usually host)
             B.ended = false;                            // Battle has not ended
             B.punishment_done = false;                  // Punishment is not drawn
             AIChat.ini();                               // Initialize AI chats
 
             // Reset the players
-            for(i=0; i<players.length; ++i){
-                
+            for(i=0; i<players.length; ++i){               
                 var c = players[i];
-
-                // Grant a color
-                c.color = B.COLORS[i];
-
                 Netcode.players[i] = c;
-
                 // This resets their status
                 c.onBattleStart(B.stage);
             }
@@ -834,7 +967,8 @@
                 '<div id="friends"><div class="bottom"></div></div>'+
                 '<div id="battlescreen" class="border">'+
                     '<div id="text"'+(!Netcode.Socket ? ' class="singleplayer" ' : '')+'></div>'+
-                    (Netcode.Socket ? '<div id="chat" contenteditable></div>' : '')+
+                    
+                    (Netcode.Socket ? '<div id="chatMarker">&gt;</div><div id="chat" contenteditable></div>' : '')+
                 '</div>'+
                 '<div id="enemies"><div class="bottom"></div></div>'+
                 '</div>'+
@@ -874,44 +1008,21 @@
 
 
 
-
             // Add the players
             for(i=0; i<Netcode.players.length; ++i){
                 var p = Netcode.players[i];
-                
-                html = '<div class="character'+(p === me ? ' PC ME' : '')+'" data-uuid="'+p.UUID+'" style="background-image:url('+p.getImage()+')">';
-                    html+= '<div class="center">';
-                        html+= '<h3 class="name" style="color:'+p.color+'";>'+p.name+'</h3>';
-                    html+= '</div>';
-
-                    html+= '<div class="resources">';
-                        html+= '<div class="armor full"><div class="bg"></div><span></span></div>';
-                        html+= '<div class="hp full"><div class="bg"></div><span></span></div>';
-                        html+= '<div class="mana offensive full"><div class="bg"></div><span></span></div>';
-                        html+= '<div class="mana defensive full"><div class="bg"></div><span></span></div>';
-                        html+= '<div class="mana support full"><div class="bg"></div><span></span></div>';
-                        
-                    html+= '</div>';
-
-                    html+= '<div class="effects"></div>';
-
-                html+= '</div>';
-
-                var targ = "friends";
-                if(p.team !== me.team){targ = "enemies";}
-                $("#"+targ+' > div.bottom', B.page).append(html);
+                B.addPlayerPortrait(p);
             }
             // move yourself to the bottom left
             $("#friends > div.bottom div.character.ME", B.page).appendTo($("#friends > div.bottom"));
 
 
 
-
             // Draw abilities
-            var abilities = me.abilities;
+            let abilities = me.getAbilities();
 
-            for(i=0; i<abilities.length; ++i){
-                html = abilities[i].getButton();
+            for(let ability of abilities){
+                html = ability.getButton();
                 $("#abilities", B.page).append(html);
             }
 
@@ -925,28 +1036,6 @@
                 $("#gemPicker div.gemsOffered").toggleClass('hidden');
             });
 
-
-            // Bind ability buttons
-            $("#abilities div.ability[data-uuid]", B.page).on('click', function(){
-
-                if(!B.myTurn()){
-                    console.error("Not your turn");
-                    return;
-                }
-
-                var ability = B.getMyCharacter().getAbilityByUuid($(this).attr('data-uuid'));
-                if(ability === false){
-                    console.error("Ability not found", $(this).attr('data-uuid'));
-                    return;
-                }
-
-                if($(this).hasClass('active'))
-                    Game.playSound('shake');
-                B.selectTarget(ability);
-
-            });
-
-
             // Bind gem pickers
             $("#gemPicker div.gemsOffered div.gem").on('click', function(){
 
@@ -957,10 +1046,13 @@
 
                 else if(me.pickGem(index)){
                     B.updateUI();
-                    Game.playSound('gem_pick');
                     if(me.offeredGemsPicked >= 3)
                         Game.playSound('laser_close');
+                    
+                    B.sendPlayerGems();
                 }
+
+                Game.playSound('gem_pick');
 
             });
 
@@ -988,32 +1080,13 @@
             // Ability button
             $("#abilities div.ability[data-uuid]", B.page).on('mouseover mouseout', B.updateGems);
 
-
-            // Select a target or get info
-            $("div.character[data-uuid]").on('click', function(){
-                if($(this).hasClass('selectable') && B.myTurn()){
-                    B.useAbility(
-                        B.queued_ability,
-                        B.getCharacterByUuid($(this).attr('data-uuid'))
-                    );
-                    return;
-                }
-
-                var char = B.getCharacterByUuid($(this).attr('data-uuid'));
-
-                char.inspect();
-
-                
-
-            });
-
             // Bind chat
             $("#chat").on('keypress', function(event){
                 if(event.keyCode !== 13)
                     return;
                 
                 if($("#chat").html())
-                    Netcode.chat($("#chat").html());
+                    Netcode.chat($("#chat").text());
                 $(this).html('');
                 return false;
             });
@@ -1025,6 +1098,8 @@
                 B.advanceTalkingHead();
             });
 
+            // make sure players have full downloads of any custom character stuff
+            Netcode.refreshParty(true);
 
 
             // Begin
@@ -1034,17 +1109,21 @@
             B.intro = true;
             B.talkingHeadQueue = false;
             B.talkingHeads = [];
+
             if(B.isHost()){
+                // Randomize first player
+                B.turn = Math.floor(Math.random()*Netcode.players.length);
                 if(B.stage && B.stage.intro)
                     B.addTalkingHeads(B.stage.intro);
-                B.turn = Math.floor(Math.random()*Netcode.players.length);
+                else
+                    B.advanceTalkingHead(); // Starts immediate
             }
 
             if(B.stage){
                 $("#wrap").attr('style', 'background-image:url('+hsc(B.stage.background)+')');
                 Game.Music.set(B.stage.music);
             }
-            B.advanceTalkingHead();
+            
 
         };
 
@@ -1066,7 +1145,7 @@
             // Generic chat handler - [(str)message]
             if(task === 'Chat'){
 
-                Game.playSound('shake');
+                Game.playSound('chat');
                 B.statusTexts.add(byPlayer, byPlayer, args[0].substr(0, 128), false, true, true); // StatusTexts escapes
 
             }
@@ -1080,6 +1159,8 @@
                     B.turn = data.turn;
                     B.ended = data.ended;
                     B.punishment_done = data.punishment_done;
+                    B.intro = data.intro;
+                    B.total_turns = data.total_turns;
 
                     B.updateUI();
 
@@ -1107,19 +1188,21 @@
                 }
 
                 if(task === 'TalkingHeads'){
-                    B.addTalkingHeads(args[0]);
+                    B.addTalkingHeads(args[0].map(function(val){
+                        return new ChallengeTalkingHead(val);
+                    }));
                 }
 
                 if(task === 'HitVisual'){
-                    player = Netcode.getCharacterByUuid(data[0]);
+                    player = Netcode.getCharacterByUuid(args[0]);
                     if(player)
-                        player.hitVisual(data[1]);
+                        player.hitVisual(args[1]);
                 }
 
                 if(task === 'SBT'){
-                    player = Netcode.getCharacterByUuid(data[0]);
+                    player = Netcode.getCharacterByUuid(args[0]);
                     if(player)
-                        player.generateSBT(data[1], data[2]);
+                        player.generateSBT(args[1], args[2]);
                 }
                 
 
@@ -1134,7 +1217,7 @@
                 if(byPlayer === B.getTurnCharacter()){
                     
                     if(task === 'UseAbility' && !B.ended){
-                        var ability = byPlayer.getAbilityByUuid(args[1]),
+                        var ability = byPlayer.getAbilityById(args[1]),
                             targ = B.getCharacterByUuid(args[0])
                         ;
 
@@ -1143,10 +1226,12 @@
                         }
 
                         if(ability === false || targ === false){
+                            console.error('Invalid ability use received', ability, targ);
                             return Jasmop.Errors.addErrors('Invalid ability use received');
                         }
 
                         if(!ability.usableOn(targ, false, true)){
+                            console.error('Invalid ability target received', targ);
                             return Jasmop.Errors.addErrors('Invalid ability target received');
                         }
 
@@ -1162,7 +1247,7 @@
                         }
 
                         if(byPlayer.pickGem(index)){
-                            Netcode.refreshParty();
+                            B.sendPlayerGems();
                             B.updateUI();
                         }
 

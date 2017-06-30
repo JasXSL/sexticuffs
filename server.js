@@ -129,6 +129,8 @@ function SocketHandler(socket, task, args){
 				if(socket._sexticuffs.room){
 					this.pubLeaveParty();
 				}
+				if(!id)
+					id = '';
 
 				var room = Math.random().toString(36).substring(2);
 				id = id.trim();
@@ -185,11 +187,12 @@ function SocketHandler(socket, task, args){
 			};
 
 			// HOST ONLY. Sends party data to everyone. Keep in mind party data is different from battle data, and may change mid battle if needed.
-			this.pubUpdateCharacters = function(characters){
+			this.pubUpdateCharacters = function(characters, reduced){
 				if(!th.isHost())
 					return;
-				th.respondToRoom([characters]);
+				th.respondToRoom([characters, reduced]);
 			};
+
 
 			// Punts a player from the party. The disconnect handler will handle the rest
 			this.pubKick = function(socketid){

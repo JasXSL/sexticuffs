@@ -61,7 +61,7 @@
 
         // Refresh on character data or disconnect
         page.onSocketSub = function(task, args, byHost, byMe, isHost){
-            if((byHost && task === 'UpdateCharacters') || task === "disconnect"){
+            if((byHost && task === 'UpdateCharacters') || task === "disconnect" || task === "JoinParty"){
                 page.drawRoot();
             }
         };
@@ -101,10 +101,9 @@
                     }
                     else{
                         
-                        html+= '<input type="button" class="newGame" value="DM a Party" />';
                         html+= '<form id="joinGame">';
-                            html+= '<input type="text" placeholder="Lobby ID" name="lobbyID" />';
-                            html+= '<input type="submit" value="Join Party" />';
+                            html+= '<input type="text" placeholder="Type an invite ID" name="lobbyID" />';
+                            html+= '<input type="submit" value="Create/Join Party" />';
                         html+= '</form>';
                     }
 
@@ -629,7 +628,7 @@
 
                 html+= '<div class="border header">';
                     html+= '<h1>Abilities</h1>';
-                    html+= '<p>Each level you gain lets you unlock a new ability. You can have '+Character.MAX_ABILITIES+' abilities active at a time (not counting attack).</p>';
+                    html+= '<p>You can have '+Character.MAX_ABILITIES+' abilities active at a time (not counting attack).</p>';
 
                     if(freePoints){
                         html+= '<input type="button" class="highlighted" id="unlockNewAbility" value="Unlock a new ability!" />';
@@ -732,8 +731,7 @@
 
                 if(success){
                     page.drawTalents();
-                    if(!Netcode.isHosting())
-					    Netcode.setCharacter();
+    			    Netcode.setCharacter();
                 }
 
             }

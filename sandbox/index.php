@@ -24,6 +24,7 @@
     <!-- Scripts go in body -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.13.3/math.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/libraries/jquery.ui.touch-punch.min.js"></script>
     <script src="js/libraries/createjs-2015.11.26.min.js"></script>

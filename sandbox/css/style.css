@@ -14,6 +14,8 @@ div{
 }
 
 .flex{
+    display:-webkit-box;
+    display:-ms-flexbox;
     display:flex;
 }
 .clear{
@@ -101,7 +103,8 @@ div{
             position: absolute;
             top:0;
             left:50%;
-            transform:translate(-100%, -100%);
+            -webkit-transform:translate(-100%, -100%);
+                    transform:translate(-100%, -100%);
         }
         #menu > div.rollout > div.entry{
             background:rgba(0,0,0,.75);
@@ -120,7 +123,8 @@ div{
             z-index:5000;
             position: fixed;
             left:50%; top:50%;
-            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+                    transform: translate(-50%, -50%);
         }
 
         #errors > div{
@@ -131,6 +135,7 @@ div{
             padding:1vw;
             border-radius:0.5vw;
             font-size:1.25vw;
+            -webkit-transition:opacity 2s ease-in-out;
             transition:opacity 2s ease-in-out;
             opacity:1;
         }
@@ -158,7 +163,8 @@ div{
 
         #overlay > div.content{
             top:50%; left:50%;
-            transform: translate(-50%,-50%);
+            -webkit-transform: translate(-50%,-50%);
+                    transform: translate(-50%,-50%);
 
             width:75%;
             overflow:visible;
@@ -188,7 +194,8 @@ div{
             position:absolute;
             left:50%;
             bottom:0;
-            transform:translate(-50%, 50%);
+            -webkit-transform:translate(-50%, 50%);
+                    transform:translate(-50%, 50%);
         }
 
 
@@ -234,9 +241,11 @@ div{
         z-index:1;
         overflow:auto;
         top:50%; left:50%;
-        transform:translate(-50%,-50%);
+        -webkit-transform:translate(-50%,-50%);
+                transform:translate(-50%,-50%);
         background-size: cover;
         background-repeat: no-repeat;
+        background: -webkit-radial-gradient(center ellipse, #e2edff 34%,#b1c8ef 81%,#98b0d9 100%);
         background: radial-gradient(ellipse at center, #e2edff 34%,#b1c8ef 81%,#98b0d9 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
         cursor:url('../media/cursors/default.svg'), auto;
         box-shadow:0.5vw 0.5vw 2vw #000;
@@ -265,12 +274,18 @@ div{
         background:rgba(20,80,20,.75);
     }
 
+    @-webkit-keyframes turndone{
+        from{box-shadow: 0 0 1vw #AFA; -webkit-transform:scale(1); transform:scale(1);}
+        to{box-shadow: 0 0 1.5vw #EFE; -webkit-transform:scale(1.05); transform:scale(1.05);}
+    }
+
     @keyframes turndone{
-        from{box-shadow: 0 0 1vw #AFA; transform:scale(1);}
-        to{box-shadow: 0 0 1.5vw #EFE; transform:scale(1.05);}
+        from{box-shadow: 0 0 1vw #AFA; -webkit-transform:scale(1); transform:scale(1);}
+        to{box-shadow: 0 0 1.5vw #EFE; -webkit-transform:scale(1.05); transform:scale(1.05);}
     }
     #abilities:not(.disabled) div.ability.active.glow{
-        animation:turndone 1s ease-in-out alternate infinite;
+        -webkit-animation:turndone 1s ease-in-out alternate infinite;
+                animation:turndone 1s ease-in-out alternate infinite;
     }
 
     div.ability{
@@ -318,13 +333,15 @@ div{
         color:#FAA;
     }
     div.ability span.tooltip div.manacost.offensive div.bg{
-        filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+        -webkit-filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+                filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
     }
     div.ability span.tooltip div.manacost.support{
         color:#AFA;
     }
     div.ability span.tooltip div.manacost.support div.bg{
-        filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+        -webkit-filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+                filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
     }
 
 
@@ -344,7 +361,10 @@ div{
         
 
         text-align: center;
-        user-select: none;
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
         color:#FFF;
         margin:0.25vw;
         outline: none;
@@ -370,12 +390,18 @@ div{
         border:0.2vw solid #AAA;
     }
 
+    @-webkit-keyframes buttonHighlight{
+        from{box-shadow:0 0 1vw rgba(255,255,255,.0);}
+        to{box-shadow:0 0 1vw rgba(255,255,255,1);}
+    }
+
     @keyframes buttonHighlight{
         from{box-shadow:0 0 1vw rgba(255,255,255,.0);}
         to{box-shadow:0 0 1vw rgba(255,255,255,1);}
     }
     div.button.highlighted{
-        animation:buttonHighlight 1s ease-in-out alternate infinite;
+        -webkit-animation:buttonHighlight 1s ease-in-out alternate infinite;
+                animation:buttonHighlight 1s ease-in-out alternate infinite;
         background-color:rgba(50,100,50,.75); 
     }
 
@@ -405,7 +431,8 @@ div{
         pointer-events: none;
         left:50%;
         top:100%;
-        transform:translateX(-50%);
+        -webkit-transform:translateX(-50%);
+                transform:translateX(-50%);
         background:rgba(0,0,0,.75);
         border-radius:1vw;
         border:.2vw solid rgba(255,255,255,.75);
@@ -469,24 +496,34 @@ div{
     }
 
 
+    @-webkit-keyframes searchlight{
+        from{-webkit-transform:rotate(-20deg);transform:rotate(-20deg);}
+        to{-webkit-transform:rotate(20deg);transform:rotate(20deg);}
+    }
+
+
     @keyframes searchlight{
-        from{transform:rotate(-20deg);}
-        to{transform:rotate(20deg);}
+        from{-webkit-transform:rotate(-20deg);transform:rotate(-20deg);}
+        to{-webkit-transform:rotate(20deg);transform:rotate(20deg);}
     }
     
     #wrap[data-page=index] svg.searchlight{
         width:30vw;
         height:90vw; 
-        filter: blur(1vw);
-        animation: searchlight 4s ease-in-out infinite alternate;
+        -webkit-filter: blur(1vw); 
+                filter: blur(1vw);
+        -webkit-animation: searchlight 4s ease-in-out infinite alternate;
+                animation: searchlight 4s ease-in-out infinite alternate;
         opacity:0.2;
         position: absolute;
-        transform-origin: 50% 70%;
+        -webkit-transform-origin: 50% 70%;
+                transform-origin: 50% 70%;
         left:35%;
         top:10%;
     }
     #wrap[data-page=index] svg.searchlight.two{
-        animation: searchlight 4s ease-in-out alternate-reverse infinite;
+        -webkit-animation: searchlight 4s ease-in-out alternate-reverse infinite;
+                animation: searchlight 4s ease-in-out alternate-reverse infinite;
     }
     
     #wrap[data-page=index] div.disclaimer{
@@ -522,17 +559,26 @@ div{
     
     
 
+    @-webkit-keyframes logo{
+        from{-webkit-transform:translateX(-25%) scale(1);transform:translateX(-25%) scale(1);}
+        to{-webkit-transform:translateX(-25%) scale(1.02);transform:translateX(-25%) scale(1.02);}
+    }
+    
+    
+
     @keyframes logo{
-        from{transform:translateX(-25%) scale(1);}
-        to{transform:translateX(-25%) scale(1.02);}
+        from{-webkit-transform:translateX(-25%) scale(1);transform:translateX(-25%) scale(1);}
+        to{-webkit-transform:translateX(-25%) scale(1.02);transform:translateX(-25%) scale(1.02);}
     }
     #wrap[data-page=index] div.splashscreen img.logo{
         width:200%;
         top:-25%;
         position: absolute;
         left:0;
-        transform:translateX(-25%);
-        animation: logo 3s ease-in-out alternate infinite;
+        -webkit-transform:translateX(-25%);
+                transform:translateX(-25%);
+        -webkit-animation: logo 3s ease-in-out alternate infinite;
+                animation: logo 3s ease-in-out alternate infinite;
     }
 
     #wrap[data-page=index] div.splashscreen{
@@ -560,8 +606,11 @@ div{
         margin:0.25vw;
     }
     #wrap[data-page=index] #newCharacter div.right div.flex.free{
-        justify-content: space-between;
-        flex-wrap: wrap;
+        -webkit-box-pack: justify;
+            -ms-flex-pack: justify;
+                justify-content: space-between;
+        -ms-flex-wrap: wrap;
+            flex-wrap: wrap;
     }
     
 
@@ -589,7 +638,8 @@ div{
     {
         width:50%;
         left:50%;
-        transform:translateX(-50%);
+        -webkit-transform:translateX(-50%);
+                transform:translateX(-50%);
         padding:4vw;
         margin-top:0.5vw;
         text-align: center;
@@ -719,20 +769,24 @@ div{
 
 /* Scrolling battle text */
 
-    @keyframes SBT{
+    @-webkit-keyframes SBT{
         0%{
-            transform: scale(0,0);
+            -webkit-transform: scale(0,0);
+                    transform: scale(0,0);
             opacity:0;
         }
         5%{
-            transform: translate(-50%,-50%) scale(1.5,1.5);
+            -webkit-transform: translate(-50%,-50%) scale(1.5,1.5);
+                    transform: translate(-50%,-50%) scale(1.5,1.5);
             opacity:1;
         }
         15%{
-            transform: translate(-50%,-50%) scale(0.95, 0.95);
+            -webkit-transform: translate(-50%,-50%) scale(0.95, 0.95);
+                    transform: translate(-50%,-50%) scale(0.95, 0.95);
         }
         25%{
-            transform: translate(-50%,-50%) scale(1, 1) ;
+            -webkit-transform: translate(-50%,-50%) scale(1, 1) ;
+                    transform: translate(-50%,-50%) scale(1, 1) ;
             opacity:1;
             margin-top:0;
         }
@@ -741,7 +795,42 @@ div{
         }
         
         100%{
-            transform: translate(-50%,-50%);
+            -webkit-transform: translate(-50%,-50%);
+                    transform: translate(-50%,-50%);
+            margin-top:-5vw;
+            opacity:0;
+        }
+
+    }
+
+    @keyframes SBT{
+        0%{
+            -webkit-transform: scale(0,0);
+                    transform: scale(0,0);
+            opacity:0;
+        }
+        5%{
+            -webkit-transform: translate(-50%,-50%) scale(1.5,1.5);
+                    transform: translate(-50%,-50%) scale(1.5,1.5);
+            opacity:1;
+        }
+        15%{
+            -webkit-transform: translate(-50%,-50%) scale(0.95, 0.95);
+                    transform: translate(-50%,-50%) scale(0.95, 0.95);
+        }
+        25%{
+            -webkit-transform: translate(-50%,-50%) scale(1, 1) ;
+                    transform: translate(-50%,-50%) scale(1, 1) ;
+            opacity:1;
+            margin-top:0;
+        }
+        60%{
+            opacity:1;
+        }
+        
+        100%{
+            -webkit-transform: translate(-50%,-50%);
+                    transform: translate(-50%,-50%);
             margin-top:-5vw;
             opacity:0;
         }
@@ -752,10 +841,12 @@ div{
         position:absolute;
         color:#FAA;
         font-weight: bold;
-        animation:SBT ease-in 1.5s; 
+        -webkit-animation:SBT ease-in 1.5s;
+                animation:SBT ease-in 1.5s; 
         font-size:3vw;
         z-index:20;
-        animation-fill-mode: forwards;
+        -webkit-animation-fill-mode: forwards;
+                animation-fill-mode: forwards;
     }
 
     div.SBT.good{
@@ -775,7 +866,8 @@ div{
         height:100%;
         overflow:visible;
         margin:0;
-        transform: none;
+        -webkit-transform: none;
+                transform: none;
         padding:0.5vw;
     }
     #wrap[data-page=battle] #content div.button{
@@ -786,12 +878,20 @@ div{
     #wrap[data-page=battle] #talkingHead{
         position:fixed;
         bottom:50%; right:10vw;
-        transform:scale(1,1) translateY(-50%);
+        -webkit-transform:scale(1,1) translateY(-50%);
+                transform:scale(1,1) translateY(-50%);
+        -webkit-transition:-webkit-transform 0.25s cubic-bezier(.81,1,.18,.86);
+        transition:-webkit-transform 0.25s cubic-bezier(.81,1,.18,.86);
         transition:transform 0.25s cubic-bezier(.81,1,.18,.86);
-        user-select: none;
+        transition:transform 0.25s cubic-bezier(.81,1,.18,.86), -webkit-transform 0.25s cubic-bezier(.81,1,.18,.86);
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
     }
     #wrap[data-page=battle] #talkingHead.hidden{
-        transform:scale(0,0) translateY(-50%);
+        -webkit-transform:scale(0,0) translateY(-50%);
+                transform:scale(0,0) translateY(-50%);
         display:block;
     }
 
@@ -812,15 +912,20 @@ div{
         border-radius:10vw;
         position: absolute;
         right:0; top:50%;
-        transform:translate(50%, -50%);
+        -webkit-transform:translate(50%, -50%);
+                transform:translate(50%, -50%);
         border:0.2vw solid #FFF;
     }
     
 
     #wrap[data-page=battle] div.top{
+        display:-webkit-box;
+        display:-ms-flexbox;
         display:flex;
         height:75%; 
-        justify-content: space-between;
+        -webkit-box-pack: justify; 
+            -ms-flex-pack: justify; 
+                justify-content: space-between;
         margin-bottom:0.5vw;
     }
 
@@ -919,10 +1024,21 @@ div{
         bottom:0;
         height:3vw; 
         padding:0.5vw;
+        padding-left:2vw;
         border-top:0.1vw solid rgba(255,255,255,.25);
         background:rgba(0,0,0,.25);
         cursor:text;
         outline:none;
+    }
+
+    #wrap[data-page=battle] #chatMarker{
+        left:0;
+        bottom:0;
+        width:2vw;
+        position: absolute;
+        padding:0.5vw;
+        pointer-events: none;
+        padding-bottom:0.6vw;
     }
     
 
@@ -934,7 +1050,9 @@ div{
         bottom:21%; left:50%;
 
         text-align: center;
-        transform: translate(-50%, -50%);
+        -webkit-transform: translate(-50%, -50%);
+                transform: translate(-50%, -50%);
+        -webkit-transition:opacity 0.25s ease-out;
         transition:opacity 0.25s ease-out;
     }
 
@@ -942,6 +1060,12 @@ div{
         opacity:0;
         display:block;
         pointer-events: none;
+    }
+
+
+    @-webkit-keyframes gemsOffered{
+        from{box-shadow:0 0 2vw rgba(255,255,255,.25); border-color:#FFF;}
+        to{box-shadow:0 0 2vw rgba(255,255,255,.5); border-color:rgba(255,255,255,.5);}
     }
 
 
@@ -954,14 +1078,22 @@ div{
         left: 50%;
         bottom: 0;
         padding: 0.25vw 1vw;
-        transform: translate(-50%, 100%);
+        -webkit-transform: translate(-50%, 100%);
+                transform: translate(-50%, 100%);
         cursor:url('../media/cursors/pointer.svg') 5 5, auto;
-        user-select: none;
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
+        -webkit-transition:-webkit-transform 0.25s ease-out;
+        transition:-webkit-transform 0.25s ease-out;
         transition:transform 0.25s ease-out;
+        transition:transform 0.25s ease-out, -webkit-transform 0.25s ease-out;
         width:10vw;
     }
     #wrap[data-page=battle] #gemPicker > div.text:hover{
-        transform: translate(-50%, 100%) scale(1.05,1.05);
+        -webkit-transform: translate(-50%, 100%) scale(1.05,1.05);
+                transform: translate(-50%, 100%) scale(1.05,1.05);
     }
     
     #wrap[data-page=battle] #gemPicker > div.gemsOffered.hidden{
@@ -979,46 +1111,62 @@ div{
         background:rgba(0,0,0,.75);
         border:.2vw solid #FFF;
         border-radius:0.25vw;
-        transition: transform 0.25s ease-out;
-        animation:gemsOffered 1s ease-in-out alternate infinite;
+        -webkit-transition:-webkit-transform 0.25s ease-out;
+        transition:-webkit-transform 0.25s ease-out;
+        transition:transform 0.25s ease-out;
+        transition: transform 0.25s ease-out, -webkit-transform 0.25s ease-out;
+        -webkit-animation:gemsOffered 1s ease-in-out alternate infinite;
+                animation:gemsOffered 1s ease-in-out alternate infinite;
+    }
+
+    @-webkit-keyframes pickedFade{
+        from{opacity:1; -webkit-transform:scale(1,1); transform:scale(1,1);}
+        to{opacity:1; -webkit-transform:scale(0,0); transform:scale(0,0);}
     }
 
     @keyframes pickedFade{
-        from{opacity:1; transform:scale(1,1);}
-        to{opacity:1; transform:scale(0,0);}
+        from{opacity:1; -webkit-transform:scale(1,1); transform:scale(1,1);}
+        to{opacity:1; -webkit-transform:scale(0,0); transform:scale(0,0);}
     }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.picked{
         pointer-events: none;
-        animation:pickedFade 0.25s ease-out forwards !important;
+        -webkit-animation:pickedFade 0.25s ease-out forwards !important;
+                animation:pickedFade 0.25s ease-out forwards !important;
     }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full{
         border-color: #AAA;
-        animation:none;
+        -webkit-animation:none;
+                animation:none;
     }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full div.bg{
         opacity:0.5;
     }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.full:hover{
-        transform:none;
+        -webkit-transform:none;
+                transform:none;
     }
 
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem:hover:not(.picked){
-        transform:scale(1.1,1.1);
+        -webkit-transform:scale(1.1,1.1);
+                transform:scale(1.1,1.1);
     }
 
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem div.bg{
         position: absolute;
         top:0; right:0; left:0; bottom:0;
-        filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
+        -webkit-filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1));
+                filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
         background-image:url(../media/emerald.svg);
         background-size:100% 100%;
     }
 
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.offensive div.bg{
-        filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
+        -webkit-filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1));
+                filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
     }
     #wrap[data-page=battle] #gemPicker > div.gemsOffered > div.gem.support div.bg{
-        filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
+        -webkit-filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1));
+                filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
     }
     
 
@@ -1057,27 +1205,34 @@ div{
         background-image:url(../media/emerald.svg);
         background-size:100% 100%;
         
-        filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
+        -webkit-filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1));
+        
+                filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
     }
 
     #wrap[data-page=battle] #manaGems div.manatype.offensive div.gem{
-        filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
+        -webkit-filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1));
+                filter:hue-rotate(180deg) drop-shadow(0 0 0.5vw rgba(255,100,100, 1)); 
     }
     #wrap[data-page=battle] #manaGems div.manatype.defensive div.gem{
-        filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
+        -webkit-filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1));
+                filter:drop-shadow(0 0 0.5vw rgba(50,240,255, 1)); 
     }
     #wrap[data-page=battle] #manaGems div.manatype.support div.gem{
-        filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
+        -webkit-filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1));
+                filter:hue-rotate(-70deg) drop-shadow(0 0 0.5vw rgba(100,255,100, 1)); 
     }
     
 
     /* Highlight when hovering over a castable ability */
     #wrap[data-page=battle] #manaGems div.manatype div.gem.highlighted{
-        filter:drop-shadow(0 0 0.5vw rgba(255,255,255, 1)) brightness(200%); 
+        -webkit-filter:drop-shadow(0 0 0.5vw rgba(255,255,255, 1)) brightness(200%);
+                filter:drop-shadow(0 0 0.5vw rgba(255,255,255, 1)) brightness(200%); 
     }
 
     #wrap[data-page=battle] #manaGems div.manatype div.gem.disabled{
-        filter:drop-shadow(0 0 0.2vw rgba(0,0,0,1)) saturate(0%) brightness(50%); 
+        -webkit-filter:drop-shadow(0 0 0.2vw rgba(0,0,0,1)) saturate(0%) brightness(50%);
+                filter:drop-shadow(0 0 0.2vw rgba(0,0,0,1)) saturate(0%) brightness(50%); 
     }
 
     
@@ -1103,7 +1258,8 @@ div{
 
     #wrap[data-page=battle] #abilities div.ability span.tooltip{
         top:0;
-        transform:translate(-50%, -100%);
+        -webkit-transform:translate(-50%, -100%);
+                transform:translate(-50%, -100%);
     }
 
     
@@ -1113,58 +1269,136 @@ div{
 
     /* Character portraits */
 
-    @keyframes hitDetrimental {
+    @-webkit-keyframes hitDetrimental {
         0%{
-            transform: translateY(0);
+            -webkit-transform: translateY(0);
+                    transform: translateY(0);
         }
         10%{
-            transform: translateX(-5%);
+            -webkit-transform: translateX(-5%);
+                    transform: translateX(-5%);
         }
         22%{
-            transform: translateX(-4%);
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
         }
         43%{
-            transform: translateX(3%);
+            -webkit-transform: translateX(3%);
+                    transform: translateX(3%);
         }
         66%{
-            transform: translateX(0);
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
         }
         76%{
-            transform: translateX(-2%);
+            -webkit-transform: translateX(-2%);
+                    transform: translateX(-2%);
+        }
+    }
+
+    @keyframes hitDetrimental {
+        0%{
+            -webkit-transform: translateY(0);
+                    transform: translateY(0);
+        }
+        10%{
+            -webkit-transform: translateX(-5%);
+                    transform: translateX(-5%);
+        }
+        22%{
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
+        }
+        43%{
+            -webkit-transform: translateX(3%);
+                    transform: translateX(3%);
+        }
+        66%{
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
+        }
+        76%{
+            -webkit-transform: translateX(-2%);
+                    transform: translateX(-2%);
+        }
+    }
+
+    @-webkit-keyframes hitBeneficial {
+        0%{
+            -webkit-transform: none;
+                    transform: none;
+        }
+        20%{
+            -webkit-transform: scale(0.95,0.95);
+                    transform: scale(0.95,0.95);
+        }
+        30%{
+            -webkit-transform: scale(1.1,1.1);
+                    transform: scale(1.1,1.1);
+        }
+        66%{
+            -webkit-transform: scale(0.98,0.98);
+                    transform: scale(0.98,0.98);
+        }
+        85%{
+            -webkit-transform: scale(1.03,1.03);
+                    transform: scale(1.03,1.03);
+        }
+        100%{
+            -webkit-transform:none;
+                    transform:none;
         }
     }
 
     @keyframes hitBeneficial {
         0%{
-            transform: none;
+            -webkit-transform: none;
+                    transform: none;
         }
         20%{
-            transform: scale(0.95,0.95);
+            -webkit-transform: scale(0.95,0.95);
+                    transform: scale(0.95,0.95);
         }
         30%{
-            transform: scale(1.1,1.1);
+            -webkit-transform: scale(1.1,1.1);
+                    transform: scale(1.1,1.1);
         }
         66%{
-            transform: scale(0.98,0.98);
+            -webkit-transform: scale(0.98,0.98);
+                    transform: scale(0.98,0.98);
         }
         85%{
-            transform: scale(1.03,1.03);
+            -webkit-transform: scale(1.03,1.03);
+                    transform: scale(1.03,1.03);
         }
         100%{
-            transform:none;
+            -webkit-transform:none;
+                    transform:none;
         }
+    }
+
+    @-webkit-keyframes colorDetrimental{
+        0%{-webkit-filter:sepia(100%) hue-rotate(-45deg) saturate(200%);filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
+        75%{-webkit-filter:sepia(100%) hue-rotate(-45deg) saturate(200%);filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
+        100%{-webkit-filter:none;filter:none;} 
     }
 
     @keyframes colorDetrimental{
-        0%{filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
-        75%{filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
-        100%{filter:none;} 
+        0%{-webkit-filter:sepia(100%) hue-rotate(-45deg) saturate(200%);filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
+        75%{-webkit-filter:sepia(100%) hue-rotate(-45deg) saturate(200%);filter:sepia(100%) hue-rotate(-45deg) saturate(200%);}
+        100%{-webkit-filter:none;filter:none;} 
+    }
+
+    @-webkit-keyframes colorBeneficial{
+        0%{-webkit-filter:sepia(100%) hue-rotate(55deg) saturate(200%);filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
+        75%{-webkit-filter:sepia(100%) hue-rotate(55deg) saturate(200%);filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
+        100%{-webkit-filter:none;filter:none;} 
     }
 
     @keyframes colorBeneficial{
-        0%{filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
-        75%{filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
-        100%{filter:none;} 
+        0%{-webkit-filter:sepia(100%) hue-rotate(55deg) saturate(200%);filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
+        75%{-webkit-filter:sepia(100%) hue-rotate(55deg) saturate(200%);filter:sepia(100%) hue-rotate(55deg) saturate(200%);}
+        100%{-webkit-filter:none;filter:none;} 
     }
 
     #wrap[data-page=battle] div.character{
@@ -1174,7 +1408,10 @@ div{
         padding:0.5vw 0;
         border:0.2vw solid #000;
         border-radius:0.5vw;
-        user-select: none;
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
         overflow:visible;
         cursor:url('../media/cursors/inspect.svg') 7 8, auto;
         margin-top:0.5vw;
@@ -1183,10 +1420,12 @@ div{
 
 
     #wrap[data-page=battle] div.character.hitBeneficial{
-        animation: hitBeneficial 0.75s ease, colorBeneficial 1s ease-in-out;
+        -webkit-animation: hitBeneficial 0.75s ease, colorBeneficial 1s ease-in-out;
+                animation: hitBeneficial 0.75s ease, colorBeneficial 1s ease-in-out;
     }
     #wrap[data-page=battle] div.character.hitDetrimental{
-        animation: hitDetrimental 0.25s ease, colorDetrimental 0.5s;
+        -webkit-animation: hitDetrimental 0.25s ease, colorDetrimental 0.5s;
+                animation: hitDetrimental 0.25s ease, colorDetrimental 0.5s;
     }
 
 
@@ -1195,10 +1434,14 @@ div{
         border-color:#FFF;
         box-shadow:0 0 1vw 0.5vw #FFA;
         cursor:url('../media/cursors/pointer.svg') 5 5, auto;
+        -webkit-transition:-webkit-transform 0.2s ease-out;
+        transition:-webkit-transform 0.2s ease-out;
         transition:transform 0.2s ease-out;
+        transition:transform 0.2s ease-out, -webkit-transform 0.2s ease-out;
     }
     #wrap[data-page=battle] div.character.selectable:hover{
-        transform:scale(1.05,1.05);
+        -webkit-transform:scale(1.05,1.05);
+                transform:scale(1.05,1.05);
     }
     #wrap[data-page=battle] div.character.selectable div.center{
         background:rgba(255,255,200,.75);
@@ -1218,6 +1461,12 @@ div{
     }
 
 
+    @-webkit-keyframes playerTurn{
+        from{box-shadow:0 0 1vw #FFF;}
+        to{box-shadow:0 0 3vw #FFF;}
+    }
+
+
     @keyframes playerTurn{
         from{box-shadow:0 0 1vw #FFF;}
         to{box-shadow:0 0 3vw #FFF;}
@@ -1227,7 +1476,8 @@ div{
     }
     #wrap[data-page=battle] div.character.turn div.center{
         background:rgba(25,100,25,.75);
-        animation: playerTurn 1s ease-in-out alternate infinite;
+        -webkit-animation: playerTurn 1s ease-in-out alternate infinite;
+                animation: playerTurn 1s ease-in-out alternate infinite;
     }
 
     #wrap[data-page=battle] div.character.dead{
@@ -1263,7 +1513,8 @@ div{
     #wrap[data-page=battle] div.character div.resources > div > span{
         position: absolute;
         left:50%; top:50%;
-        transform:translate(-50%,-50%);
+        -webkit-transform:translate(-50%,-50%);
+                transform:translate(-50%,-50%);
         text-shadow:0.2vw 0.2vw 0.5vw rgba(0,0,0,.75);
     }
     #wrap[data-page=battle] div.character div.resources > div.full{
@@ -1273,7 +1524,8 @@ div{
     #wrap[data-page=battle] div.character div.resources > div > div.bg{
         position: absolute;
         top:0; left:0; right:0; bottom:0;
-        filter:brightness(75%) saturate(500%) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));  
+        -webkit-filter:brightness(75%) saturate(500%) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+                filter:brightness(75%) saturate(500%) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));  
     }
 
     #wrap[data-page=battle] div.character div.resources div.armor div.bg{
@@ -1288,25 +1540,30 @@ div{
     }
 
     #wrap[data-page=battle] div.character div.resources div.mana.offensive div.bg{
-        filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+        -webkit-filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+                filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
     }
     #wrap[data-page=battle] div.character div.resources div.mana.support div.bg{
-        filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+        -webkit-filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
+                filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
     }
 
     #wrap[data-page=battle] div.character div.effects{
         position: absolute;
         top:0;
         left:-0.5vw;
-        transform:translateY(-25%);
+        -webkit-transform:translateY(-25%);
+                transform:translateY(-25%);
         width:100%;
     }
 
     #wrap[data-page=battle] #friends div.spellIcon:hover span.tooltip{
-        transform:none;
+        -webkit-transform:none;
+                transform:none;
     }  
     #wrap[data-page=battle] #enemies div.spellIcon:hover span.tooltip{
-        transform:translate(-100%, -100%);
+        -webkit-transform:translate(-100%, -100%);
+                transform:translate(-100%, -100%);
         top:0;
     }  
 
@@ -1324,12 +1581,18 @@ div{
         margin:0.1vw;
     }
 
+    @-webkit-keyframes chargeWiggle{
+        from{-webkit-transform:translateX(-2%);transform:translateX(-2%);}
+        to{-webkit-transform:translateX(2%);transform:translateX(2%);}
+    }
+
     @keyframes chargeWiggle{
-        from{transform:translateX(-2%);}
-        to{transform:translateX(2%);}
+        from{-webkit-transform:translateX(-2%);transform:translateX(-2%);}
+        to{-webkit-transform:translateX(2%);transform:translateX(2%);}
     }
     #wrap[data-page=battle] div.character div.effects div.spellIcon.charged{
-        animation:chargeWiggle 0.1s alternate infinite;
+        -webkit-animation:chargeWiggle 0.1s alternate infinite;
+                animation:chargeWiggle 0.1s alternate infinite;
     }
 
     #wrap[data-page=battle] div.character div.effects div.spellIcon.detrimental{
@@ -1363,6 +1626,20 @@ div{
         background-size:100%;
     }
 
+    @-webkit-keyframes flicker{
+        0%{opacity:0;}
+        10%{opacity:0.1;}
+        20%{opacity:0.02;}
+        30%{opacity:0.2;}
+        40%{opacity:0.04;}
+        50%{opacity:0.15;}
+        60%{opacity:0.06;}
+        70%{opacity:0.1;}
+        80%{opacity:0.02;}
+        90%{opacity:0.06;}
+        100%{opacity:0;}
+    }
+
     @keyframes flicker{
         0%{opacity:0;}
         10%{opacity:0.1;}
@@ -1392,7 +1669,8 @@ div{
         right: 0;
         position: absolute;
         z-index: 1;
-        animation:flicker 5s ease-in-out infinite; 
+        -webkit-animation:flicker 5s ease-in-out infinite;
+                animation:flicker 5s ease-in-out infinite; 
         pointer-events: none;
     }
 
@@ -1402,7 +1680,8 @@ div{
         left:0; right:0;
         top:50%;
         text-align: center;
-        transform:translateY(-50%);
+        -webkit-transform:translateY(-50%);
+                transform:translateY(-50%);
         z-index:10;
     }
     #wrap[data-page=home].map #content div.buttons div.mapicon{
@@ -1572,8 +1851,12 @@ div{
     }
 
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses{
+        display:-webkit-box;
+        display:-ms-flexbox;
         display:flex;
-        justify-content: center;
+        -webkit-box-pack: center;
+            -ms-flex-pack: center;
+                justify-content: center;
         overflow:visible;
     }
     #wrap[data-page=home].campaignRoot div.right div.bar h1,
@@ -1609,76 +1892,176 @@ div{
         border-color:#DDD;
     }
 
+    @-webkit-keyframes nextBoss{
+        from{-webkit-transform:scale(1,1);transform:scale(1,1);}
+        to{-webkit-transform:scale(1.05,1.05);transform:scale(1.05,1.05);}
+    }
+
     @keyframes nextBoss{
-        from{transform:scale(1,1);}
-        to{transform:scale(1.05,1.05);}
+        from{-webkit-transform:scale(1,1);transform:scale(1,1);}
+        to{-webkit-transform:scale(1.05,1.05);transform:scale(1.05,1.05);}
     }
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.unlocked:not(.completed){
         border-color:#AFA;
-        animation:nextBoss ease-in-out 2s infinite alternate;
+        -webkit-animation:nextBoss ease-in-out 2s infinite alternate;
+                animation:nextBoss ease-in-out 2s infinite alternate;
     }
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.unlocked.completed{
         border-color:#FFF;
     }
 
-    @keyframes openChest{
+    @-webkit-keyframes openChest{
         0%{
-            transform: translateY(0) scale(1,1);
+            -webkit-transform: translateY(0) scale(1,1);
+                    transform: translateY(0) scale(1,1);
         }
         5%{
-            transform: translateX(-5%) scale(0.95,0.95);
+            -webkit-transform: translateX(-5%) scale(0.95,0.95);
+                    transform: translateX(-5%) scale(0.95,0.95);
         }
         10%{
-            transform: translateX(-4%);
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
         }
         15%{
-            transform: translateX(3%) scale(0.95,0.95);
+            -webkit-transform: translateX(3%) scale(0.95,0.95);
+                    transform: translateX(3%) scale(0.95,0.95);
         }
         20%{
-            transform: translateX(0);
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
         }
         25%{
-            transform: translateX(-2%);
+            -webkit-transform: translateX(-2%);
+                    transform: translateX(-2%);
         }
         30%{
-            transform: translateY(0) scale(0.95,0.95);
+            -webkit-transform: translateY(0) scale(0.95,0.95);
+                    transform: translateY(0) scale(0.95,0.95);
         }
         35%{
-            transform: translateX(-5%) scale(0.9,0.9);
+            -webkit-transform: translateX(-5%) scale(0.9,0.9);
+                    transform: translateX(-5%) scale(0.9,0.9);
         }
         40%{
-            transform: translateX(-4%);
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
         }
         45%{
-            transform: translateX(3%) scale(0.95,0.95);
+            -webkit-transform: translateX(3%) scale(0.95,0.95);
+                    transform: translateX(3%) scale(0.95,0.95);
         }
         50%{
-            transform: translateX(0);
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
         }
         55%{
-            transform: translateX(-2%) scale(0.95,0.95);
+            -webkit-transform: translateX(-2%) scale(0.95,0.95);
+                    transform: translateX(-2%) scale(0.95,0.95);
         }
         60%{
-            transform: translateY(0);
+            -webkit-transform: translateY(0);
+                    transform: translateY(0);
         }
         75%{
-            transform: translateX(-5%) scale(0.95,0.95);
+            -webkit-transform: translateX(-5%) scale(0.95,0.95);
+                    transform: translateX(-5%) scale(0.95,0.95);
         }
         85%{
-            transform: translate(-5%, 5%) scale(0.9,0.9);
+            -webkit-transform: translate(-5%, 5%) scale(0.9,0.9);
+                    transform: translate(-5%, 5%) scale(0.9,0.9);
         }
         90%{
-            transform: scale(1.05,1.05);
+            -webkit-transform: scale(1.05,1.05);
+                    transform: scale(1.05,1.05);
         }
         100%{
-            transform: scale(0,0);
+            -webkit-transform: scale(0,0);
+                    transform: scale(0,0);
         }
     }
+
+    @keyframes openChest{
+        0%{
+            -webkit-transform: translateY(0) scale(1,1);
+                    transform: translateY(0) scale(1,1);
+        }
+        5%{
+            -webkit-transform: translateX(-5%) scale(0.95,0.95);
+                    transform: translateX(-5%) scale(0.95,0.95);
+        }
+        10%{
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
+        }
+        15%{
+            -webkit-transform: translateX(3%) scale(0.95,0.95);
+                    transform: translateX(3%) scale(0.95,0.95);
+        }
+        20%{
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
+        }
+        25%{
+            -webkit-transform: translateX(-2%);
+                    transform: translateX(-2%);
+        }
+        30%{
+            -webkit-transform: translateY(0) scale(0.95,0.95);
+                    transform: translateY(0) scale(0.95,0.95);
+        }
+        35%{
+            -webkit-transform: translateX(-5%) scale(0.9,0.9);
+                    transform: translateX(-5%) scale(0.9,0.9);
+        }
+        40%{
+            -webkit-transform: translateX(-4%);
+                    transform: translateX(-4%);
+        }
+        45%{
+            -webkit-transform: translateX(3%) scale(0.95,0.95);
+                    transform: translateX(3%) scale(0.95,0.95);
+        }
+        50%{
+            -webkit-transform: translateX(0);
+                    transform: translateX(0);
+        }
+        55%{
+            -webkit-transform: translateX(-2%) scale(0.95,0.95);
+                    transform: translateX(-2%) scale(0.95,0.95);
+        }
+        60%{
+            -webkit-transform: translateY(0);
+                    transform: translateY(0);
+        }
+        75%{
+            -webkit-transform: translateX(-5%) scale(0.95,0.95);
+                    transform: translateX(-5%) scale(0.95,0.95);
+        }
+        85%{
+            -webkit-transform: translate(-5%, 5%) scale(0.9,0.9);
+                    transform: translate(-5%, 5%) scale(0.9,0.9);
+        }
+        90%{
+            -webkit-transform: scale(1.05,1.05);
+                    transform: scale(1.05,1.05);
+        }
+        100%{
+            -webkit-transform: scale(0,0);
+                    transform: scale(0,0);
+        }
+    }
+    @-webkit-keyframes chestPop{
+        0%{-webkit-transform:scale(0,0);transform:scale(0,0);}
+        50%{-webkit-transform:scale(1.1,1.1);transform:scale(1.1,1.1);}
+        75%{-webkit-transform:scale(0.95,0.95);transform:scale(0.95,0.95);}
+        100%{-webkit-transform:scale(1,1);transform:scale(1,1);}
+    }
     @keyframes chestPop{
-        0%{transform:scale(0,0);}
-        50%{transform:scale(1.1,1.1);}
-        75%{transform:scale(0.95,0.95);}
-        100%{transform:scale(1,1);}
+        0%{-webkit-transform:scale(0,0);transform:scale(0,0);}
+        50%{-webkit-transform:scale(1.1,1.1);transform:scale(1.1,1.1);}
+        75%{-webkit-transform:scale(0.95,0.95);transform:scale(0.95,0.95);}
+        100%{-webkit-transform:scale(1,1);transform:scale(1,1);}
     }
 
     #challengeRewardScreen{
@@ -1696,18 +2079,22 @@ div{
     
 
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed{
-        animation:nextBoss 1s ease-in-out alternate infinite;
+        -webkit-animation:nextBoss 1s ease-in-out alternate infinite;
+                animation:nextBoss 1s ease-in-out alternate infinite;
         border-color:#AFA;
     }
     
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed.anim{
-        animation:openChest 1s ease-in forwards;
+        -webkit-animation:openChest 1s ease-in forwards;
+                animation:openChest 1s ease-in forwards;
     }
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.completed.collected.anim{
-        animation:chestPop .25s ease-in-out forwards;
+        -webkit-animation:chestPop .25s ease-in-out forwards;
+                animation:chestPop .25s ease-in-out forwards;
     }
     #wrap[data-page=home].campaignRoot div.right div.bar div.bosses div.boss.reward.collected{
-        animation:none;
+        -webkit-animation:none;
+                animation:none;
         background-position: right;
         border-color:#FFF;
     }
@@ -1749,8 +2136,12 @@ div{
 
     #wrap[data-page=home] div.left div.tier
     {
+        display:-webkit-box;
+        display:-ms-flexbox;
         display:flex;
-        justify-content: center;
+        -webkit-box-pack: center;
+            -ms-flex-pack: center;
+                justify-content: center;
     }
     #wrap[data-page=home] div.left div.tier > div
     {
@@ -1760,13 +2151,16 @@ div{
     #wrap[data-page=home] div.left div.tier.unlocked div.ability{
         border-color:#FFF;
         background:rgba(255,255,255,.75);
-        animation:buttonHighlight 1s ease-in-out alternate infinite;
+        -webkit-animation:buttonHighlight 1s ease-in-out alternate infinite;
+                animation:buttonHighlight 1s ease-in-out alternate infinite;
     }
 
 
     #wrap[data-page=home] div.left.battle{
-        flex-wrap: wrap;
-        justify-content: space-around;
+        -ms-flex-wrap: wrap;
+            flex-wrap: wrap;
+        -ms-flex-pack: distribute;
+            justify-content: space-around;
     }
 
     #wrap[data-page=home] div.left.battle div.team{
@@ -1788,7 +2182,10 @@ div{
         padding:1vw 0;
         border-radius:0.25vw;
         border: 0.2vw solid #FFF;
-        user-select: none;
+        -webkit-user-select: none;
+           -moz-user-select: none;
+            -ms-user-select: none;
+                user-select: none;
         cursor:url('../media/cursors/move.svg') 12 12, auto;
         margin:0.5vw;
     }
@@ -1808,9 +2205,14 @@ div{
     }
 
     #wrap[data-page=home] div.left div.shop{
+        display:-webkit-box;
+        display:-ms-flexbox;
         display:flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
+        -ms-flex-wrap: wrap;
+            flex-wrap: wrap;
+        -webkit-box-pack: justify;
+            -ms-flex-pack: justify;
+                justify-content: space-between;
         z-index:9;
     }
     #wrap[data-page=home] div.left div.shopitem{
@@ -1829,7 +2231,8 @@ div{
         background:rgba(255,255,255,.75);
     }
     #wrap[data-page=home] div.left div.shopitem:hover{
-        transform: scale(1.05,1.05);
+        -webkit-transform: scale(1.05,1.05);
+                transform: scale(1.05,1.05);
     }
 
     #wrap[data-page=home] div.left div.shopitem.worn{

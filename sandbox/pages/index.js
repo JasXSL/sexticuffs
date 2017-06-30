@@ -126,7 +126,7 @@
                     html+= '<br /><label>Tiny <input type="range" name="size" step=1 min=0 max=10 value=5 /> Huge</label>';
                     
                     html+= '<br /><br />';
-                    html+= 'Comma Ceparated Body Tags (fuzzy, brown, spotty...) <br /><textarea name="body_tags"></textarea><br />';
+                    html+= 'Comma-separated Body Tags (fuzzy, brown, spotty...) <br /><textarea name="body_tags"></textarea><br />';
 
                     html+= '<input type="submit" value="Create!" />';
                     html+= '<input type="button" value="Cancel" id="cancel" />';

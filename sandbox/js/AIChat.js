@@ -10,6 +10,7 @@ class AIChat{
 
     get(event, text, attacker, victim, ability){
 
+
         // limit to every 10 seconds 
         if(this.lastMessage+10000 > Date.now())
             return;
@@ -30,6 +31,12 @@ class AIChat{
 
             // Not this event
             if(asset.event !== event)
+                continue;
+            
+            if(
+                (asset.attacker && attacker !== this.character) ||
+                (!asset.attacker && victim !== this.character)
+            )
                 continue;
 
             // Not the right event
@@ -62,7 +69,7 @@ class AIChat{
             var out = txt.text.convert(attacker, victim, ability);
 
 
-            AI.talk(attacker, victim, out);
+            AI.talk(attacker, victim, out, txt.attacker);
 
             return true;
 
@@ -126,6 +133,7 @@ class AIChat{
             this.ait = [];          // AI tags. Each element is a single tag or an array of tags that are ANDED. [["a", "b"], "c"]  = (a && b) || c
             this.text = new Text(); // Text object - Basic restrictions work here too
             this.event = 'ability'; // Event
+            this.attacker = true;   // Valid if the AIChat character is the event attacker. Otherwise it checks if victim
 
             this.load(data);
         }
@@ -137,13 +145,14 @@ class AIChat{
     AIChat.LIB = [];
 
 
-    var add = function(race, charname, ait, text, event){
+    var add = function(race, charname, ait, text, event, victim){
         AIChat.LIB.push(new AIChat.asset({
             race: race || false,
             charname: charname || false,
             ait: ait || [],
             event : event || 'ability',
-            text: new Text(text)
+            text: new Text(text),
+            attacker : victim ? false : true
         }));
     };
 
@@ -401,13 +410,14 @@ class AIChat{
         // Butt slap
             aitl = [[ait.aButt, ait.tSlap]];
             add(false, "challenger", aitl, {conditions:[], text: 'Smack!'});
-            add(false, "challenger", aitl, {conditions:[], text: 'Watch your back... hah!'});
-            add(false, "challenger", aitl, {conditions:[], text: 'Nice ass!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Watch your back... hehehe!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Hey! You actually got a pretty nice :TBUTT: there!'});
             
             aitl = [[ait.aButt, ait.tPin], [ait.aGroin, ait.tPin]];
-            add(false, "challenger", aitl, {conditions:[], text: 'I better get bonus points for this!'});
-            add(false, "challenger", aitl, {conditions:[], text: 'How does it feel to have a winner inside you?!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Hey announcer! I better get bonus points for that!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Yeah how\'d you like that?!'});
             add(false, "challenger", aitl, {conditions:[], text: 'Dominated!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Owned!'});
             
             aitl = [[ait.aGroin, ait.tPunch], [ait.aGroin, ait.tKick], [ait.aGroin, ait.tTwist], [ait.aBreasts, ait.tPunch], [ait.aBreasts, ait.tKick], [ait.aBreasts, ait.tTwist]];
             add(false, "challenger", aitl, {conditions:[], text: 'That\'s right, I went there!'});
@@ -415,16 +425,35 @@ class AIChat{
             add(false, "challenger", aitl, {conditions:[], text: 'Gotta keep weak dudes like you out of the arena!'});
             add(false, "challenger", aitl, {conditions:[], text: 'Hah, you suck!'});
             add(false, "challenger", aitl, {conditions:[], text: 'That all you got? Weak!'});
+            add(false, "challenger", aitl, {conditions:[], text: 'Boom! Critical!'});
             
             aitl = [[ait.aBreasts]];
             add(false, "challenger", aitl, {conditions:[], text: 'Nice tits!'});
             add(false, "challenger", aitl, {conditions:[], text: "Don't expect me to go easy on you just 'cause you have those crowd pleasers!"});
             
-
             aitl = [[ait.aGroin]];
-            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: 'Don\'t worry, once I beat you I\'ll make your :TCROTCHEX: feel real good!'});
-            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: "I can't resist a nice :TCROTCHEX:!"});
-            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: "Hey, nice :TCROTCHEX:! Can't wait to pound it after I defeat you!"});
+            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: 'Don\'t worry, once I beat you I\'ll make your :TCROTCHEX: feel real good! Hehehe.'});
+            add(false, "challenger", aitl, {conditions:[], text: "Pretty nice :TCROTCHEX: you got there, dude!"});
+            add(false, "challenger", aitl, {conditions:[C.VAGINA], text: "Hey, nice :TCROTCHEX:! Gonna be crazy fun to pound it after I defeat you!"});
+            add(false, "challenger", aitl, {conditions:[C.PENIS], text: "You have a pretty nice :TCROTCHEX: there, can't wait to make it mine after I defeat you!"});
             
+            // Victim
+            aitl = [[ait.aGroin, ait.tRub],[ait.aGroin, ait.tSqueeze],[ait.aGroin, ait.tTickle],[ait.aGroin, ait.tTwist]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Hands off the goods, creep!'}, false, true);
+            add(false, "challenger", aitl, {conditions:[], text: 'Ey! Hands off my parts!'}, false, true);
+            
+
+            aitl = [[ait.aGroin, ait.tPunch], [ait.aGroin, ait.tKick], [ait.aGroin, ait.tTwist]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Ow! Uncool, dude!'}, false, true);
+            add(false, "challenger", aitl, {conditions:[], text: 'Ow, hey! Quit that!'}, false, true);
+            add(false, "challenger", aitl, {conditions:[], text: 'Oof, cut that out!'}, false, true);
+            
+            aitl = [[ait.aButt, ait.tPin], [ait.aGroin, ait.tPin]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Ah!'}, false, true);
+            add(false, "challenger", aitl, {conditions:[], text: 'Nngh!'}, false, true);
+            
+
+            aitl = [[ait.aButt, ait.tSlap]];
+            add(false, "challenger", aitl, {conditions:[], text: 'Don\'t touch what you can\'t afford yo!'}, false, true);
 
 })();

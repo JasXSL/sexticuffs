@@ -93,6 +93,7 @@ var Game = {};
             {id:'dark_aura', src:'dark_aura.ogg'},
             {id:'whip', src:'whip.ogg'},
             {id:'dark_cast', src:'dark_cast.ogg'},
+            {id:'tentacle_summoned', src:'tentacle_summoned.ogg'},
             
             // Start opening
             {id:'chest_open', src:'chest_open.ogg'},
@@ -209,7 +210,7 @@ var Game = {};
 
         Game.player = char;
         char.is_pc = true;
-        Netcode.players = [Game.player];
+        Netcode.setCharacter();
         return IDB.put('config', {'type':'activeChar', value:char.id});
 
     };
@@ -232,7 +233,12 @@ var Game = {};
         // Used for conditions
         TARG_VICTIM : 'VICTIM',
         TARG_ATTACKER : 'ATTACKER',
-        TARG_RAISER : 'RAISER',             // Used only in events, person who raised the event
+        TARG_RAISER : 'RAISER',                             // Used only in applyEffect effects, person who raised the event
+        TARG_VICTIM_PARENT : 'VICTIM_PARENT',               // Used only in applyEffect effects on summoned character. Ex: Summoned character takes damage.
+        TARG_ATTACKER_PARENT : 'ATTACKER_PARENT',           // == || ==. Ex: Summoned character deals damage
+        TARG_AOE : 'AOE',                                   // Run against everyone. Currently only supported in Effect
+
+
     };
 
 
@@ -335,14 +341,13 @@ var Game = {};
     Game.Music = {};
     Game.Music.files = [
         {"id":'chill', src:'media/audio/soundtracks/chill.ogg'},
-        {"id":'maintheme', src:'media/audio/soundtracks/main_theme.ogg'},
+        {"id":'maintheme', src:'media/audio/soundtracks/maintheme.ogg'},
         {"id":'battle', src:'media/audio/soundtracks/battle.ogg'},
         {"id":'skirmish', src:'media/audio/soundtracks/skirmish.ogg'},
         {"id":'town', src:'media/audio/soundtracks/town.ogg'},
         {"id":'home', src:'media/audio/soundtracks/home.ogg'},
         {"id":'store', src:'media/audio/soundtracks/store.ogg'},
         {"id":'rocket_power', src:'media/audio/soundtracks/rocket_power.ogg'},
-          
     ];
     Game.Music.song = '';
     Game.Music.obj = null;  // Play object
@@ -354,13 +359,17 @@ var Game = {};
 
         queue.addEventListener("complete", function(){
             console.log("queue completed");
+            /*
             if(Game.Music.song){
                 Game.Music.loaded = true;
                 Game.Music.set(Game.Music.song, true);
             }
+            */
         });
         queue.addEventListener("fileload", function(event){
-            //console.log("File", event);
+            if(Game.Music.song === event.item.id){
+                Game.Music.set(Game.Music.song, true);
+            }
         });
         queue.addEventListener("error", function(event){
             console.error(event);
@@ -370,10 +379,12 @@ var Game = {};
 
     Game.Music.set = function(url, force){
 
+        /*
         if(!Game.Music.loaded){
             Game.Music.song = url;
             return;
         }
+        */
 
         if(Game.Music.song === url && !force)
             return;
@@ -381,10 +392,12 @@ var Game = {};
         // Fade out
         if(Game.Music.obj){
             var obj = Game.Music.obj;
-            createjs.Tween.get(obj).to({localVolume:0}, 2000, createjs.Ease.sineInOut).addEventListener("change", function(){
-                obj.updateLocal();
-            }).call(function(){
+            createjs.Tween.get(obj).to({localVolume:0}, 2000, createjs.Ease.sineInOut)
+            .call(function(){
                 obj.stop();
+            })
+            .addEventListener("change", function(){
+                obj.updateLocal();
             });
         }
 
