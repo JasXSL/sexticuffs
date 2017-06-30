@@ -78,13 +78,17 @@ AI.ini = function(){
         AI.numPlays = Math.ceil(Math.random()*3);
 
         // 1/5 to skip when no mana is full
-        var skip = 1/5;
-        for(var i in player.mana){
+        let skip = 1/5;
+        for(let i in player.mana){
             if(player.mana[i] >= player.max_mana){
                 skip = 0;
                 break;
             }
         }
+
+        let frst = AI.getViable(player.abilities, player, all);
+        if(frst && ~frst.ai_tags.indexOf("important"))
+            skip = 0;
 
         if(Math.random()<skip){
             AI.numPlays = 0;

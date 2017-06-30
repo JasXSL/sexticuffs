@@ -94,7 +94,12 @@ var Game = {};
             {id:'whip', src:'whip.ogg'},
             {id:'dark_cast', src:'dark_cast.ogg'},
             {id:'tentacle_summoned', src:'tentacle_summoned.ogg'},
+            {id:'chain', src:'chain.ogg'},
+            {id:'electric_zap', src:'electric_zap.ogg'},
+            {id:'vib', src:'vib.ogg'},
+            {id:'darkstrike', src:'darkstrike.ogg'},
             
+
             // Start opening
             {id:'chest_open', src:'chest_open.ogg'},
             // Finish opening

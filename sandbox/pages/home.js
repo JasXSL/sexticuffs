@@ -849,7 +849,7 @@
 
 
             $("#overlay div.shop input.equipItem").on('click', function(){
-                char.equipArmor(id);
+                char.equipArmor(id, true);
                 page.drawShop();
                 Game.playSound('redress');
                 if(!Netcode.isHosting())
@@ -866,7 +866,7 @@
 
                 Game.playSound('purchase');
                 char.unlockArmor(id);
-                char.equipArmor(id);
+                char.equipArmor(id, true);
                 page.drawShop();
                 if(!Netcode.isHosting())
 					Netcode.setCharacter();

@@ -304,23 +304,22 @@ div{
 
     div.ability span.tooltip div.manacost{
         background:none;
-        width:3vw;
-        height:3vw;
+        width:2vw;
+        height:2vw;
         display: inline-block;
         color:#FFF;
         text-align: center;
-        
         font-weight: bold;
-        font-size:2vw; 
+        font-size:1.75vw; 
         text-shadow:0.1vw 0.1vw 0.3vw #000;
     }
+
     div.ability span.tooltip div.manacost div.bg{
         background-image:url(../media/emerald.svg);
         background-size:100%;
         position: absolute;
         left:0; right:0;
         top:0; bottom:0;
-        color:#AEF; 
     }
     div.ability span.tooltip div.manacost p{
         display: block;
@@ -329,15 +328,9 @@ div{
         z-index:11;
         padding-top:0.25vw;
     }
-    div.ability span.tooltip div.manacost.offensive{
-        color:#FAA;
-    }
     div.ability span.tooltip div.manacost.offensive div.bg{
         -webkit-filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
                 filter:hue-rotate(180deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));
-    }
-    div.ability span.tooltip div.manacost.support{
-        color:#AFA;
     }
     div.ability span.tooltip div.manacost.support div.bg{
         -webkit-filter:hue-rotate(-74deg) drop-shadow(0.2vw 0.2vw 0.5vw rgba(0,0,0,.75));

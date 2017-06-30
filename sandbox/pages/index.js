@@ -176,6 +176,8 @@
 
         });
 
+
+        // Character submit
         $("#newCharacter").on('submit', function(){
 
             Game.clickSound();
