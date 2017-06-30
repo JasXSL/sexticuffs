@@ -22,3 +22,4 @@ Todo: Write a proper readme.
 * CC Art: Adrianiglesiart
 * Music: http://www.bensound.com
 * Music: http://audionautix.com/
+* SFX: richardemoore @ freesound
