@@ -9,7 +9,7 @@ var Game = {};
     Game.soundVolume = 0.5;
     Game.musicVolume = 0.5;
     Game.mute = false;
-    Game.version = 1;
+    Game.version = 2; 
 
 
     Game.ini = function(){

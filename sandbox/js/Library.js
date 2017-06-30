@@ -547,37 +547,6 @@ var DB = {
                 });
 
 
-
-                // Bloodthirst
-                /*
-                Ability.insert({
-                    id : 'bloodthirst',   // Should be unique
-                    name : 'Bloodthirst',
-                    icon : 'snake-bite.svg',
-                    description : 'Deals 4 damage and heals you for 2. Can only be used on a character that has been healed prior to your turn.',
-                    manacost : {offensive:2, support:1},
-                    cooldown : 2,
-                    detrimental : false,
-                    playable:true,
-                    conditions : [],
-                    ai_tags : ["heal"],
-                    effects:[
-                        new Effect({
-                            id : 't0HEAL',
-                            max_stacks : 1,
-                            duration : 0,
-                            detrimental : false,
-                            events : [
-                                new EffectData({
-                                    triggers: [EffectData.Triggers.apply],
-                                    effects:[[EffectData.Types.heal, 4]]
-                                })
-                            ]
-                        }),
-                    ]
-                });
-                */
-
             //
         
         //
