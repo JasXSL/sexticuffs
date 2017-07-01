@@ -322,6 +322,9 @@
             }
             B.ended = true;
             B.addToBattleLog(null, null, 'The battle has ended!', 'important');
+            for(let p of Netcode.players){
+                p.onBattleEnd();
+            }
 
             // Clear all summoned players
             Netcode.wipeSummonedPlayers();
@@ -625,7 +628,7 @@
 
                     $("#abilities div.ability[data-punishment]").on('click', function(){
                         Game.playSound('shake');
-                        var abil = Ability.get($(this).attr('data-punishment'));
+                        var abil = Ability.get($(this).attr('data-punishment')).clone();
                         abil.parent = B.getMyCharacter();
 
                         B.selectTarget(abil);

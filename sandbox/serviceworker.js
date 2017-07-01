@@ -16,7 +16,7 @@
 // Root
 	var SW = {};
 		SW.config = {
-			cache_version : '2017-06-30', 
+			cache_version : '2017-07-01', 
 			always_cache : [ 
 			'png',
 			'jpeg',
@@ -30,7 +30,7 @@
 			],
 		};
 	SW.cache = [
-       '/',
+            '/',
       'index.php',
       'manifest.json',
       'favicon.ico',
@@ -87,6 +87,7 @@
       'media/audio/pinch.ogg',
       'media/audio/playerdisconnected.ogg',
       'media/audio/playerjoined.ogg',
+      'media/audio/prismbeam.ogg',
       'media/audio/punch.ogg',
       'media/audio/punch_heavy.ogg',
       'media/audio/purchase.ogg',
@@ -140,6 +141,7 @@
       'media/effects/cog.svg',
       'media/effects/coliseum.svg',
       'media/effects/corrupt.svg',
+      'media/effects/crystal-bars.svg',
       'media/effects/dodge.svg',
       'media/effects/gavel.svg',
       'media/effects/grab.svg',

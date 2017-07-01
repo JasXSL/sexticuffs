@@ -122,6 +122,8 @@ var DB = {
                 // Effects
                 "fx_cold",              // player is cold
                 "fx_mitigation",       // Player is mitigating
+                "fx_shackled",          // Currently locked in chains
+
             ];
 
 
@@ -268,7 +270,7 @@ var DB = {
                     icon : 'media/effects/gavel.svg',
                     description : 'Deals 4 damage.',
                     manacost : {offensive:3},
-                    cooldown:3,
+                    cooldown:2,
                     detrimental : true,
                     playable:true,
                     conditions : [new Condition({type:Condition.SELF, inverse:true})],
@@ -342,7 +344,7 @@ var DB = {
                     name : 'Counter',
                     icon : 'media/effects/shield-reflect.svg',
                     description : 'Deals 4 damage. Only usable after being attacked.',
-                    manacost : {defensive:3},
+                    manacost : {defensive:2},
                     detrimental : true,
                     cooldown: 2,
                     playable:true,
@@ -509,7 +511,7 @@ var DB = {
                     playable:true,
                     always_hit : true,
                     ranged : false,
-                    cooldown : 3,
+                    cooldown : 2,
                     conditions : [new Condition({type:Condition.ENEMY})],
                     ai_tags : ["damage"],
                     effects:[
@@ -546,6 +548,34 @@ var DB = {
                     ]
                 });
 
+                // Prism Beam
+                Ability.insert({
+                    id : 'prism_strike',   // Should be unique
+                    name : 'Prism Beam',
+                    icon : 'media/effects/crystal-bars.svg',
+                    description : 'Deals 4 damage.',
+                    manacost : {offensive:2, defensive:1, support:1},
+                    cooldown:1,
+                    detrimental : true,
+                    playable:true,
+                    ranged : true,
+                    conditions : [new Condition({type:Condition.SELF, inverse:true})],
+                    ai_tags : ["damage"],
+                    effects:[
+                        new Effect({
+                            id : 'prism_strike',
+                            max_stacks : 1,
+                            duration : 0,
+                            detrimental : true,
+                            events : [
+                                new EffectData({
+                                    triggers: [EffectData.Triggers.apply],
+                                    effects:[[EffectData.Types.damage, 4]]
+                                })
+                            ]
+                        })
+                    ]
+                });
 
             //
         
@@ -1246,8 +1276,8 @@ var DB = {
                 id : 'JAILOR_SHACKLE',   // Should be unique
                 name : 'Shackle',
                 description : 'Shackles a player, limiting them to ranged and self casts.',
-                manacost : {defensive:0},
-                cooldown: 3,
+                manacost : {defensive:2},
+                cooldown: 4,
                 detrimental : true,
                 charged : 0,
                 ranged : true,
@@ -1262,6 +1292,7 @@ var DB = {
                         name: 'Shackle',
                         description : 'Melee abilities can only target yourself.',
                         icon : 'media/effects/handcuffs.svg',
+                        tags : ['fx_shackled'],
                         events : [
                             new EffectData({
                                 triggers: [],
@@ -1277,14 +1308,13 @@ var DB = {
             Ability.insert({
                 id : 'JAILOR_TORTURE',   // Should be unique
                 name : 'Torture',
-                description : 'Tortures a player, increasing their damage taken by subsequent tortures by 1. Not dispellable.',
-                manacost : {support:2},
+                description : 'Tortures a player, increasing their damage taken by subsequent tortures by 50%. Not dispellable.',
+                manacost : {},
                 cooldown: 1,
                 detrimental : true,
                 charged : 0,
                 ranged : false,
                 conditions : [C(CO.ENEMY)],
-                no_dispel : true,
                 ai_tags : ["damage", "important"],
                 effects:[
                     new Effect({
@@ -1305,13 +1335,14 @@ var DB = {
                         max_stacks : 100,
                         duration : Infinity,
                         detrimental : true,
+                        no_dispel : true,
                         name : 'Torture',
                         description : 'Subsequent tortures deal more damage',
                         icon : 'media/effects/voodoo-doll.svg',
                         events : [
                             new EffectData({
                                 triggers: [],
-                                effects:[[EffectData.Types.damage_boost, 1, 'JAILOR_TORTURE']]
+                                effects:[[EffectData.Types.damage_boost, 'round(1.5^(fxStacks-1))', 'JAILOR_TORTURE']]
                             })
                         ]
                     }), 1],
@@ -1324,7 +1355,7 @@ var DB = {
                 name : 'Confess',
                 description : 'Confess, removing all stacks of torture.',
                 icon : 'media/effects/silenced.svg',
-                manacost : {defensive:3, support:3}, 
+                manacost : {defensive:1, support:1, offensive:1}, 
                 cooldown: 1,
                 detrimental : false,
                 charged : 0,
@@ -1702,6 +1733,7 @@ var DB = {
 
 
         // Hell bent for latex
+
         Challenge.insert({
             id : 'sexyHell',
             name : 'Hell Bent for Latex',
@@ -1890,7 +1922,10 @@ var DB = {
                             background : 'media/backgrounds/dungeon.jpg',
                             description : 'The Jailor\'s charge is to keep prisoners from escaping and extract information using various... methods.',
 							intro : [
-								//new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
+								new ChallengeTalkingHead({icon:'', text:'Announcer: The adventurer finds the dungeon exit!', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Announcer: As they near the door, a gate slams behind them!', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Announcer: An ominous laugh is heard from behind!', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'The Jailor: I will pry the secrets from your bodies!', sound:''}),
 							],
                             npcs : [
                                 // Mechanics:
@@ -1900,9 +1935,10 @@ var DB = {
                                 // Tactics: Use confess if damage gets too high. Use ranged abilities.
                                 new Character({
                                     "id":"TheJailor", name:'The Jailor', race:Race.get('jackal'), 
-									description:"The jailor is a large ragged jackal with horns and glowing red eyes. Carrying chains and a painful looking tool belt.", body_tags:["fuzzy", "ragged"], 
+                                    tags:["c_penis", "s_demon"],
+									description:"The Jailor is a large ragged jackal with horns and glowing red eyes. Carrying chains and a painful looking tool belt.", body_tags:["fuzzy", "ragged"], 
 									image : '',
-									max_armor:20, max_hp:30, size:7, tags:[], 
+									max_armor:25, max_hp:25, size:7,
 									abilities:[
                                         "JAILOR_SHACKLE",       // Generates a shackle effect for 3 turns. While shackled, the player can only use ranged and self cast abilities.
                                         "JAILOR_TORTURE",       // Deals 1 damage and adds 1 stack of torment, increasing subsequent tortures damage by 1 per stack.
@@ -1923,7 +1959,7 @@ var DB = {
                                         })
                                     ]
                                 })
-                            ]
+                            ] 
                         }),
                         
 
@@ -1941,13 +1977,64 @@ var DB = {
                         
                     ],
                 }),
-				
+
+                
+                // Castle Heck
+                /*
+				new ChallengeWing({
+                    id : 'castleHeck',
+                    name : 'Castle Heck',
+                    description : 'You have escaped to the upper levels! Defeat Satinan\'s most trusted to reach the king\'s chamber!',
+                    stages : [
+
+                        // 1. The Pit
+                        new ChallengeStage({
+                            id : '?',
+                            icon : '?',
+                            name : '?',
+                            music : '?',
+                            background : '?',
+                            description : '?',
+							intro : [
+								// new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
+							],
+                            npcs : [
+                                // Wants vagina
+                                /*
+                                new Character({
+                                    "id":"tentaclePit", ignore_default_abils : true, name:'The Tentacle Pit', race:new Race({id:'tentaclePit', name_male : 'Tentacle Pit', playable:false, description : 'The chamber you\'re standing in is alive.', humanoid:false}), 
+									description:"The chamber itself is alive with tentacles", body_tags:["slimy"], 
+									image : 'media/npc/tentaclepit.jpg',
+									max_armor:0, max_hp:60, size:10, tags:[], 
+									abilities:["TENTACLE_PIT_SUMMON", "TENTACLE_INJECT"],
+                                }),
+                                *//*
+                            ]
+                        }),
+
+                        
+
+                    ],
+                    rewards : [
+                        /*
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.clothes,
+                            data:'tentacleSuitStandalone',
+                        }),
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.money,
+                            data:100,
+                        }),
+                        *//*
+                    ],
+                }),
+				*/
                 
             ],
             // Not yet supported
             conditions : [],
         });
-
+        
     };
 
 
@@ -2014,6 +2101,16 @@ var DB = {
             Text.insert({conditions:[abil, humanoid, C.A_TENTACLES, C.HAS_BOTTOM, C.ARMOR_TIGHT, C.PENIS], sound:'slime_whip', ait:[ait.aGroin, ait.tSlap], text:":ANAME: slaps at the groin of :TARGET:'s :TCLOTHES: with a long tentacle, landing a wet splash across :THIS: bulge!"});
             Text.insert({conditions:[abil, humanoid, C.A_TENTACLES, C.NO_BOTTOM, C.PENIS], sound:'slime_whip', ait:[ait.aGroin, ait.tSlap], text:":ANAME: slaps at :TARGET:'s :TGROIN: with a long tentacle, landing a wet splash across :THIS: exposed :TPENIS:!"});
             
+
+            // in shackles
+            let shackled = C(CO.TAGS, 'fx_shackled');
+            Text.insert({conditions:[abil, humanoid, shackled, C.A_PENIS, C.A_NO_BOTTOM, C.ARMOR_THONG], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: gets behind the shackled :TRACE:, quickly slipping :TARGET:'s butt-string aside and shoving :AHIS: :APENIS: up :TARGET:'s :TBUTT:, humping it firmly!"});
+            Text.insert({conditions:[abil, humanoid, shackled, C.A_PENIS, C.A_NO_BOTTOM, C.ARMOR_THONG, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":ANAME: gets behind the shackled :TRACE:, quickly slipping the crotch-cover of :TARGET:'s :TCLOTHES: aside and shoving :AHIS: :APENIS: up :TARGET:'s :TVAG:, humping it firmly!"});
+            Text.insert({conditions:[abil, humanoid, shackled, C.A_PENIS, C.A_NO_BOTTOM, C.NO_BOTTOM], sound:'squish', ait:[ait.aButt, ait.tPin], text:":ANAME: gets behind the shackled :TRACE: and shoves :AHIS: :APENIS: up :TARGET:'s :TBUTT:, humping it firmly!"});
+            Text.insert({conditions:[abil, humanoid, shackled, C.A_PENIS, C.A_NO_BOTTOM, C.NO_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":ANAME: gets behind the shackled :TRACE: and shoves :AHIS: :APENIS: up :TARGET:'s :TVAG:, humping it firmly!"});
+            Text.insert({conditions:[abil, humanoid, shackled, C.HAS_BOTTOM, C.VAG], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: slips :AHIS: hand into the bottom of :TARGET:'s :TCLOTHES:, slipping a couple of fingers inside :TARGET:'s :TVAG: and massaging :THIS: insides!"});
+            
+
 
             // Wearing a tentacle suit
             let tentacleSuit = C(CO.TAGS, ['a_tentacles']);
@@ -2136,7 +2233,6 @@ var DB = {
                 Text.insert({conditions:[abil, humanoid], sound:'stretch', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs wide apart, causing :THIM: great pain and lifting :TARGET:'s hips towards the :ARACE:'s face. :ATTACKER: gives the struggling :TRACE: a quick lick across :THIS: :TGROIN:!"});
                 Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NO_BOTTOM, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs wide apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :BUTT: and starts thrusting firmly!"});
                 Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NO_BOTTOM, C.A_PENIS, C.VAGINA], sound:'squish', text:":ANAME: grasps :TARGET: by the legs and lifts! The :ARACE: forces :TARGET:'s legs apart and lifts :TARGET:'s hips towards :AHIS: own. :ATTACKER: forces :AHIS: :APENIS: inside :TARGET:'s :TVAGINA: and starts thrusting firmly!"});
-                
 
             
 
@@ -2176,6 +2272,10 @@ var DB = {
             // Ghost strike
                 abil = C(CO.ABILITY, "ghost_strike");
                 Text.insert({conditions:[abil], sound:'darkstrike', text:":ANAME: used :AHIS: ghostly powers to strike at :TARGET:!"});
+
+            // prism_strike
+                abil = C(CO.ABILITY, "prism_strike");
+                Text.insert({conditions:[abil], sound:'prismbeam', text:":ANAME: launches a prismatic beam at :TARGET:!"});
 
         //
 
@@ -2324,12 +2424,16 @@ var DB = {
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.VAG], ait:[ait.aGroin, ait.tVibrate], sound:'vib', text:":ATTACKER: slips a vibrating seat between the shackled :TRACE:'s legs! Using a lever, :AHE: raises the seat, forcing :TARGET:'s feet off the ground!"});
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.VAG, C.NO_BOTTOM], ait:[ait.aGroin, ait.tVibrate], sound:'vib', text:":ATTACKER: slips seat adorned with a vibrating dildo between the shackled :TRACE:'s legs, forcing it into :THIS: :TVAG:! Using a lever, :AHE: raises the seat, forcing :TARGET:'s feet off the ground!"});
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.NO_BOTTOM], ait:[ait.aButt, ait.tVibrate], sound:'vib', text:":ATTACKER: slips seat adorned with a vibrating dildo between the shackled :TRACE:'s legs, forcing it into :THIS: :TBUTT:! Using a lever, :AHE: raises the seat, forcing :TARGET:'s feet off the ground!"});
-                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.NO_BOTTOM], ait:[ait.aButt, ait.tZap], sound:'electric_zap', text:":ATTACKER: forces :AHIS: electric prod up the bound :TRACE:'s :TBUTT:, sending a jolt of electricity into :TARGET!"});
+                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.NO_BOTTOM], ait:[ait.aButt, ait.tZap], sound:'electric_zap', text:":ATTACKER: forces :AHIS: electric prod up the bound :TRACE:'s :TBUTT:, sending a jolt of electricity into :TARGET:!"});
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.NO_BOTTOM, C.VAG], ait:[ait.aGroin, ait.tZap], sound:'electric_zap', text:":ATTACKER: forces :AHIS: electric prod into the bound :TRACE:'s :TVAG:, sending a jolt of electricity into :TARGET:!"});
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.A_PENIS], ait:[ait.aMouth, ait.tPin, ait.tCumInside], sound:'squish', text:":ATTACKER: slips a ring gag into the shackled :TRACE:'s mouth, then swiftly thrusts :AHIS: :APENIS: inside! The :ARACE: humps for a while before pulling out, leaving a trail of demonic cum!"});
                     Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.BREASTS, C.NO_TOP], ait:[ait.aBreasts], sound:'slime_squish_bright', text:":ATTACKER: grabs a candle off the wall, then pours hot wax over the bound :TRACE:'s :TBREASTS:!"});
-                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.BREASTS, C.HAS_TOP], ait:[ait.aBreasts, ait.aBreasts], sound:'pinch', text:":ATTACKER: grabs at the top of :TARGET:'s :TCLOTHES: tearing the outfit out of the way and exposing :THIS: :TBREASTS:! The :ARACE: quickly positions clamps over :TARGET:'s nipples and tugs back, causing great pain to :TARGET:!"});
+                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.BREASTS, C.HAS_TOP], ait:[ait.aBreasts, ait.tPinch], sound:'pinch', text:":ATTACKER: grabs at the top of :TARGET:'s :TCLOTHES: tearing the outfit out of the way and exposing :THIS: :TBREASTS:! The :ARACE: quickly positions clamps over :TARGET:'s nipples and tugs back, causing great pain to :TARGET:!"});
+                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle')], ait:[ait.aBreasts, ait.tZap], sound:'electric_zap', text:":ATTACKER: slips two electrodes onto the shackled :TRACE:'s :TBREASTS:, hooks them up to a handheld controller and pushes a button! Painful jolts of electricity rapidly spread through :TARGET:'s :TBREASTS:!"});
+                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.BREASTS], ait:[ait.aBreasts, ait.tSlap], sound:'slap', text:":ATTACKER: slips a piece of rope around the shackled :TRACE:'s :TBREASTS:, tying them up firmly! The sadistic :ARACE: then immediately starts slapping them around, causing :THIM: great pain!"});
+                    Text.insert({conditions:[abil, C(CO.EFFECT, 'JailorShackle'), C.HAS_BOTTOM, C.ARMOR_TIGHT], ait:[ait.aGroin, ait.tZap], sound:'electric_zap', text:":ATTACKER: grabs at the back of the shackled :TRACE:'s :TCLOTHES: tugging in a way that gives :TARGET: quite a wedgie! The :ARACE: then pushes :AHIS: elctric rod against :TARGET:'s :CROTCH:, sending powerful jolts through :THIS: :TCROTCHEX:!"});
                     
+
                     // Confess
                     abil = C(CO.ABILITY, "JAILOR_CONFESS");
                     Text.insert({conditions:[abil], ait:[], sound:'mez', text:":ATTACKER: cracks under the torture and confesses!"});

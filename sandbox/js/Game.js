@@ -98,6 +98,7 @@ var Game = {};
             {id:'electric_zap', src:'electric_zap.ogg'},
             {id:'vib', src:'vib.ogg'},
             {id:'darkstrike', src:'darkstrike.ogg'},
+            {id:'prismbeam', src:'prismbeam.ogg'},
             
 
             // Start opening

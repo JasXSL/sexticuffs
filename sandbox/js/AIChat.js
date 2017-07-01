@@ -456,4 +456,43 @@ class AIChat{
             aitl = [[ait.aButt, ait.tSlap]];
             add(false, "challenger", aitl, {conditions:[], text: 'Don\'t touch what you can\'t afford yo!'}, false, true);
 
+        
+        // Jailor
+            aitl = [[ait.tWhip]];
+            add(false, "TheJailor", aitl, {conditions:[], text: 'I will flog the secrets from you!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Confess!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Purified through pain!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'I will put you back in your cell!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Do not resist!'});
+            
+            aitl = [[ait.tZap]];
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Behold my power!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Confess!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Your secrets will be mine!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Let the pain course through you!'});
+            add(false, "TheJailor", aitl, {conditions:[], text: 'Feel my power!'});
+            
+            aitl = [];
+            let abil = C(CO.ABILITY, "JAILOR_TORTURE");
+            // Torture in shackles
+            add(false, "TheJailor", aitl, {conditions:[abil, C(CO.EFFECT, 'JailorShackle')], text: 'How powerless you are!'});
+            add(false, "TheJailor", aitl, {conditions:[abil, C(CO.EFFECT, 'JailorShackle')], text: 'You cannot stop me!'});
+            add(false, "TheJailor", aitl, {conditions:[abil, C(CO.EFFECT, 'JailorShackle')], text: 'You will stay my prisoner!'});
+            add(false, "TheJailor", aitl, {conditions:[abil, C(CO.EFFECT, 'JailorShackle')], text: 'So powerless to stop me!'});
+            add(false, "TheJailor", aitl, {conditions:[abil, C(CO.EFFECT, 'JailorShackle')], text: 'I will break you!'});
+            
+
+            abil = C(CO.ABILITY, "JAILOR_SHACKLE");
+            aitl = [];
+            add(false, "TheJailor", aitl, {conditions:[abil], text: 'There is no escaping my bonds!'});
+            add(false, "TheJailor", aitl, {conditions:[abil], text: 'No escape!'});
+            add(false, "TheJailor", aitl, {conditions:[abil], text: 'Now you are mine!'});
+            add(false, "TheJailor", aitl, {conditions:[abil], text: 'It is useless to resist!'});
+            add(false, "TheJailor", aitl, {conditions:[abil], text: 'Let the torture begin!'});
+            
+            
+            
+            
+            
+
 })();

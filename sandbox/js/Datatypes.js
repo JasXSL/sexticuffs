@@ -260,14 +260,14 @@ class Character extends Asset{
 
 	// Stats
 
-		damage(type, amount, attacker, ability){
+		damage(type, amount, attacker, ability, effect){
 
 			if(this.isDead())
 				return;
 
 			// If amount is a string, evaluate math. See Effect.runMath for vars you can use
 			if(typeof amount === 'string')
-				amount = Effect.runMath(amount, attacker, this, []);
+				amount = Effect.runMath(amount, attacker, this, [], effect);
 			
 
 			if(typeof amount !== 'object')
@@ -416,8 +416,12 @@ class Character extends Asset{
 		}
 
 		// Gets a multiplier for campaign NPCs HP and attack
-		getCampaignPowerMultiplier(){
-			return 1+(Netcode.getNumPCs()-1)*0.9;
+		getCampaignPowerMultiplier(damage){
+			let multi = 0.75;
+			if(damage)
+				multi = 1;
+
+			return 1+((Netcode.getNumPCs()-1)*multi);
 		}
 
 		getMaxHP(){
@@ -469,8 +473,17 @@ class Character extends Asset{
 						}
 					}
 
-					if(!isNaN(+arr[1]))
-						out+= arr[1]*stacks;
+					let m = arr[1];
+
+					// Math needs to multiply by stacks itself
+					if(typeof m === 'string'){
+						m = Effect.runMath(m, attacker, this, [], effect);
+					}
+					else
+						m*= stacks;
+
+					if(!isNaN(m))
+						out+= m;
 				}
 			}
 
@@ -1536,9 +1549,10 @@ class Character extends Asset{
 				var fx = all[i];
 				if(fx.no_dispel)
 					continue;
+
 				if(
-					(fx.beneficial && beneficial) ||
-					(!fx.beneficial && !beneficial)
+					(!fx.detrimental && beneficial) ||
+					(fx.detrimental && !beneficial)
 				){
 					this.removeEffect(fx.UUID, false);
 					if(max !== -1)
@@ -1777,16 +1791,10 @@ class Character extends Asset{
 			
             this.hp = this.getMaxHP();
             this.armor = this.getMaxArmor();
-            this.effects = [];
-
 			this.aiChat = new AIChat(this);
 
-			this.turn_tags = [];
-			this.arena_passives = [];
-
-			this.grappled_by = false;	// Clear grapples
-			this.grapple_passives = [];
-
+			this.wipeAllEffects();
+			
 			if(stage){
 				for(i=0; i<stage.passives.length; ++i){
 					var p = stage.passives[i].clone();
@@ -1804,7 +1812,21 @@ class Character extends Asset{
 			}
         }
 
-		// A battle has been won
+		// Wipes effects, grapples and all that before and after a battle
+		wipeAllEffects(){
+			this.effects = [];
+			this.turn_tags = [];
+			this.arena_passives = [];
+			this.grappled_by = false;	// Clear grapples
+			this.grapple_passives = [];
+		}
+
+		// Battle has been ended, but no punishment yet. Should still clear passives and stuff.
+		onBattleEnd(){
+			this.wipeAllEffects();
+		}
+
+		// A battle has been won and punishment drawn
 		onBattleEnded(won, campaignObj, stageObj){
 
 			var exp = 1, money = 5;			// 5 dosh for competing, regardless of win
@@ -2901,7 +2923,7 @@ class Effect extends Asset{
 				type === EffectData.Types.manaHeal ||
 				type === EffectData.Types.manaDamage				
 			){
-				victim.damage(type, fx.shift(), attacker, ability);
+				victim.damage(type, fx.shift(), attacker, ability, this);
 			}
 
 			if(type === EffectData.Types.remByID){
@@ -3109,7 +3131,7 @@ class Effect extends Asset{
 
 }
 
-Effect.runMath = function(nr, attacker, victim, evtArgs){
+Effect.runMath = function(nr, attacker, victim, evtArgs, effect){
 	
 	let args = {
 		// Attacker 
@@ -3135,6 +3157,12 @@ Effect.runMath = function(nr, attacker, victim, evtArgs){
 			vNumPlayers : Netcode.getPlayersOnTeam(victim.team).length,
 			
 	};
+
+	if(effect){
+		args.fxStacks = effect._stacks;
+		args.fxDuration = effect._duration;
+		args.fxTicks = effect._ticks;
+	}
 
 	
 	if(evtArgs){
@@ -3498,7 +3526,7 @@ class Condition extends Asset{
 
 		if(att !== true){
 			if(verbose){
-				console.log(this.type, this.data, "failed", a, b, ability, success, verbose);
+				console.log(this.type, this.data, "failed", a, b, ability, att, success, verbose, this.inverse); 
 			}
 			return false;
 		}
@@ -3551,7 +3579,7 @@ class Condition extends Asset{
 		if(this.type === Condition.TOTAL_TURNS_GREATER){
 			let n = this.data[0];
 			if(typeof n === 'string'){
-				n = Effect.runMath(n, attacker, victim, []);
+				n = Effect.runMath(n, attacker, victim, [], new Effect());
 			}
 			if(Game.Battle.total_turns <= n)
 				return false;
