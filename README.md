@@ -24,3 +24,4 @@ Todo: Write a proper readme.
 * Music: http://audionautix.com/
 * SFX: richardemoore @ freesound
 * CC Art: darksouls1 
+* CC Art: Mysticsartdesign
