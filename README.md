@@ -26,3 +26,4 @@ Todo: Write a proper readme.
 * CC Art: darksouls1 
 * CC Art: Mysticsartdesign
 * Art: Otter by http://www.furaffinity.net/user/gothwolf/
+* SFX: calopa310 @ freesound
