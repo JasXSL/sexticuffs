@@ -1169,6 +1169,7 @@ div{
         width:25%;
         padding:0;
         overflow:visible;
+        z-index:20;
     }
 
     #wrap[data-page=battle] #friends > div.bottom, 
@@ -1551,14 +1552,16 @@ div{
     }
 
     #wrap[data-page=battle] #friends div.spellIcon:hover span.tooltip{
-        -webkit-transform:none;
-                transform:none;
+        -webkit-transform:translateY(-100%);
+                transform:translateY(-100%);
+        top:0;
     }  
     #wrap[data-page=battle] #enemies div.spellIcon:hover span.tooltip{
         -webkit-transform:translate(-100%, -100%);
                 transform:translate(-100%, -100%);
         top:0;
     }  
+
 
     #wrap[data-page=battle] div.character div.effects div.spellIcon{
         width:2vw;

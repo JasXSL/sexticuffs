@@ -10,7 +10,9 @@
     page.onPreload = function(){};
 
     page.free_characters = [
-        'media/free_characters/dps.jpg'
+        'media/free_characters/dps.jpg',
+        'media/free_characters/otter.jpg',
+        
     ];
     
     page.onLoaded = function(){
@@ -263,6 +265,7 @@
             // Needed in order to save
             Game.player = char;
             char.save().then(function(){
+                char.onLoaded();            // adds the default abilities
                 return Game.setActiveChar(char);
             }).then(function(){
                 Jasmop.Page.set("home");

@@ -489,6 +489,7 @@ var DB = {
                             detrimental : false,
                             target : Game.Consts.TARG_ATTACKER,
                             icon : 'media/effects/corrupt.svg',
+                            name: 'Corrupt',
                             description : 'Healing abilities now deal damage.',
                             events : [
                                 new EffectData({
@@ -1337,7 +1338,7 @@ var DB = {
                         detrimental : true,
                         no_dispel : true,
                         name : 'Torture',
-                        description : 'Subsequent tortures deal more damage',
+                        description : 'Subsequent tortures deal more damage. Not dispellable.',
                         icon : 'media/effects/voodoo-doll.svg',
                         events : [
                             new EffectData({
@@ -1378,7 +1379,461 @@ var DB = {
                 ]
             });
 
+        // BUTLER_DISCIPLINE
+            Ability.insert({
+                id : 'BUTLER_DISCIPLINE',   // Should be unique
+                name : 'Discipline',
+                description : 'Deals 10 damage to all players.',
+                manacost : {}, 
+                cooldown: 1,
+                detrimental : true,
+                aoe : true,
+                conditions : [C(CO.ENEMY)],
+                ai_tags : [],
+                effects:[
+                    new Effect({
+                        detrimental : false,
+                        max_stacks : 1,
+                        duration : 0,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[
+									[EffectData.Types.damage, 10]
+								]
+                            }),
+                        ]
+                    }),              
+                ]
+            });
 
+
+            // Removes NPCs and serviceAbility
+            let patronRemove = new Effect({
+                target : Game.Consts.TARG_AOE,
+                detrimental : false,
+                events : [
+                    new EffectData({
+                        triggers : [EffectData.Triggers.apply],
+                        effects: [
+                            [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                icon:'media/npc/butler.jpg', text:'Butler: The customer is displeased! You must be disciplined!', sound:''
+                            })],
+                            [EffectData.Types.removeCharacter]
+                        ],
+                        conditions : [C(CO.CHARACTER_ID, 'patron')]
+                    }),
+                    new EffectData({
+                        triggers : [EffectData.Triggers.apply],
+                        effects:[
+                            [EffectData.Types.remByID, 'serviceAbility'],
+                        ]
+                    }),
+                    
+                ]
+            });
+
+        // BUTLER_RANDOM
+            Ability.insert({
+                id : 'BUTLER_RANDOM',   // Should be unique
+                name : 'Chores!',
+                description : 'Creates a random chore for the players to complete!',
+                icon : '',
+                manacost : {}, 
+                cooldown: 3,
+                detrimental : false,
+                charged : 0,
+                conditions : [C(CO.TOTAL_TURNS_GREATER, 4), C(CO.SELF)],
+                ai_tags : ["important"],
+                max_effects : 1,
+                effects_rand : true,
+                no_text : true,
+                effects:[
+                    
+                    // Wash the dishes
+                    
+                    new Effect({
+                        detrimental : false,
+                        max_stacks : 1,
+                        duration : 0,
+                        events : [
+                            new EffectData({
+                                triggers: [EffectData.Triggers.apply],
+                                effects:[
+									[EffectData.Types.summonNpc, new Character({
+                                        id : 'unwashedDishes',
+                                        name : 'Dishes',
+                                        death_sound : 'dishes_die',
+                                        description : 'Wash the dishes or be disciplined!',
+                                        icon : 'media/effects/meal.svg',
+                                        race : new Race({id:'cutlery', name_male:'Cutlery', humanoid:false}),
+                                        ignore_default_abils : true,
+                                        max_armor : 0,
+                                        max_hp : 4,
+                                        death_text : 'The :TARGET: were cleaned!',		// Only host needs this
+                                        hp_text : 'dirt',			// :VICTIM: loses n X. This is X
+                                        effects_on_spawn : [new Effect({
+                                            id : 'disciplineOnFade',
+                                            name : 'Unwashed',
+                                            no_dispel : true,
+                                            detrimental : true,
+                                            description : 'You have 1 turn to do the dishes.',
+                                            icon : 'media/effects/meal.svg',
+                                            duration: 1,
+                                            events:[
+                                                new EffectData({
+                                                    triggers:[EffectData.Triggers.turnStart],
+                                                    effects:[
+                                                        [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                            icon:'media/npc/butler.jpg', text:'Butler: I told you to do the dishes! You need discipline!', sound:'dishes'
+                                                        })],
+                                                        [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE]
+                                                    ],
+                                                }),
+                                                new EffectData({ 
+                                                    triggers: [EffectData.Triggers.turnStart],
+                                                    target : Game.Consts.TARG_ATTACKER,
+                                                    effects:[[EffectData.Types.removeCharacter]]
+                                                }),
+                                                new EffectData({
+                                                    triggers: [EffectData.Triggers.apply],
+                                                    effects:[[
+                                                        EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                            icon:'media/npc/butler.jpg', text:'Butler: The dishes are piling up, do help me manage them!', sound:'dishes'
+                                                        })
+                                                    ]]
+                                                })
+                                            ]
+                                        })]
+                                    })],
+								]
+                            }),
+                        ]
+                    }),              
+
+                    
+                    // Serving tray
+                    new Effect({
+                        detrimental:false,
+                        events : [new EffectData({
+                            triggers : [EffectData.Triggers.apply],
+                            effects:[
+                                // Apply serving tray to PCs
+                                [EffectData.Types.applyEffect, new Effect({
+                                    id : 'servingTray',
+                                    name : 'Balance Act',
+                                    description : 'Each ability used consumes a stack. At 0 stacks you get disciplined. No dispel.',
+                                    detrimental : true,
+                                    no_dispel : true,
+                                    icon : 'media/effects/meal.svg',
+                                    conditions : [C(CO.ENEMY)],
+                                    duration : 3,
+                                    max_stacks : 5,
+                                    target : Game.Consts.TARG_AOE,
+                                    events :[
+                                        new EffectData({
+                                            triggers : [EffectData.Triggers.stacksLost],
+                                            effects: [
+                                                [EffectData.Types.text, ":ATTACKER: drops :AHIS: serving trays!", "plate_break", true],
+                                                [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_VICTIM]
+                                            ]
+                                        }),
+                                        new EffectData({
+                                            triggers: [EffectData.Triggers.abilityUsed],
+                                            effects : [[EffectData.Types.addStacksTo, "_THIS_", -1]]
+                                        }),
+                                    ]
+                                }), 5],
+                                // Output chat
+                                [EffectData.Types.applyEffect, new Effect({
+                                    detrimental : false,
+                                    conditions : [C(CO.SELF)],
+                                    events :[
+                                        new EffectData({
+                                            triggers : [EffectData.Triggers.apply],
+                                            effects: [[EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                icon:'media/npc/butler.jpg', text:'Butler: Carry these plates for me, will you?', sound:'dishes'
+                                            })]]
+                                        }),
+                                    ]
+                                })],
+                            ]
+                        })]
+                    }),
+                    // Service
+                    new Effect({
+                        detrimental:false,
+                        events : [new EffectData({
+                            triggers : [EffectData.Triggers.apply],
+                            effects:[
+
+                                // Add ability
+                                [EffectData.Types.applyEffect, new Effect({
+                                    id : 'serviceAbility',
+                                    detrimental : false,
+                                    no_dispel : true,
+                                    conditions : [C(CO.ENEMY)],
+                                    duration : 1,
+                                    max_stacks : 1,
+                                    target : Game.Consts.TARG_AOE,
+                                    events :[
+                                        new EffectData({
+                                            triggers : [],
+                                            effects: [
+                                                // Add the service ability
+                                                [EffectData.Types.addAbility, new Ability({
+                                                    id : 'serviceAbility',   // Should be unique
+                                                    name : 'Service Client',
+                                                    description : '"Service" the client! Making them damage you, but can be mitigated.',
+                                                    icon : 'media/effects/tentacle-heart.svg',
+                                                    manacost : {}, 
+                                                    cooldown: 1,
+                                                    detrimental : false,
+                                                    charged : 0,
+                                                    max_armor : 0,
+                                                    conditions : [C(CO.CHARACTER_ID, 'patron')],
+                                                    ai_tags : ["important"],
+                                                    effects : [
+                                                        // Causes the target to damage the attacker
+                                                        new Effect({
+                                                            detrimental : true,
+                                                            
+                                                            events: [
+
+                                                                // Deal damage
+                                                                new EffectData({
+                                                                    triggers : [EffectData.Triggers.apply],
+                                                                    effects : [
+                                                                        // Damages a player
+                                                                        [
+                                                                            EffectData.Types.useAbility, 
+                                                                            new Ability({
+                                                                                id : 'butlerService',
+                                                                                name : 'Service',
+                                                                                detrimental:true, 
+                                                                                effects:[
+                                                                                    new Effect({detrimental:true, events:[
+                                                                                        new EffectData({
+                                                                                            triggers: [EffectData.Triggers.apply],
+                                                                                            effects:[
+                                                                                                [EffectData.Types.damage, 6]
+                                                                                            ]
+                                                                                        })
+                                                                                    ]})
+                                                                                ]
+                                                                            }), 
+                                                                            Game.Consts.TARG_VICTIM, // ability caster
+                                                                            Game.Consts.TARG_ATTACKER, // ability victim
+                                                                            
+                                                                        ],
+                                                                        // Wipes stuff
+                                                                        [EffectData.Types.applyEffect, patronRemove]
+                                                                    ]
+                                                                }),
+
+                                                            ]
+                                                        }),
+                                                      ]
+                                                })]
+                                            ]
+                                        }),
+                                    ]
+                                }), 5],
+
+                                // Output chat and spawn a patron
+                                [EffectData.Types.applyEffect, new Effect({
+                                    detrimental : false,
+                                    conditions : [C(CO.SELF)],
+                                    events :[
+                                        new EffectData({
+                                            triggers : [EffectData.Triggers.apply],
+                                            effects: [
+                                                [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                    icon:'media/npc/butler.jpg', text:'Butler: You must deal with this patron before he leaves a bad review!', sound:'bell'
+                                                })],
+                                                [EffectData.Types.summonNpc, new Character({
+                                                    id : 'patron',
+                                                    name : 'Horny Patron',
+                                                    description : 'This jackal man needs you to service him!',
+                                                    icon : '',
+                                                    race : Race.get('jackal'),
+                                                    tags : ['c_penis'],
+                                                    ignore_default_abils : true,
+                                                    max_armor : 0,
+                                                    max_hp : 10,
+                                                    death_text : 'The :TARGET: was pleased!',		// Only host needs this
+                                                    effects_on_spawn : [new Effect({
+                                                        id : 'unserviced',
+                                                        name : 'Awaiting Service',
+                                                        no_dispel : true,
+                                                        detrimental : true,
+                                                        description : 'You have 1 turn to service the patron, doing damage to yourself. The damage can be mitigated.',
+                                                        icon : 'media/effects/meal.svg',
+                                                        duration: 1,
+                                                        events:[
+                                                            new EffectData({
+                                                                triggers:[EffectData.Triggers.turnStart],
+                                                                effects:[
+                                                                    [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE],
+                                                                    [EffectData.Types.applyEffect, patronRemove]
+                                                                ],
+                                                            }),
+                                                        ]
+                                                    })]
+                                                })],
+                                            ]
+                                        }),
+                                    ]
+                                })],
+                            ]
+                        })]
+                    }),
+                    
+                    
+                    
+                    // Mop the floors
+                    new Effect({
+                        detrimental:false,
+                        events : [new EffectData({
+                            triggers : [EffectData.Triggers.apply],
+                            effects:[
+
+                                // Add ability
+                                [EffectData.Types.applyEffect, new Effect({
+                                    id : 'serviceAbility',
+                                    detrimental : false,
+                                    no_dispel : true,
+                                    conditions : [C(CO.ENEMY)],
+                                    duration : 1,
+                                    max_stacks : 1,
+                                    target : Game.Consts.TARG_AOE,
+                                    events :[
+                                        new EffectData({
+                                            triggers : [],
+                                            effects: [
+                                                // Add the service ability
+                                                [EffectData.Types.addAbility, new Ability({
+                                                    id : 'serviceAbility',   // Should be unique
+                                                    name : 'Service Client',
+                                                    description : '"Service" the client! Making them damage you, but can be mitigated.',
+                                                    icon : 'media/effects/tentacle-heart.svg',
+                                                    manacost : {}, 
+                                                    cooldown: 1,
+                                                    detrimental : false,
+                                                    charged : 0,
+                                                    max_armor : 0,
+                                                    conditions : [C(CO.CHARACTER_ID, 'patron')],
+                                                    ai_tags : ["important"],
+                                                    effects : [
+                                                        // Causes the target to damage the attacker
+                                                        new Effect({
+                                                            detrimental : true,
+                                                            
+                                                            events: [
+
+                                                                // Deal damage
+                                                                new EffectData({
+                                                                    triggers : [EffectData.Triggers.apply],
+                                                                    effects : [
+                                                                        // Damages a player
+                                                                        [
+                                                                            EffectData.Types.useAbility, 
+                                                                            new Ability({
+                                                                                id : 'butlerService',
+                                                                                name : 'Service',
+                                                                                detrimental:true, 
+                                                                                effects:[
+                                                                                    new Effect({detrimental:true, events:[
+                                                                                        new EffectData({
+                                                                                            triggers: [EffectData.Triggers.apply],
+                                                                                            effects:[
+                                                                                                [EffectData.Types.damage, 6]
+                                                                                            ]
+                                                                                        })
+                                                                                    ]})
+                                                                                ]
+                                                                            }), 
+                                                                            Game.Consts.TARG_VICTIM, // ability caster
+                                                                            Game.Consts.TARG_ATTACKER, // ability victim
+                                                                            
+                                                                        ],
+                                                                        // Wipes stuff
+                                                                        [EffectData.Types.applyEffect, patronRemove]
+                                                                    ]
+                                                                }),
+
+                                                            ]
+                                                        }),
+                                                      ]
+                                                })]
+                                            ]
+                                        }),
+                                    ]
+                                }), 5],
+
+                                // Output chat and spawn a patron
+                                [EffectData.Types.applyEffect, new Effect({
+                                    detrimental : false,
+                                    conditions : [C(CO.SELF)],
+                                    events :[
+                                        new EffectData({
+                                            triggers : [EffectData.Triggers.apply],
+                                            effects: [
+                                                [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                    icon:'media/npc/butler.jpg', text:'Butler: Oh dear someone has made quite a spill!', sound:'slime_squish_bright'
+                                                })],
+                                                [EffectData.Types.summonNpc, new Character({
+                                                    id : 'spill',
+                                                    name : 'Magic Spill',
+                                                    description : 'Dispel the spill to clean it!',
+                                                    icon : 'media/effects/spill.svg',
+                                                    race : new Race({name:'Dirt', description:'An enchanted spill.', humanoid:false}),
+                                                    ignore_default_abils : true,
+                                                    max_armor : 0,
+                                                    max_hp : 20,
+                                                    death_text : 'The :TARGET: was removed!',
+                                                    effects_on_spawn : [new Effect({
+                                                        id : 'stinky',
+                                                        name : 'Smelly',
+                                                        no_dispel : false,
+                                                        detrimental : false,
+                                                        description : 'Dispel the magic stain to remove it!',
+                                                        icon : 'media/effects/spill.svg',
+                                                        duration: 1,
+                                                        events:[
+                                                            new EffectData({
+                                                                triggers:[EffectData.Triggers.turnStart],
+                                                                effects:[
+                                                                    [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                                                        icon:'media/npc/butler.jpg', text:'Butler: I told you to remove the spill!', sound:'slime_squish_bright'
+                                                                    })],
+                                                                    [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE],
+                                                                    [EffectData.Types.removeCharacter]
+                                                                ],
+                                                            }),
+                                                            new EffectData({
+                                                                triggers:[EffectData.Triggers.dispel],
+                                                                effects:[
+                                                                    [EffectData.Types.removeCharacter]
+                                                                ],
+                                                            }),
+                                                        ]
+                                                    })]
+                                                })],
+                                            ]
+                                        }),
+                                    ]
+                                })],
+                            ]
+                        })]
+                    }),
+                    
+                ]
+            });
+
+        /*
+            4. Mop the floors - Summons an invulnerable stain. If the stain is not healed or dispelled within 1 turn, all players will be disciplined.
+        */
 
 
         // Base characters here
@@ -1899,6 +2354,7 @@ var DB = {
                                     id : 'suitAbility',
                                     duration : Infinity,
                                     detrimental : false,
+                                    always_export_events : true,    // Needed for effects that add abilities
                                     events : [
                                         new EffectData({
                                             conditions : [C(CO.TEAM, [Character.TEAM_PC])],
@@ -1936,6 +2392,7 @@ var DB = {
                                 new Character({
                                     "id":"TheJailor", name:'The Jailor', race:Race.get('jackal'), 
                                     tags:["c_penis", "s_demon"],
+                                    armorSet:Armor.get('loincloth'),
 									description:"The Jailor is a large ragged jackal with horns and glowing red eyes. Carrying chains and a painful looking tool belt.", body_tags:["fuzzy", "ragged"], 
 									image : '',
 									max_armor:25, max_hp:25, size:7,
@@ -1950,6 +2407,7 @@ var DB = {
                                     id : 'jailorConfess',
                                     duration : Infinity,
                                     detrimental : false,
+                                    always_export_events : true,    // Needed for effects that add abilities
                                     events : [
                                         new EffectData({
                                             conditions : [C(CO.TEAM, [Character.TEAM_PC])],
@@ -1980,38 +2438,132 @@ var DB = {
 
                 
                 // Castle Heck
-                /*
+                
 				new ChallengeWing({
                     id : 'castleHeck',
                     name : 'Castle Heck',
                     description : 'You have escaped to the upper levels! Defeat Satinan\'s most trusted to reach the king\'s chamber!',
                     stages : [
 
-                        // 1. The Pit
+                        // 1. The butler
+                        /*
+                            The butler will give you a random task every 3 turns while fighting him. If these tasks aren't completed, players will be disciplined, increasing damage taken by 50%, stacking exponentially.
+                            Official Suit - During the battle, players' armor is permanently 0, and all players will wear the official suit: Just a bow tie and nothing else.
+                            1. Wash the dishes - Spawns a dishes NPC that has to be killed. Unless destroyed within 2 turns, the players will be disciplined.
+                            2. Serving Tray - Players get a 3 turn debuff with 4 stacks of balance. Each time they use an ability they lose 1 stack. If a player loses all stacks, they will be disciplined.
+                            3. Harsh Lesson - Players gain a lesson ability. Doing so causes the butler to deal 6 damage to you. Damage can be reduced by taunting the butler, or using other mitigation effects. Unless one player uses the ability before the butler's next turn, all players will be disciplined.
+                            4. Mop the floors - Summons an invulnerable stain. If the stain is not healed or dispelled within 1 turn, all players will be disciplined.
+                        */
                         new ChallengeStage({
-                            id : '?',
+                            id : 'demonButler',
+                            icon : 'media/npc/butler.jpg',
+                            name : 'The Butler',
+                            music : 'rocket_power',
+                            background : 'media/backgrounds/hell_cathedral.jpg',
+                            description : 'You have reached the upper halls of the demonic castle. You are greeted by a demonic butler...',
+							intro : [
+								new ChallengeTalkingHead({icon:'', text:'Announcer: The adventurers escape to the upper halls of the castle!', sound:''}),
+                                new ChallengeTalkingHead({icon:'', text:'Announcer: They are greeted by a large demonic butler!', sound:''}),
+                                new ChallengeTalkingHead({icon:'media/npc/butler.jpg', text:'Butler: I am very busy! If you wish to battle like gentlemen, you have to help with my chores!', sound:''}),
+                                new ChallengeTalkingHead({icon:'media/npc/butler.jpg', text:'Butler: Also get into uniform!', sound:''}),
+                                new ChallengeTalkingHead({icon:'media/npc/butler.jpg', text:'The Butler hands you just a bow tie!', sound:''}),
+                                
+							],
+                            npcs : [
+                                new Character({
+                                    "id":"demonButler", name:'Demon Butler', race:Race.get('succubus'), 
+                                    tags:["c_penis"], 
+									description:"The demonic butler is a muscular nude male with horns and a tail.", body_tags:["powerful"], 
+									image : 'media/npc/butler.jpg',
+									max_armor:0, max_hp:50, size:8,
+									abilities:[
+                                        "BUTLER_RANDOM"
+                                    ],
+                                }),
+                                
+                            ],
+                            passives:[
+                                new Effect({
+                                    detrimental : false,
+                                    id: 'bowTie',
+                                    no_dispel : true,
+                                    events : [
+                                        new EffectData({
+                                            effects : [
+                                                
+                                                [
+                                                    EffectData.Types.overrideClothes, new Armor({
+                                                        id: 'bowtie',
+                                                        name : 'Bow Tie',
+                                                        description : "It's just a bow tie. The rest of you is exposed!",
+                                                        tags:["a_bowtie"],
+                                                    })
+                                                ],
+                                                [
+                                                    EffectData.Types.max_armor, 0
+                                                ]
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        
+
+                        // 2. Shivv
+                        /*
+                        new ChallengeStage({
+                            id : 'shivv',
                             icon : '?',
-                            name : '?',
-                            music : '?',
+                            name : 'Shivv',
+                            music : 'rocket_power',
                             background : '?',
-                            description : '?',
+                            description : 'Shivv is the secretary of Satinan. All visitors must register with him before they are allowed into the regent chambers!',
+							intro : [
+								// new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
+							],
+                            npcs : [
+                                new Character({
+                                    "id":"shivv", name:'Shivv', race:Race.get('succubus'), 
+									description:"Shivv is the secretary of Satinan. All visitors must register with him before they are allowed into the regent chambers!", 
+                                    body_tags:["slender"], 
+									image : '?',
+									max_armor:0, max_hp:60, size:10, 
+                                    tags:["c_vagina"], 
+									abilities:[],
+                                }),
+                                
+                            ]
+                        }),
+                        */
+
+                        // 3. The Queen
+                        
+                        // Mechanics: Something summon servants? And mind control maybe
+                        new ChallengeStage({
+                            id : 'demonQueen',
+                            icon : 'media/npc/queen.jpg',
+                            name : 'The Demon Queen',
+                            music : 'rocket_power',
+                            background : 'media/backgrounds/hell_cathedral.jpg',
+                            description : "Before you stands Satinan's wife. She may be more powerful than you think!",
 							intro : [
 								// new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
 							],
                             npcs : [
                                 // Wants vagina
-                                /*
                                 new Character({
-                                    "id":"tentaclePit", ignore_default_abils : true, name:'The Tentacle Pit', race:new Race({id:'tentaclePit', name_male : 'Tentacle Pit', playable:false, description : 'The chamber you\'re standing in is alive.', humanoid:false}), 
-									description:"The chamber itself is alive with tentacles", body_tags:["slimy"], 
-									image : 'media/npc/tentaclepit.jpg',
-									max_armor:0, max_hp:60, size:10, tags:[], 
-									abilities:["TENTACLE_PIT_SUMMON", "TENTACLE_INJECT"],
+                                    "id":"demonQueen", name:'Demon Queen', race:Race.get('succubus'), 
+									description:"The queen of demons is a ghastly lady in a blood red dress.", body_tags:[], 
+									image : 'media/npc/queen.jpg',
+									max_armor:0, max_hp:60, size:10, tags:["c_vagina", "c_breasts"], 
+									abilities:[],
                                 }),
-                                *//*
+                                
                             ]
                         }),
-
+                        
                         
 
                     ],
@@ -2025,10 +2577,10 @@ var DB = {
                             type:ChallengeReward.Types.money,
                             data:100,
                         }),
-                        *//*
+                        */
                     ],
                 }),
-				*/
+				
                 
             ],
             // Not yet supported
@@ -2437,6 +2989,23 @@ var DB = {
                     // Confess
                     abil = C(CO.ABILITY, "JAILOR_CONFESS");
                     Text.insert({conditions:[abil], ait:[], sound:'mez', text:":ATTACKER: cracks under the torture and confesses!"});
+                //
+
+
+                // Boss G Butler
+                    abil = C(CO.CHARACTER_ID, ['unwashedDishes']);
+                    Text.insert({conditions:[abil], important:true, sound:'squish', text:":ATTACKER: scrubs some :TARGET:!"});
+
+                    abil = C(CO.ABILITY, 'BUTLER_RANDOM');
+                    Text.insert({conditions:[abil], sound:'', text:":ATTACKER: looks around the room, checking if there are any duties to take care of..."});
+                    
+                    
+                    abil = C(CO.ABILITY, 'butlerService');
+                    Text.insert({conditions:[abil], sound:'squish', ait:[ait.aButt, ait.tPin], text:":TARGET: places :THIS: :TBUTT: in :ATTACKER:'s lap, sliding down on the :ARACE:'s :APENIS:, riding it until the client is pleased!"});
+                    Text.insert({conditions:[abil], sound:'squish', ait:[ait.aMouth, ait.tPin], text:":TARGET: envelops :ATTACKER:'s :APENIS: with :THIS: mouth, sucking until the :ARACE:'s squirts :AHIS: big load into the :TRACE:'s mouth!"});
+                    Text.insert({conditions:[abil, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":TARGET: straddles :ATTACKER:'s lap, sliding :THIS: :TVAG: down onto the :ARACE:'s :APENIS: and riding it until the client is pleased!"});
+                    Text.insert({conditions:[abil], sound:'squish', ait:[ait.aButt, ait.tPin, ait.tCumInside], text:":TARGET: places :THIS: :TBUTT: in :ATTACKER:'s lap, sliding down on the :ARACE:'s :APENIS:. :ATTACKER: grabs a hold of :TARGET:'s :TCLOTHES:, holding :THIM: in place and starts pounding the :TRACE:'s :TBUTT: firmly, not stopping until :AHE: cums!"});
+                    Text.insert({conditions:[abil, C.VAG], sound:'squish', ait:[ait.aButt, ait.tPin, ait.tCumInside], text:":TARGET: places :THIS: :TBUTT: in :ATTACKER:'s lap, sliding down on the :ARACE:'s :APENIS:. :ATTACKER: grabs a hold of :TARGET:'s :TCLOTHES:, holding :THIM: in place and starts pounding the :TRACE:'s :TVAG: firmly, not stopping until :AHE: cums!"});
                     
 
             //
@@ -2525,7 +3094,9 @@ var DB = {
 					
                     Text.insert({conditions:[C(CO.ABILITY, ['__PUNISHMENT_DOM__','__PUNISHMENT_SUB__']), pit, C.PENIS], sound:'squish', text:":ATTACKER: slithers :AHIS: tentacled arms around :TARGET:'s waist, lifting :THIM: onto :AHIS: face! Some of :AHIS: face tendrils wrap around :TARGET:'s :TPENIS:, squeezing it firmly, while another thicker tentacles slithers its way into the :TRACE:'s :TBUTT:! :ATTACKER: resumes the violation, holding :TARGET: up like a prize on :THIS: shoulders for everyone to see. Eventually :TARGET: cums, the droplets of spunk being absorbed into the :ARACE:'s gooey appendages. :ATTACKER: returns the favor by having the rear tentacle squirt a large glob of sticky slime up into :TARGET:'s :TBUTT:, before dropping :THIM: to the ground!"});
 					Text.insert({conditions:[C(CO.ABILITY, ['__PUNISHMENT_DOM__','__PUNISHMENT_SUB__']), pit, C.VAG], sound:'squish', text:":ATTACKER: slithers :AHIS: tentacled arms around :TARGET:'s waist, lifting :THIM: onto :AHIS: face! A couple of tentacles from :AHIS: face slither their way into the :TRACE:'s :TVAG:! :ATTACKER: resumes the violation, holding :TARGET: up like a prize on :THIS: shoulders for everyone to see. Eventually :TARGET: nears climax, prompting the tendrils inside the :TRACE: to squirt a fair load of sticky slime into :TARGET:, coating :THIS: inside with goo before dropping :THIM: to the ground!"});
-					
+				
+
+               
 
         //
 

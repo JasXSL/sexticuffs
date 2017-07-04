@@ -96,6 +96,24 @@ Netcode.ini = function(){
         return false;
     };
 
+    Netcode.getCharacterById = function(id){
+        for(let player of Netcode.players){
+            if(player.id === id)
+                return player;
+        }
+        return false;
+    };
+
+    // Returns characters that validate with the conditions
+    Netcode.filterCharactersByConditions = function(conds){
+        let out = [];
+        for(let player of Netcode.players){
+            if(Condition.validateMultiple(conds, false, player, player, null, true))
+                out.push(player);
+        }
+        return out;
+    };
+
     // Runs a fn(player); on all players
     Netcode.runOnPlayers = function(fn){
         for(var i =0; i<Netcode.players.length; ++i){
@@ -119,6 +137,18 @@ Netcode.ini = function(){
                 Netcode.players.splice(i,1);
                 --i;
             }
+        }
+    };
+
+    // Removes a character by object
+    Netcode.removeCharacter = function(character){
+        if(!this.isHost())
+            return;
+
+        let pos = Netcode.players.indexOf(character);
+        if(~pos){
+            Netcode.players.splice(pos, 1);
+            this.refreshParty();
         }
     };
 
@@ -243,7 +273,6 @@ Netcode.ini = function(){
         for(var i =0; i<Netcode.players.length; ++i){
             p.push(Netcode.players[i].hostExportFull(full));
         }
-        //console.log("Sending output", JSON.stringify(p).length);
         Netcode.output('UpdateCharacters', [p, false]);
     };
 
@@ -255,7 +284,6 @@ Netcode.ini = function(){
 
         if(players.constructor !== Array)
             players = [players];
-        //console.log("Sending single char", JSON.stringify(players).length);
         Netcode.output('UpdateCharacters', [players, true]);
     };
 
@@ -551,11 +579,9 @@ Netcode.input = function(byHost, socketID, task, args){
                 p = Netcode.getCharacterByUuid(uuid);
             // Add new character
             if(!p){
-                console.log("Adding new character");
                 Netcode.players.push(new Character(player));
             }
             else{
-                console.log("Updating player");
                 p.load(player);
             }
         }

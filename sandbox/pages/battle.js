@@ -970,7 +970,6 @@
                 '<div id="friends"><div class="bottom"></div></div>'+
                 '<div id="battlescreen" class="border">'+
                     '<div id="text"'+(!Netcode.Socket ? ' class="singleplayer" ' : '')+'></div>'+
-                    
                     (Netcode.Socket ? '<div id="chatMarker">&gt;</div><div id="chat" contenteditable></div>' : '')+
                 '</div>'+
                 '<div id="enemies"><div class="bottom"></div></div>'+

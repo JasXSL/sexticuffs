@@ -99,6 +99,10 @@ var Game = {};
             {id:'vib', src:'vib.ogg'},
             {id:'darkstrike', src:'darkstrike.ogg'},
             {id:'prismbeam', src:'prismbeam.ogg'},
+            {id:'dishes', src:'dishes.ogg'},
+            {id:'dishes_die', src:'dishes_die.ogg'},
+            {id:'plate_break', src:'plate_break.ogg'},
+            {id:'bell', src:'bell.ogg'},
             
 
             // Start opening

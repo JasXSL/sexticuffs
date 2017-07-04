@@ -145,8 +145,9 @@ AI.ini = function(){
 
                     // If an RP text exists, if an RP text exists, this function might cause AI to become blocked
                     let targ = players[Math.floor(Math.random()*players.length)];
-                    if(ability.aoe)
-                        targ = players;
+                    if(ability.aoe){
+                        targ = Netcode.players;
+                    }
                     B.useAbility(ability, targ);
 
                     // Then continue
