@@ -134,7 +134,7 @@
             if(B.myTurn()){
                 // make sure the gem picker is toggled on by default
                 $("#gemPicker div.gemsOffered").toggleClass('hidden', false);
-                Game.playSound('yourturn');
+                GameAudio.playSound('yourturn');
             }
 
             if(!Netcode.players[B.turn].is_pc && B.isHost()){
@@ -308,7 +308,7 @@
                 if(!teams.hasOwnProperty("t_"+p.team)){
                     teams["t_"+p.team] = 0;
                 }
-                if(p.hp > 0 && !p.summoned){
+                if(p.hp > 0 && !p.summoned && !p.nonessential){
                     ++teams["t_"+p.team];
                 }
             }
@@ -337,7 +337,7 @@
                     // This is the winning team
                     for(var x =0; x<Netcode.players.length; ++x){
                         p = Netcode.players[x];
-                        if(!p.isDead() && !p.summoned){
+                        if(!p.isDead() && !p.summoned && !p.nonessential){
                             victors.push(p);
                         }
                     }
@@ -379,7 +379,7 @@
             var sound = text.sound;
             if(!sound)
                 sound = 'shake';
-            Game.playSound(text.sound);
+            GameAudio.playSound(text.sound);
 
             B.addToBattleLog(attacker, victim, out, 'rptext ability');
             B.statusTexts.output();
@@ -395,7 +395,7 @@
             Netcode.hostGameOver(B.winning_team);
             
             $("#abilities div.ability").on('click', function(){
-                Game.playSound('shake');
+                GameAudio.playSound('shake');
                 if($(this).hasClass('rematch')){
                     Jasmop.Page.set('battle');
                 }
@@ -435,7 +435,7 @@
                 c+= ' opponent';
             
             if(sound)
-                Game.playSound(sound);
+                GameAudio.playSound(sound);
 
             var log = $("#battlescreen > #text", B.page);
             log.append('<div class="'+hsc(c)+'"><p>'+txt+'</p></div>');
@@ -494,7 +494,7 @@
                 }
                 B.addToBattleLog(attacker, victim, text, classes.join(' '), force);
                 if(sound){
-                    Game.playSound(sound);
+                    GameAudio.playSound(sound);
                 }
             }
             
@@ -627,7 +627,7 @@
                     $("#abilities").html(html);
 
                     $("#abilities div.ability[data-punishment]").on('click', function(){
-                        Game.playSound('shake');
+                        GameAudio.playSound('shake');
                         var abil = Ability.get($(this).attr('data-punishment')).clone();
                         abil.parent = B.getMyCharacter();
 
@@ -668,7 +668,7 @@
                     // turn_done
                     B.turn_done_alert = true;
                     B.turn_done_timer = setTimeout(function(){
-                        Game.playSound('accept');
+                        GameAudio.playSound('accept');
                         $("#abilities div.ability.endTurn").toggleClass('glow', true);
                     }, 3000);
                 }
@@ -693,7 +693,7 @@
                     }
 
                     if($(this).hasClass('active'))
-                        Game.playSound('shake');
+                        GameAudio.playSound('shake');
                     B.selectTarget(ability);
 
                 });
@@ -848,7 +848,7 @@
                     $("#talkingHead").toggleClass('hidden', false);
                     $("#talkingHead div.text").html(hsc(text));
                     $("#talkingHead div.head").attr('style', 'background-image:url('+hsc(icon)+')');
-                    Game.playSound(sound);
+                    GameAudio.playSound(sound);
 
                     B.talkingHeadTimer = setTimeout(function(){
                         B.talkingHeadQueue = false;
@@ -938,7 +938,7 @@
         page.onLoaded = function(){
 
             Netcode.startBattle();
-            Game.setMusic('battle');
+            GameAudio.setMusic('battle');
 
             // Clear custom background
             $("#wrap").attr('style', '');
@@ -953,7 +953,7 @@
             B.turn = 0;                                 // Set turn to the first player (usually host)
             B.ended = false;                            // Battle has not ended
             B.punishment_done = false;                  // Punishment is not drawn
-            AIChat.ini();                               // Initialize AI chats
+            AIChat.reset();                             // Reset AI chats
 
             // Reset the players
             for(i=0; i<players.length; ++i){               
@@ -1049,12 +1049,12 @@
                 else if(me.pickGem(index)){
                     B.updateUI();
                     if(me.offeredGemsPicked >= 3)
-                        Game.playSound('laser_close');
+                        GameAudio.playSound('laser_close');
                     
                     B.sendPlayerGems();
                 }
 
-                Game.playSound('gem_pick');
+                GameAudio.playSound('gem_pick');
 
             });
 
@@ -1071,7 +1071,7 @@
             $("#abilities div.ability.endTurn").on('click', function(){
                 if(!B.myTurn() || B.getMyCharacter().offeredGemsPicked < 3){return;}
 
-                Game.playSound('shake');
+                GameAudio.playSound('shake');
 
                 if(!B.isHost())
                     Netcode.endTurn();
@@ -1123,7 +1123,7 @@
 
             if(B.stage){
                 $("#wrap").attr('style', 'background-image:url('+hsc(B.stage.background)+')');
-                Game.Music.set(B.stage.music);
+                GameAudio.setMusic(B.stage.music);
             }
             
 
@@ -1147,7 +1147,7 @@
             // Generic chat handler - [(str)message]
             if(task === 'Chat'){
 
-                Game.playSound('chat');
+                GameAudio.playSound('chat');
                 B.statusTexts.add(byPlayer, byPlayer, args[0].substr(0, 128), false, true, true); // StatusTexts escapes
 
             }

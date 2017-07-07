@@ -24,7 +24,7 @@
 
     page.drawSplashscreen = function(){
 
-        Game.setMusic('maintheme');
+        GameAudio.setMusic('maintheme');
         
 
 
@@ -62,26 +62,26 @@
 
         $("div.splashscreen div.button.newGame").on('click', function(){
             page.drawCharacterCreator();
-            Game.clickSound();
+            GameAudio.clickSound();
         });
         $("div.splashscreen div.button.load").on('click', function(){
             page.drawCharacterSelector();
-            Game.clickSound();
+            GameAudio.clickSound();
         });
         $("div.splashscreen div.button.continue").on('click', function(){
             Jasmop.Page.set('home');
             Netcode.players = [Game.player];
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
 
     };
 
     // Character creator subpage
     page.drawCharacterCreator = function(){
         
-        Game.setMusic('chill');
+        GameAudio.setMusic('chill');
         var html = '<form id="newCharacter"><div class="flex">';
 
                 html += '<div class="charcreator border white left">';
@@ -154,7 +154,7 @@
 
         $("#cancel").on('click', function(){
             page.drawSplashscreen();
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
         $("input[name=image]").on('change', function(){
@@ -182,7 +182,7 @@
         // Character submit
         $("#newCharacter").on('submit', function(){
 
-            Game.clickSound();
+            GameAudio.clickSound();
             var char = new Character(),
                 i;
             var name = $("[name=name]", this).val().trim();
@@ -242,7 +242,7 @@
             $("[name=affinity]", this).each(function(){
                 if($(this).is(':checked')){
                     char.affinity = $(this).val();
-                    char.addAbilities(Ability.BASELINE[char.affinity]);
+                    char.addAbilities(Ability.BASE);
                     return false; // break
                 }
             });
@@ -262,10 +262,10 @@
             if(char.hasAnyTag('c_breasts'))
                 char.armorSet = Armor.get('goldenBikini');
             
-            // Needed in order to save
-            Game.player = char;
+            
+            Game.player = char;                 // Only active character can be saved
             char.save().then(function(){
-                char.onLoaded();            // adds the default abilities
+                //char.load(char.export(true));
                 return Game.setActiveChar(char);
             }).then(function(){
                 Jasmop.Page.set("home");
@@ -275,7 +275,7 @@
         });
 
         $("div.icon.free_character").on('mouseover', function(){
-            Game.playSound('hover');
+            GameAudio.playSound('hover');
         });
 
         $("div.icon.free_character").on('click', function(){
@@ -290,7 +290,7 @@
 
         // Binds after to prevent double click sound
         $("div.icon.free_character").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
         $("input[name=tags]").on('change', function(){
@@ -312,13 +312,13 @@
 
         });
 
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
 
     };
 
     page.drawCharacterSelector = function(active){
 
-        Game.setMusic('maintheme');
+        GameAudio.setMusic('maintheme');
 
         IDB.search('characters', 'modified', true).then(function(chars){
 
@@ -366,7 +366,7 @@
             page.setContent(html);
             
             $("#selectCharacter").on('click', function(){
-                Game.clickSound();
+                GameAudio.clickSound();
                 Game.setActiveChar(activeChar).then(function(){
                     Netcode.players = [];
                     Jasmop.Page.set('home');
@@ -375,7 +375,7 @@
 
             $("#delete").on('click', function(){
 
-                Game.clickSound();
+                GameAudio.clickSound();
                 
                 if(confirm("Really delete?")){
 
@@ -401,20 +401,20 @@
             });
 
             $("#back").on('click', function(){
-                Game.clickSound();
+                GameAudio.clickSound();
                 page.drawSplashscreen();
             });
 
             $("div.character[data-index]").on('click', function(){
-                Game.clickSound();
+                GameAudio.clickSound();
                 var id = +$(this).attr('data-index');
                 page.drawCharacterSelector(id);
             });
             $("div.character[data-index]").on('mouseenter', function(){
-                Game.playSound('hover');
+                GameAudio.playSound('hover');
             });
 
-            Game.rebindSounds();
+            GameAudio.rebindSounds();
 
         });
 

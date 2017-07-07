@@ -66,7 +66,7 @@
             }
         };
 
-        Game.Music.set('home');
+        GameAudio.setMusic('home');
         // World map
         $("#wrap").attr('class', '');
 
@@ -116,7 +116,7 @@
 
 
         $("div.right > div.back").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
             page.drawMap();
         });
 
@@ -148,7 +148,7 @@
             });
         });
         
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
     };
 
     
@@ -162,7 +162,7 @@
         
         var host = Netcode.getHost();
 
-        Game.Music.set('town');
+        GameAudio.setMusic('town');
         // World map
         $("#wrap").attr('class', 'map');
 
@@ -197,12 +197,12 @@
 
 
         $("div.buttons > div.button").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
         });
         
         
         
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
     };
 
 
@@ -227,7 +227,7 @@
             */
         };
 
-        Game.Music.set('skirmish');
+        GameAudio.setMusic('skirmish');
         // World map
         $("#wrap").attr('class', 'lobby'); 
 
@@ -249,7 +249,7 @@
         page.setContent(html);
 
         $("#content div.button").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
         $("div.button.back").on('click', function(){
@@ -264,7 +264,7 @@
         });
         
 
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
     };
 
 
@@ -274,7 +274,7 @@
     page.drawCampaignRoot = function(){
         // Refresh on change
         page.onSocketSub = function(task, args, byHost, byMe, isHost){};
-        Game.setMusic('skirmish');
+        GameAudio.setMusic('skirmish');
         $("#wrap").attr('class', 'campaignRoot'); 
         var html = '<div class="flex">';
         
@@ -338,7 +338,7 @@
         });
 
         $("#content div.button").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
         $("#content div.left div.challenge.button").on('click', function(){
@@ -350,10 +350,10 @@
 
             var th = $(this);
             th.toggleClass('anim', true);
-            Game.playSound('chest_open');
+            GameAudio.playSound('chest_open');
             setTimeout(function(){
                 th.toggleClass('collected', true);
-                Game.playSound('treasure_open');
+                GameAudio.playSound('treasure_open');
                 setTimeout(function(){
                     Game.player.challengeCollectReward(th.attr('data-challenge'), th.attr('data-wing'));
                 }, 500);
@@ -369,7 +369,7 @@
             if(!st)
                 return;
 
-            Game.clickSound();
+            GameAudio.clickSound();
             var html = '<div id="challengeOffer">';
                     html+= '<h1>'+hsc(st.name)+'</h1>';
                     html+= '<p class="subtitle">'+hsc(st.description)+'</p>';
@@ -381,13 +381,13 @@
 
             $("#startChallenge").on('click', function(){
                 // Start a challenge
-                Game.clickSound();
+                GameAudio.clickSound();
                 Netcode.hostStartChallenge(camp, st);
             });
         });
         
 
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
 
     };
 
@@ -411,7 +411,7 @@
         };
 
 
-        Game.setMusic('skirmish');
+        GameAudio.setMusic('skirmish');
         $("#wrap").attr('class', 'skirmish'); 
 
         var isHost = Netcode.isHosting();
@@ -501,7 +501,7 @@
             b.stage = null;
 
             Jasmop.Page.set('battle', []);
-            Game.clickSound();
+            GameAudio.clickSound();
         });
 
         $("#addCharacter").on('change', function(){
@@ -595,7 +595,7 @@
 
         $("div.button.back").on('click', function(){
             page.drawSexticuffs();
-            Game.clickSound();
+            GameAudio.clickSound();
         });
     };
 
@@ -614,7 +614,7 @@
     // Draws ability selector
     page.drawTalents = function(){
 
-        Game.setMusic('town');
+        GameAudio.setMusic('town');
         $("#wrap").attr('class', 'gym'); 
         page.onSocketSub = function(task, args, byHost, byMe, isHost){};
 
@@ -682,7 +682,7 @@
 
         $("div.right > div.back").on('click', function(){
             page.drawMap();
-            Game.clickSound();
+            GameAudio.clickSound();
         });
         $("#unlockNewAbility").on('click', function(){
             
@@ -692,7 +692,7 @@
 
             var ability = available[Math.floor(Math.random()*available.length)];
             --char.unspent_points;
-            Game.playSound("ability_unlock");
+            GameAudio.playSound("ability_unlock");
             char.addAbility(ability.id);
             page.drawTalents();
 
@@ -737,7 +737,7 @@
             }
         });
 
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
 
     };
 
@@ -752,7 +752,7 @@
     // Draws clothes shop
     page.drawShop = function(){
         
-        Game.setMusic('store');
+        GameAudio.setMusic('store');
         $("#wrap").attr('class', 'mall'); 
         page.onSocketSub = function(task, args, byHost, byMe, isHost){};
 
@@ -819,7 +819,7 @@
 
 
         $("div.right > div.back").on('click', function(){
-            Game.clickSound();
+            GameAudio.clickSound();
             page.drawMap();
         });
         
@@ -828,7 +828,7 @@
             var id = $(this).attr('data-id');
             var owned = char.ownsArmor(id);
             var piece = Armor.get(id);
-            Game.clickSound();
+            GameAudio.clickSound();
 
             if(!piece)
                 return;
@@ -851,7 +851,7 @@
             $("#overlay div.shop input.equipItem").on('click', function(){
                 char.equipArmor(id, true);
                 page.drawShop();
-                Game.playSound('redress');
+                GameAudio.playSound('redress');
                 if(!Netcode.isHosting())
 				    Netcode.setCharacter();
                 Jasmop.Overlay.close();
@@ -864,7 +864,7 @@
                     return;
                 }
 
-                Game.playSound('purchase');
+                GameAudio.playSound('purchase');
                 char.unlockArmor(id);
                 char.equipArmor(id, true);
                 page.drawShop();
@@ -878,7 +878,7 @@
 
         });
         
-        Game.rebindSounds();
+        GameAudio.rebindSounds();
         
     };
 

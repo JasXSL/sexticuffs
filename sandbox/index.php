@@ -36,6 +36,8 @@
     <script src="js/AIChat.js?"></script>
     <script src="js/Netcode.js?"></script>
     <script src="js/Library.js?"></script>
+    <script src="js/Mod.js?"></script>
+    
 
 <?php
 

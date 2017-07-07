@@ -1,7 +1,7 @@
 var IDB = {
     config: {
         db : 'Fight',
-        version : 1,
+        version : 2, 
         tables : [
             {
                 name : "characters",
@@ -21,7 +21,21 @@ var IDB = {
             {
                 name : "config",
                 primaryKey : 'type'
-            }
+            },
+            {
+                name : "mods",
+                primaryKey : 'UUID',
+                keys: [
+                    {
+                        field : 'version',
+                        unique:false
+                    },
+                    {
+                        field : 'enabled',
+                        unique : false
+                    }
+                ]
+            },
         ]
     }
 };

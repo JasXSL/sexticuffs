@@ -1,28 +1,24 @@
-var AI = {};
-(function(){
-    "use strict";
+class AI{
 
-    AI.numPlays = 0;
-    AI.player = null;
-    AI.all = [];
-    AI.nextAction = null;   // Function
-    AI.blocked = false;
+    static ini(){
 
-})();
+        AI.numPlays = 0;        // Nr plays left to attempt this turn
+        AI.player = null;       // Player making the AI play
+        AI.all = [];            // Selected target(s)
+        AI.blocked = false;     // Ability use paused
 
-AI.ini = function(){
-    "use strict";
-
-    var B = Game.Battle; 
-
-    // Adds an intermission to talk
-    AI.talk = function(attacker, victim, text, resume){
+    }
 
 
+    // Pauses the AI for a bit to output a chat message
+    // Resume is true if this is raised by the active player. Otherwise it's usually something the AI said when being the victim of a text rather than the attacker.
+    static talk(attacker, victim, text, resume){
+
+        // This is our turn, we should pause a while
         if(resume)
             AI.blocked = true;
-
         
+        // Wait 
         new Promise(function(res){
 
             let t = 1000;
@@ -30,7 +26,10 @@ AI.ini = function(){
                 t = 500;
             setTimeout(res, t);
 
-        }).then(function(){
+        })
+
+        // Output text
+        .then(function(){
 
             return new Promise(function(res, rej){
 
@@ -40,8 +39,9 @@ AI.ini = function(){
                     [a,v] = [v,a]; // Swaps attacker and victim, otherwise the chat would come from the PC.
 
                 Game.Battle.statusTexts.add(a, v, text, false, true);
-                Game.playSound("shake");
+                GameAudio.playSound("shake");
 
+                // Not our turn, so let's not try to use an ability
                 if(!resume){
                     rej();
                     return;
@@ -51,20 +51,22 @@ AI.ini = function(){
             });
             
 
-        }).then(function(){
+        })
+        .then(function(){
             
             AI.blocked = false;
-            AI.nextActionTimer = setTimeout(AI.nextAction, 500);
+            AI.nextActionTimer = setTimeout(AI.execAction, 500);
 
         }).catch(function(){
             // No need to continue here since we're the victim and it's not our turn
         });
         
 
-    };
+    }
 
-    AI.makePlay = function(player, all){
 
+    // Figure out how many plays we can make
+    static makePlay(player, all){
         
         AI.player = player;
         AI.all = all;
@@ -96,95 +98,93 @@ AI.ini = function(){
 
         AI.performAction();
 
-    };
+    }
 
-    AI.pickPunishment = function(player, all){
+    // Picks a punishment
+    static pickPunishment(player, all){
 
         // Get viable players
-        var losers = [];
-        for(var i =0; i<all.length; ++i){
-            var p = all[i];
+        let losers = [];
+        for(let p of all){
             if(p.team === player.team)
                 continue;
             losers.push(p);
         }
 
-        var victim = losers[Math.floor(Math.random()*losers.length)];
-        var types = Ability.PUNISHMENTS;
-        var type = types[Math.floor(Math.random()*types.length)];
+        let victim = losers[Math.floor(Math.random()*losers.length)],
+            types = Ability.PUNISHMENTS,
+            type = types[Math.floor(Math.random()*types.length)]
+        ;
         
         setTimeout(function(){
-            B.drawPunishment(player, victim, type);
+            Game.Battle.drawPunishment(player, victim, type);
         }, 2000);
         
         
-    };
+    }
 
+    // make the play
+    static execAction(){
+        // Pick an ability if abilities are proper
+        if(AI.numPlays > 0 && !Game.Battle.ended){
 
-    AI.performAction = function(){
+            let player = AI.player, 
+                abilities = player.abilities, 
+                all = AI.all,
+                ability = AI.getViable(abilities, player, all)
+            ;
 
-        var run = function(){
+            --AI.numPlays;
 
-            // Pick an ability if abilities are proper
-            if(AI.numPlays > 0 && !Game.Battle.ended){
+            // There is an ability available for use
+            if(ability !== false){
 
-                var player = AI.player, abilities = player.abilities, all = AI.all;
+                // Pick a random target
+                let players = AI.getViablePlayers(player, ability, all);
 
-                --AI.numPlays;
-
-                var ability = AI.getViable(abilities, player, all);
-
-                
-
-                if(ability !== false){
-
-                    // Pick a random target
-                    var players = AI.getViablePlayers(player, ability, all);
-
-                    // Use an ability
-
-                    // If an RP text exists, if an RP text exists, this function might cause AI to become blocked
-                    let targ = players[Math.floor(Math.random()*players.length)];
-                    if(ability.aoe){
-                        targ = Netcode.players;
-                    }
-                    B.useAbility(ability, targ);
-
-                    // Then continue
-                    AI.performAction();
-                    
-                    
-                    return;
-
+                // If an RP text exists, this function might cause AI to become blocked
+                let targ = players[Math.floor(Math.random()*players.length)];
+                if(ability.aoe){
+                    targ = Netcode.players;
                 }
+                Game.Battle.useAbility(ability, targ);
+
+                // Then continue
+                AI.performAction();
+                
+                
+                return;
 
             }
 
-            // No ability was viable, advance turn
-            B.advanceTurn();
-        };
+        }
 
-        AI.nextAction = run;
+        // No ability was viable, advance turn
+        Game.Battle.advanceTurn();
+    }
+
+    // Set a timer to make a play
+    static performAction(){
 
         // Timer has been intercepted by RP text
         if(!AI.blocked)
-            AI.nextActionTimer = setTimeout(AI.nextAction, 500);
+            AI.nextActionTimer = setTimeout(AI.execAction, 500);
 
-    };
+    }
 
     // Gets viable players for an ability
-    AI.getViablePlayers = function(player, ability, all){
+    static getViablePlayers(player, ability, all){
 
-        var viable = ability.usableOn(all);
+        // Filter players by usable
+        let viable = ability.usableOn(all);
         if(!viable)
             return false;
 
-        var out = [];
-        // Check if players are viable
-        for(var i =0; i<viable.length; ++i){
-            
-            var p = viable[i];
-            
+        let out = [];
+
+        // AI "thinking" occurs here
+        for(let p of viable){
+
             if(
                 (ability.detrimental && p.team === player.team) ||          // Don't use detrimental on team mates
                 (!ability.detrimental && p.team !== player.team)            // Don't use beneficial on enemies
@@ -205,10 +205,10 @@ AI.ini = function(){
         
         return out;
 
-    };
+    }
 
     // Gets a random viable ability
-    AI.getViable = function(abilities, player, all){
+    static getViable(abilities, player, all){
         let viable = [], important = [];
         for(let ability of abilities){
 
@@ -231,7 +231,9 @@ AI.ini = function(){
 
         return viable[Math.floor(Math.random()*viable.length)];
         
-    };
+    }
 
 
-};
+
+
+}

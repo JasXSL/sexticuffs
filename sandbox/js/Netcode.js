@@ -1,384 +1,400 @@
-var Netcode = {
-    Socket : null,              // IO
-    id : '',                    // user ID
-    hosting : false,
-    players : [],               // Joined players data
-    party_id : '',              // ID of party
-    battleInProgress : false,
-    host_id : '',                // socket ID of host
-    // Pages can create onSocket(task, subtask, args, byHost, byYou) to listen in
-};
+/*
 
-// Connects
-Netcode.ini = function(){
+    This is essentially the party manager.
+    It controls parties and coop inputs
 
-    return new Promise(function(res){
-        if(Netcode.Socket){
-            res(Netcode.Socket);
-            return;
-        }
+*/
+class Netcode {
 
-        Netcode.Socket = io();
-        console.log("Connecting...");
-        Netcode.Socket.on('connect', function(){
-            console.log("Socket connected!");
-            Netcode.id = Netcode.Socket.json.id;
-            res(Netcode.Socket);
+    // Creates a connection. Only needed before joining a party. Offline play is fine.
+    static ini(){
+
+        return new Promise(function(res){
+            if(Netcode.Socket){
+                res(Netcode.Socket);
+                return;
+            }
+
+            Netcode.Socket = io();
+            console.log("Connecting...");
+            Netcode.Socket.on('connect', function(){
+                console.log("Socket connected!");
+                Netcode.id = Netcode.Socket.json.id;
+                res(Netcode.Socket);
+            });
+
+            Netcode.Socket.on('disconnect', function(){
+                Jasmop.Errors.addErrors("Multiplayer connection closed");
+                Netcode.Socket = null;
+                Netcode.disconnect();
+            });
+
+            Netcode.Socket.on('_GAME_', function(byHost, socketID, task, args){
+                new Netcode.input(byHost, socketID, task, args);
+            });
+
+            Netcode.Socket.on('err', function(message){
+                Jasmop.Errors.addErrors(message);
+            });
+
         });
 
-        Netcode.Socket.on('disconnect', function(){
-            Jasmop.Errors.addErrors("Multiplayer connection closed");
+    }
+
+
+    // COMM
+
+        // Sends to server
+        static output(task, args){
+            if(!Netcode.Socket)
+                return;
+            Netcode.Socket.emit('_GAME_', task, args);
+        }
+
+        // Manually disconnects from the socket
+        static disconnect(){
+            
+            Netcode.output('LeaveParty', []);
+            Netcode.id = '';
+            Netcode.host_id = '';
+            Netcode.party_id = '';
+            Netcode.hosting = false;
+            Netcode.players = [Game.player];
+            Netcode.battleInProgress = false;
+            Game.rebuildMultiplayerIcons();
+            
+            if(Jasmop.active_page.hasOwnProperty('onSocket'))
+                Jasmop.active_page.onSocket("disconnect", [], false, true);
+
+            if(Netcode.Socket === null)
+                return;
+
+            GameAudio.playSound('disconnect');
+            Netcode.Socket.disconnect();
             Netcode.Socket = null;
-            Netcode.disconnect();
-        });
-
-        Netcode.Socket.on('_GAME_', function(byHost, socketID, task, args){
-            new Netcode.input(byHost, socketID, task, args);
-        });
-
-        Netcode.Socket.on('err', function(message){
-            Jasmop.Errors.addErrors(message);
-        });
-
-    });
-
-};
-
-
-// PLAYER HELPERS
-    // Returns an integer with nr of player characters
-    Netcode.getNumPCs = function(){
-        var i, out = 0;
-        for(i=0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].is_pc)
-                ++out;
         }
-        if(out < 1)
-            out = 1;
-        return out;
-    };
-    
-    // Gets the host
-    Netcode.getHost = function(){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].socket_id === Netcode.host_id && Netcode.players[i].is_pc && Netcode.host_id){
-                return Netcode.players[i];
+
+        // Returns true if I am the host or disconnected
+        static isHosting(){
+            return Netcode.hosting || !Netcode.Socket;
+        }
+
+
+
+    // PLAYER Methods
+        // Returns an integer with nr of player characters
+        static getNumPCs(){
+            var i, out = 0;
+            for(i=0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].is_pc)
+                    ++out;
             }
+            if(out < 1)
+                out = 1;
+            return out;
         }
-        return Netcode.getMe();
-    };
-
-    // gets my character
-    Netcode.getMe = function(){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].UUID === Game.player.UUID)
-                return Netcode.players[i];
-        }
-        return Game.player;
-    };
-
-    // Returns a character by socket ID
-    Netcode.getPlayerBySocketID = function(id){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].socket_id === id){
-                return Netcode.players[i];
-            }
-        }
-        return false;
-    };
-
-    Netcode.getCharacterByUuid = function(uuid){
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].UUID === uuid){
-                return Netcode.players[i];
-            }
-        }
-        return false;
-    };
-
-    Netcode.getCharacterById = function(id){
-        for(let player of Netcode.players){
-            if(player.id === id)
-                return player;
-        }
-        return false;
-    };
-
-    // Returns characters that validate with the conditions
-    Netcode.filterCharactersByConditions = function(conds){
-        let out = [];
-        for(let player of Netcode.players){
-            if(Condition.validateMultiple(conds, false, player, player, null, true))
-                out.push(player);
-        }
-        return out;
-    };
-
-    // Runs a fn(player); on all players
-    Netcode.runOnPlayers = function(fn){
-        for(var i =0; i<Netcode.players.length; ++i){
-            fn(Netcode.players[i]);
-        }
-    };
-
-    Netcode.getPlayersOnTeam = function(team){
-        let out = [];
-        for(let player of Netcode.players){
-            if(+player.team === +team)
-                out.push(player);
-        }
-        return out;
-    };
-
-    Netcode.removeCharactersByParent = function(parent){
-        for(let i = 0; i<Netcode.players.length && Netcode.players.length; ++i){
-            let p = Netcode.players[i];
-            if(p.parent === parent){
-                Netcode.players.splice(i,1);
-                --i;
-            }
-        }
-    };
-
-    // Removes a character by object
-    Netcode.removeCharacter = function(character){
-        if(!this.isHost())
-            return;
-
-        let pos = Netcode.players.indexOf(character);
-        if(~pos){
-            Netcode.players.splice(pos, 1);
-            this.refreshParty();
-        }
-    };
-
-    Netcode.wipeSummonedPlayers = function(){
-        for(let i = 0; i<Netcode.players.length && Netcode.players.length; ++i){
-            if(Netcode.players[i].summoned){
-                Netcode.players.splice(i, 1);
-                --i;
-            }
-        }
-    };
-
-
-// HELPERS
-
-    // Sends to server
-    Netcode.output = function(task, args){
-        if(!Netcode.Socket)
-            return;
-        Netcode.Socket.emit('_GAME_', task, args);
-    };
-
-    // Manually disconnects from the socket
-    Netcode.disconnect = function(){
         
-        Netcode.output('LeaveParty', []);
-        Netcode.id = '';
-        Netcode.host_id = '';
-        Netcode.party_id = '';
-        Netcode.hosting = false;
-        Netcode.players = [Game.player];
-        Netcode.battleInProgress = false;
-        Game.rebuildMultiplayerIcons();
-        
-        if(Jasmop.active_page.hasOwnProperty('onSocket'))
-            Jasmop.active_page.onSocket("disconnect", [], false, true);
-
-        if(Netcode.Socket === null)
-            return;
-
-        Game.playSound('disconnect');
-        Netcode.Socket.disconnect();
-        Netcode.Socket = null;
-    };
-
-
-    Netcode.isHosting = function(){
-        return Netcode.hosting || !Netcode.Socket;
-    };
-
-    Netcode.isHost = Netcode.isHosting;
-
-
-//
-
-/** Stuff for hosts */
-    Netcode.hostStartChallenge = function(challengeobj, stageobj){
-        var B = Game.Battle;
-        B.campaign = challengeobj;
-        B.stage = stageobj;
-        var p = [];
-        // Purge previous NPCs
-        for(var i =0; i<Netcode.players.length; ++i){
-            if(Netcode.players[i].is_pc){
-                Netcode.players[i].team = Character.TEAM_PC;
-                p.push(Netcode.players[i]);
+        // Gets the host
+        static getHost(){
+            for(var i =0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].socket_id === Netcode.host_id && Netcode.players[i].is_pc && Netcode.host_id){
+                    return Netcode.players[i];
+                }
             }
+            return Netcode.getMe();
         }
-        Netcode.players = p.concat(stageobj.npcs);
-        Netcode.refreshParty();
-        Netcode.hostRefreshBattle();
-        
-        Jasmop.Page.set('battle', []);
-    };
 
-
-/* TASKS YOU CAN SEND */
-    // Send tasks
-    Netcode.partyJoin = function(id){
-        Netcode.output('JoinParty', [id]);
-    };
-    // Sends my character data
-    Netcode.setCharacter = function(){
-        // Make sure my own character is up to date
-        if(Netcode.isHosting()){
-            // Emulate an input from the server
-            new Netcode.input(true, Netcode.id, 'SetCharacter', [Game.player.hostExportFull(true)]);
-            return;
+        // gets my character
+        static getMe(){
+            for(var i =0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].UUID === Game.player.UUID)
+                    return Netcode.players[i];
+            }
+            return Game.player;
         }
-        Netcode.output('SetCharacter', [Game.player.hostExportFull(true)]);
-    };
-    // Send a chat message
-    Netcode.chat = function(message){
-        Netcode.output('Chat', [message]);
-    };
-    // Sends a punishment selection to host
-    Netcode.selectPunishment = function(victimUUID, abilityID){
-        Netcode.output("SelectPunishment", [victimUUID, abilityID]);
-    };
-    // Uses an ability
-    Netcode.useAbility = function(victimUUID, abilityID){
-        Netcode.output("UseAbility", [victimUUID, abilityID]);
-    };
-    // Picks a gem
-    Netcode.pickGem = function(index){
-        Netcode.output("PickGem", [index]);
-    };
-    // Ends your turn
-    Netcode.endTurn = function(){
-        Netcode.output("EndTurn");
-    };
 
-
-/** HOST only */
-
-
-    // Sends lobby data to players
-    Netcode.refreshParty = function(full){
-        if(!Netcode.hosting)
-            return;
-        var p = [];
-        for(var i =0; i<Netcode.players.length; ++i){
-            p.push(Netcode.players[i].hostExportFull(full));
+        // Returns a character by socket ID
+        static getPlayerBySocketID(id){
+            for(var i =0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].socket_id === id){
+                    return Netcode.players[i];
+                }
+            }
+            return false;
         }
-        Netcode.output('UpdateCharacters', [p, false]);
-    };
 
-    // Takes an array of reduced player data or a single player data and sends them to be refreshed
-    // Each player object has to contain a UUID, and then the rest of the values are optional
-    Netcode.refreshData = function(players){
-        if(!Netcode.hosting)
-            return;
+        // Returns a single character by UUID or false
+        static getCharacterByUuid(uuid){
+            for(var i =0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].UUID === uuid){
+                    return Netcode.players[i];
+                }
+            }
+            return false;
+        }
 
-        if(players.constructor !== Array)
-            players = [players];
-        Netcode.output('UpdateCharacters', [players, true]);
-    };
+        // Returns a single character by ID
+        static getCharacterById(id){
+            for(let player of Netcode.players){
+                if(player.id === id)
+                    return player;
+            }
+            return false;
+        }
 
-    // Kick a player
-    Netcode.kick = function(socketid){
-        if(!Netcode.hosting)
-            return;
+        // Returns characters that validate with the conditions
+        static filterCharactersByConditions(conds){
+            let out = [];
+            for(let player of Netcode.players){
+                if(Condition.validateMultiple(conds, false, player, player, null, true))
+                    out.push(player);
+            }
+            return out;
+        }
 
-        Netcode.output('Kick', [socketid]);
-    };
-
-    // refreshes battle data
-    Netcode.hostRefreshBattle = function(){
-        if(!Netcode.hosting)
-            return;
-        var B = Game.Battle;
-
-        var obj = {
-            turn : B.turn,
-            punishment_done : B.punishment_done,
-            ended : B.ended,
-            campaign : (B.campaign ? B.campaign.id : false),
-            stage : (B.stage ? B.stage.id : false),
-            intro : B.intro,
-            total_turns : B.total_turns
-        };
-        Netcode.output("RefreshBattle", [obj]);
-    };
-
-    // Starts the battle
-    Netcode.startBattle = function(){
-        if(!Netcode.hosting)
-            return;
-        Netcode.output("StartBattle", []);
-        Netcode.battleInProgress = true;
-    };
-
-    // Scrolling battle text
-    Netcode.hostSBT = function(uuid, amount, detrimental){
-        if(!Netcode.Socket || !Netcode.isHosting)
-            return;
-        Netcode.output("SBT", [uuid, amount, detrimental]);
-    };
-
-    // Hit visual
-    Netcode.hostHitVisual = function(uuid, detrimental){
-        if(!Netcode.Socket || !Netcode.isHosting)
-            return;
-        Netcode.output("HitVisual", [uuid, detrimental]);
-    };
-    
-    // Sends talking heads to players.
-    Netcode.hostTalkingHeads = function(heads){
-        if(!Netcode.Socket || !Netcode.isHosting)
-            return;
-        Netcode.output("TalkingHeads", [heads]);
-    };
-
-    // Adds HTML to all players battle logs
-    Netcode.hostAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
-
-        if(!Netcode.hosting)
-            return;
-
-        Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound]);
-    };
-
-    // Game over!
-    Netcode.hostGameOver = function(teamWon){
-        if(!Netcode.hosting)
-            return;
-        Netcode.output("GameOver", [teamWon]);
-        Netcode.battleInProgress = false;
-
-        // Punt players that disconnected
-        for(var i =0; i<Netcode.players.length && Netcode.players.length; ++i){
-            var p = Netcode.players[i];
-            if(!p.is_pc && p.socket_id.length){
-                Netcode.players.splice(i, 1);
-                --i;
+        // Runs a fn(player); on all players
+        static runOnPlayers(fn){
+            for(var i =0; i<Netcode.players.length; ++i){
+                fn(Netcode.players[i]);
             }
         }
 
-    };
+        // Returns players by team NR
+        static getPlayersOnTeam(team){
+            let out = [];
+            for(let player of Netcode.players){
+                if(+player.team === +team)
+                    out.push(player);
+            }
+            return out;
+        }
 
+        // Removes characters summoned by parent
+        static removeCharactersByParent(parent){
+            for(let i = 0; i<Netcode.players.length && Netcode.players.length; ++i){
+                let p = Netcode.players[i];
+                if(p.parent === parent){
+                    Netcode.players.splice(i,1);
+                    --i;
+                }
+            }
+        }
+
+        // Removes a character by object
+        static removeCharacter(character){
+            if(!this.isHost())
+                return;
+
+            let pos = Netcode.players.indexOf(character);
+            if(~pos){
+                Netcode.players.splice(pos, 1);
+                this.refreshParty();
+            }
+        }
+
+        // Wipes summoned players
+        static wipeSummonedPlayers(){
+            for(let i = 0; i<Netcode.players.length && Netcode.players.length; ++i){
+                if(Netcode.players[i].summoned){
+                    Netcode.players.splice(i, 1);
+                    --i;
+                }
+            }
+        }
+
+
+    // PUBLIC TASKS
+        // Send tasks
+        static partyJoin(id){
+            Netcode.output('JoinParty', [id]);
+        }
+
+        // Sends my character data
+        static setCharacter(){
+            // Make sure my own character is up to date
+            if(Netcode.isHosting()){
+                // Emulate an input from the server
+                new Netcode.input(true, Netcode.id, 'SetCharacter', [Game.player.hostExportFull(true)]);
+                return;
+            }
+            Netcode.output('SetCharacter', [Game.player.hostExportFull(true)]);
+        }
     
+        // Send a chat message
+        static chat(message){
+            Netcode.output('Chat', [message]);
+        }
+
+        // Sends a punishment selection to host
+        static selectPunishment(victimUUID, abilityID){
+            Netcode.output("SelectPunishment", [victimUUID, abilityID]);
+        }
+
+        // Uses an ability
+        static useAbility(victimUUID, abilityID){
+            Netcode.output("UseAbility", [victimUUID, abilityID]);
+        }
+
+        // Picks a gem
+        static pickGem(index){
+            Netcode.output("PickGem", [index]);
+        }
+
+        // Ends your turn
+        static endTurn(){
+            Netcode.output("EndTurn");
+        }
+
+    // HOST TASKS
+
+        // Similar to Game.startBattle
+        static hostStartChallenge(challengeobj, stageobj){
+            var B = Game.Battle;
+            B.campaign = challengeobj;
+            B.stage = stageobj;
+            var p = [];
+            // Purge previous NPCs
+            for(var i =0; i<Netcode.players.length; ++i){
+                if(Netcode.players[i].is_pc){
+                    Netcode.players[i].team = Character.TEAM_PC;
+                    p.push(Netcode.players[i]);
+                }
+            }
+
+            let npcs = [];
+            for(let npc of stageobj.npcs)
+                npcs.push(npc.clone());
+
+            Netcode.players = p.concat(npcs);
+            Netcode.refreshParty();
+            Netcode.hostRefreshBattle();
+            
+            Jasmop.Page.set('battle', []);
+        }
+
+        // Sends lobby data to players
+        static refreshParty(full){
+            if(!Netcode.hosting)
+                return;
+            var p = [];
+            for(var i =0; i<Netcode.players.length; ++i){
+                p.push(Netcode.players[i].hostExportFull(full));
+            }
+            Netcode.output('UpdateCharacters', [p, false]);
+        }
+
+        // Takes an array of reduced player data or a single player data and sends them to be refreshed
+        // Each player object has to contain a UUID, and then the rest of the values are optional
+        static refreshData(players){
+            if(!Netcode.hosting)
+                return;
+
+            if(players.constructor !== Array)
+                players = [players];
+            Netcode.output('UpdateCharacters', [players, true]);
+        }
+
+        // Kick a player
+        static kick(socketid){
+            if(!Netcode.hosting)
+                return;
+
+            Netcode.output('Kick', [socketid]);
+        }
+
+        // refreshes battle data
+        static hostRefreshBattle(){
+            if(!Netcode.hosting)
+                return;
+            var B = Game.Battle;
+
+            var obj = {
+                turn : B.turn,
+                punishment_done : B.punishment_done,
+                ended : B.ended,
+                campaign : (B.campaign ? B.campaign.id : false),
+                stage : (B.stage ? B.stage.id : false),
+                intro : B.intro,
+                total_turns : B.total_turns
+            };
+            Netcode.output("RefreshBattle", [obj]);
+        }
+
+        // Starts the battle
+        static startBattle(){
+            if(!Netcode.hosting)
+                return;
+            Netcode.output("StartBattle", []);
+            Netcode.battleInProgress = true;
+        }
+
+        // Scrolling battle text
+        static hostSBT(uuid, amount, detrimental){
+            if(!Netcode.Socket || !Netcode.isHosting)
+                return;
+            Netcode.output("SBT", [uuid, amount, detrimental]);
+        }
+
+        // Hit visual
+        static hostHitVisual(uuid, detrimental){
+            if(!Netcode.Socket || !Netcode.isHosting)
+                return;
+            Netcode.output("HitVisual", [uuid, detrimental]);
+        }
+        
+        // Sends talking heads to players.
+        static hostTalkingHeads(heads){
+            if(!Netcode.Socket || !Netcode.isHosting)
+                return;
+            Netcode.output("TalkingHeads", [heads]);
+        }
+
+        // Adds HTML to all players battle logs
+        static hostAddToBattleLog(attackerUUID, victimUUID, text, classes, sound){
+
+            if(!Netcode.hosting)
+                return;
+
+            Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound]);
+        }
+
+        // Game over!
+        static hostGameOver(teamWon){
+            if(!Netcode.hosting)
+                return;
+            Netcode.output("GameOver", [teamWon]);
+            Netcode.battleInProgress = false;
+
+            // Punt players that disconnected
+            for(var i =0; i<Netcode.players.length && Netcode.players.length; ++i){
+                var p = Netcode.players[i];
+                if(!p.is_pc && p.socket_id.length){
+                    Netcode.players.splice(i, 1);
+                    --i;
+                }
+            }
+
+        }
 
 
-//
+}
+
+// Static vars
+Netcode.Socket = null;              // IO
+Netcode.id = '';                    // user ID
+Netcode.hosting = false;
+Netcode.players = [];               // Joined players data
+Netcode.party_id = '';              // ID of party
+Netcode.battleInProgress = false;
+Netcode.host_id = '';                // socket ID of host
+Netcode.isHost = Netcode.hosting;
 
 
 
 
 
-/** FRONT CONTROLLER */
+
+/** FRONT CONTROLLER for RECEIVE */
 Netcode.input = function(byHost, socketID, task, args){
 
     this.byMe = (socketID === Netcode.id);
@@ -429,7 +445,7 @@ Netcode.input = function(byHost, socketID, task, args){
             this.isHost = Netcode.hosting;
         }
         else
-            Game.playSound('playerjoined');
+            GameAudio.playSound('playerjoined');
 
         // Send character data
         if(!this.isHost){
@@ -465,8 +481,6 @@ Netcode.input = function(byHost, socketID, task, args){
     };
 
 
-
-
     // Host only. Sets a character's data and lets everyone know
     this.pubSetCharacter = function(data){
 
@@ -481,13 +495,18 @@ Netcode.input = function(byHost, socketID, task, args){
         var player = Netcode.getPlayerBySocketID(this.socketID);
         
         // This was a first load from main menu
-        if(!Netcode.players.length)
+        if(!Netcode.players.length){
             player = new Character();
+            Netcode.players = [player];
+        }
 
         if(!player)
             console.error("Socket ID not found in players", this.socketID, Netcode.players);
         player.is_pc = true;
+
+        console.log("Importing data onto player", data);
         player.load(data);
+
         player.socket_id = socketID;
 
         // Update everyone else
@@ -512,7 +531,7 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubLeaveParty = function(){
 
         if(!this.byMe)
-            Game.playSound('playerleft');
+            GameAudio.playSound('playerleft');
 
         // I left or am not host. The disconnect handler will manage this
         if(this.byMe || !this.isHost)

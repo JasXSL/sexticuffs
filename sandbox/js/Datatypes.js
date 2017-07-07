@@ -254,9 +254,10 @@ class Character extends Asset{
 		this.aiChat = null;
 		this.social = 50;		// Chance at each ability to talk
 		this.ignore_default_abils = false;		// Don't use default abilities
+		this.nonessential = false;				// Not essential to defeat to win
 		this.summoned = false;					// This was a summoned NPC
 		this.parent = false;					// If summoned, this is the parent
-		
+		this.ignore_cp_scale = false;			// Ignore combat point (HP/ARMOR) scaling for an NPC
 
         this.load(data); 
 
@@ -292,16 +293,19 @@ class Character extends Asset{
 					type = EffectData.Types.armorDamage;
 			}
 
-			var takeDamage =  (type === EffectData.Types.damage || type == EffectData.Types.armorDamage || type === EffectData.Types.hpDamage);
+			var takeDamage = (type === EffectData.Types.damage || type == EffectData.Types.armorDamage || type === EffectData.Types.hpDamage);
 			// Detrimental
 			if(takeDamage){
 				amount += this.getDmgTakenAdder(attacker, ability);
 				amount *= this.getDmgTakenMultiplier(attacker);
 				amount *= attacker.getDmgDoneMultiplier(this);
 				amount = Math.ceil(amount);
-
 				this.applyEffectEvent(EffectData.Triggers.takeDamage, [amount], attacker, this, ability);
 				attacker.applyEffectEvent(EffectData.Triggers.dealDamage, [amount], attacker, this, ability);
+			}
+			else if(type === EffectData.Types.heal || type == EffectData.Types.armorHeal){
+				amount *= this.getHealingTakenMultiplier(attacker);
+				amount *= attacker.getHealingDoneMultiplier(this);
 			}
 
 
@@ -445,7 +449,7 @@ class Character extends Asset{
 			}
 
 			// Player character or skirmish doesn't scale HP
-			if(this.team === Character.TEAM_PC || !Game.Battle.campaign)
+			if(this.team === Character.TEAM_PC || !Game.Battle.campaign || this.ignore_cp_scale)
 				return hp;
 
 			return Math.ceil(hp*this.getCampaignPowerMultiplier());
@@ -461,7 +465,7 @@ class Character extends Asset{
 			}
 
 			// Player character or skirmish doesn't scale HP or armor
-			if(this.is_pc || !Game.Battle.campaign)
+			if(this.is_pc || !Game.Battle.campaign  || this.ignore_cp_scale)
 				return arm;
 			
 			return Math.ceil(arm*this.getCampaignPowerMultiplier());
@@ -521,10 +525,24 @@ class Character extends Asset{
 			return this.getStaticValuePoints(EffectData.Types.damage_taken_multi, attacker, this, true);
 		}
 
+		getHealingTakenMultiplier(attacker){
+			return this.getStaticValuePoints(EffectData.Types.healing_taken_multi, attacker, this, true);
+		}
+
 		getDmgDoneMultiplier(victim){
 			var out = this.getStaticValuePoints(EffectData.Types.damage_done_multi, this, victim, true);
 
 			// In campaigns, non TEAM_PC deal more damage to TEAM_PC
+			if(this.team !== Character.TEAM_PC && Game.Battle.campaign && victim.team === Character.TEAM_PC)
+				out *= this.getCampaignPowerMultiplier();
+
+			return out;
+		}
+
+		getHealingDoneMultiplier(victim){
+			var out = this.getStaticValuePoints(EffectData.Types.healing_done_multi, this, victim, true);
+
+			// In campaigns, non TEAM_PC heal more to TEAM_PC
 			if(this.team !== Character.TEAM_PC && Game.Battle.campaign && victim.team === Character.TEAM_PC)
 				out *= this.getCampaignPowerMultiplier();
 
@@ -981,7 +999,7 @@ class Character extends Asset{
 			var n = 0;
 			for(var i =0; i<this.abilities.length; ++i){
 				var ability = this.abilities[i];
-				if(~Ability.DEFAULTS.indexOf(ability.id))
+				if(ability.isDefault())
 					continue;
 				if(++n >= Character.MAX_ABILITIES){
 					return true;
@@ -991,8 +1009,6 @@ class Character extends Asset{
 		}
 
         addAbility(id, save){
-
-			
 
 			var ability = null;
             if(id.constructor === Ability)
@@ -1011,7 +1027,7 @@ class Character extends Asset{
 			if(id.constructor !== Ability)
 				ability = ability.clone();
 
-			if(Ability.DEFAULTS.indexOf(id) === -1 && this.abilities_unlocked.indexOf(ability.id) === -1 && ability.id){
+			if(!ability.isDefault() && this.abilities_unlocked.indexOf(ability.id) === -1 && ability.id){
 				// Add to unlocks
 				this.abilities_unlocked.push(ability.id);
 				save = true;
@@ -1022,10 +1038,10 @@ class Character extends Asset{
             	ability.parent = this;
             	this.abilities.push(ability);
 			}
-
 			if(save){
 				this.save();
 			}
+
 			return true;
         }
 
@@ -1035,8 +1051,10 @@ class Character extends Asset{
 		}
 
 		removeAbility(id){
+
+			let abil = Ability.get(id);
 			// Can't remove defaults
-			if(~Ability.DEFAULTS.indexOf(id)){
+			if(abil && abil.isDefault()){
 				return false;
 			}
 
@@ -1150,17 +1168,24 @@ class Character extends Asset{
 
 		// Loads or adds from host
 		importAbility(data){
+
+			// Check if we have ability
 			let ability = this.getAbilityByUuid(data.UUID);
 
 			// Load by ID
 			if(typeof data === 'string')
 				this.addAbility(data, false);
+
+			// We don't have it
 			else if(!ability){
-				this.abilities.push(new Ability(data, this));
+				if(data.id && !this.hasAbility(data.id, true))
+					this.abilities.push(new Ability(data, this));
 			}
+			// Ability already exists
 			else{
 				ability.load(data);
 			}
+
 		}
 
 		// Removes all abilities of from if they're not within abilities
@@ -1224,7 +1249,7 @@ class Character extends Asset{
 				this.experience = 0;
 			
 			if(gainedLevel)
-				Game.playSound('levelup');
+				GameAudio.playSound('levelup');
 
 			
 		}
@@ -1731,8 +1756,10 @@ class Character extends Asset{
 			}
 			
 
+			// Handle abilities
+			this.abilities = [];
+
 			// Add required abilities
-			
 			if(!this.ignore_default_abils){
 				var add = Ability.DEFAULTS;
 				for(i=0; i<add.length; ++i){
@@ -1742,12 +1769,14 @@ class Character extends Asset{
 
 			// Import abilities
 			if(data.abilities){
-				for(let ability of data.abilities)
+				for(let ability of data.abilities){
 					this.importAbility(ability);
+				}
 				this.removeAbilitiesNotIn(data.abilities);
 			}
 
-			// I'm not sure what this does 
+
+			// This filters out duplicates
 			this.abilities_unlocked = this.abilities_unlocked.filter(function(el, index, arr) {
 				return index == arr.indexOf(el);
 			});
@@ -1785,7 +1814,7 @@ class Character extends Asset{
 					this.race = Race.get(this.race);
 			}
 
-			if(this.armorSet.constructor !== Armor){
+			if(this.armorSet && this.armorSet.constructor !== Armor){
 				if(this.armorSet.constructor === Object)
 					this.armorSet = new Armor(this.armorSet);
 				else
@@ -1801,9 +1830,7 @@ class Character extends Asset{
 			}
         }
 
-		onAdd(){
-			DB.sort("Character", "name");
-		}
+		onAdd(){}
 
         onClone(){
             for(var i=0; i<this.abilities.length; ++i){
@@ -1894,7 +1921,7 @@ class Character extends Asset{
 				exp = 2;
 				money = 10;
 			}
-
+			this.arena_passives = [];
 			this.addMoney(money);
 			this.addExperience(exp);
 
@@ -1991,13 +2018,20 @@ class Character extends Asset{
 
 	// Export - Import can just use new Character
 		export(full){
+
+			let abilities = [];
+			for(let ability of this.abilities){
+				if(!ability.isDefault())
+					abilities.push(ability.id);
+			}
+
 			var out = {
 				UUID : this.UUID,
 				id : this.id,
 				name : this.name,
 				description : this.description,
 				image : this.image,
-				abilities : this.abilities.map(function(val){return val.id;}),
+				abilities : abilities,
 				tags : this.tags,
 				pronouns : this.pronouns,
 				race : this.race.id,
@@ -2048,8 +2082,6 @@ class Character extends Asset{
 			out.arena_passives = this.arena_passives.map(function(val){return val.export(full);});
 			out.grapple_passives = this.grapple_passives.map(function(val){return val.export(full);});
 			
-			out.summoned = this.summoned;
-			out.parent = this.parent ? this.parent.UUID : false;
 			out.armor = this.armor;
 			out.hp = this.hp;
 			out.mana = this.mana;
@@ -2086,6 +2118,10 @@ class Character extends Asset{
 				out.affinity = this.affinity;
 				out.size = this.size;
 				out.strength = this.strength;
+				out.summoned = this.summoned;
+				out.nonessential = this.nonessential;
+				out.ignore_cp_scale = this.ignore_cp_scale;
+				out.parent = this.parent ? this.parent.UUID : false;
 			}
 			return out;
 		}
@@ -2752,6 +2788,14 @@ class Ability extends Asset{
 Ability.AffinityOffensive = 'OFFENSIVE';
 Ability.AffinityDefensive = 'DEFENSIVE';
 Ability.AffinitySupport = 'SUPPORT';
+Ability.DEFAULTS = [
+	"__BASE_ATTACK__"
+];
+Ability.PUNISHMENTS = ['__PUNISHMENT_DOM__', '__PUNISHMENT_SUB__', '__PUNISHMENT_SAD__'];
+// Abilities new players should start with
+Ability.BASE = [
+	"generic_crush", "generic_taunt", "support_heal", "support_purify"
+];
 
 
 
@@ -2861,8 +2905,19 @@ class Effect extends Asset{
 		}
 	}
 
+	// Makes sure AoE target effects always hit AoE
+	useAgainst(attacker, victim, stacks, ability, verbose){
+		if(this.target === Game.Consts.TARG_AOE){
+			for(let p of Netcode.players){
+				this.useAgainstSingle(attacker, p, stacks, ability, verbose);
+			}
+			return;
+		}
+		this.useAgainstSingle(attacker, victim, stacks, ability, verbose);
+	}
+
 	// Generic
-    useAgainst(attacker, victim, stacks, ability, verbose){
+    useAgainstSingle(attacker, victim, stacks, ability, verbose){
 
 		if(!Condition.validateMultiple(this.conditions, false, attacker, victim, ability, undefined, verbose))
 			return false;
@@ -3301,56 +3356,57 @@ class Effect extends Asset{
 		return out;
 	}
 
-}
 
-Effect.runMath = function(nr, attacker, victim, evtArgs, effect, ignoreMax){
+
+	static runMath(nr, attacker, victim, evtArgs, effect, ignoreMax){
 	
-	let args = {
-		// Statistics
-			// Num players on team
-			aNumPlayers : Netcode.getPlayersOnTeam(attacker.team).length,
-			vNumPlayers : Netcode.getPlayersOnTeam(victim.team).length,
+		let args = {
+			// Statistics
+				// Num players on team
+				aNumPlayers : Netcode.getPlayersOnTeam(attacker.team).length,
+				vNumPlayers : Netcode.getPlayersOnTeam(victim.team).length,
+				
+		};
+
+		// Prevents a catch 22 when this is run to GET max armor
+		if(!ignoreMax){
 			
-	};
+			// Attacker 
+				// Max HP
+			args.aMHP = attacker.getMaxHP();
+				// Max combat points
+			args.aMCP = attacker.getMaxHP()+attacker.getMaxArmor();
+				// Max armor points
+			args.aMAP = attacker.getMaxArmor();
+				
 
-	// Prevents a catch 22 when this is run to GET max armor
-	if(!ignoreMax){
-		
-		// Attacker 
-			// Max HP
-		args.aMHP = attacker.getMaxHP();
-			// Max combat points
-		args.aMCP = attacker.getMaxHP()+attacker.getMaxArmor();
-			// Max armor points
-		args.aMAP = attacker.getMaxArmor();
-			
-
-		// Victim
-			// Max HP
-		args.vMHP = victim.getMaxHP();
-			// Max combat points
-		args.vMCP = victim.getMaxHP()+victim.getMaxArmor();
-			// Max armor points
-		args.vMAP = victim.getMaxArmor();
-	}
-
-	if(effect){
-		args.fxStacks = effect._stacks;
-		args.fxDuration = effect._duration;
-		args.fxTicks = effect._ticks;
-	}
-
-	
-	if(evtArgs){
-		for(let i in evtArgs){
-			args['evt'+i] = evtArgs[i];
+			// Victim
+				// Max HP
+			args.vMHP = victim.getMaxHP();
+				// Max combat points
+			args.vMCP = victim.getMaxHP()+victim.getMaxArmor();
+				// Max armor points
+			args.vMAP = victim.getMaxArmor();
 		}
+
+		if(effect){
+			args.fxStacks = effect._stacks;
+			args.fxDuration = effect._duration;
+			args.fxTicks = effect._ticks;
+		}
+
+		
+		if(evtArgs){
+			for(let i in evtArgs){
+				args['evt'+i] = evtArgs[i];
+			}
+		}
+
+		let out = math.eval(nr, args);
+		return out;
 	}
 
-	let out = math.eval(nr, args);
-	return out;
-};
-
+}
 
 class EffectData extends Asset{
 
@@ -3621,7 +3677,6 @@ EffectData.Triggers = {
 	death : 'death',							// Raised when dying
 	stacksChanged : 'stacksChanged',			// Raised when stacks change
 	dispel : 'dispel',							// Raised if dispelled
-
 };
 
 // CASE SENSITIVE
@@ -3662,7 +3717,9 @@ EffectData.Types = {
 	max_hp : 'maxHP',							// (int)amount - Overrides max HP. NPCs are still multiplied by nr players.
 	max_armor : 'maxArmor',						// (int)amount - Overrides max ARMOR. NPCs are still multiplied by nr players.
 	debug : 'debug',							// (str)text - Generates a stack trace
-
+	healing_taken_multi : "HTM",				// (float)multiplier - All types of healing received will be multiplied by this.
+	healing_done_multi : "HDM",					// (float)multiplier - All types of healing done will be multiplied by this.
+	
 
 };
 
@@ -3686,7 +3743,6 @@ class Condition extends Asset{
 
 	export(full){
 		let out = {
-			UUID : this.UUID,
 		};
 
 		if(full || !this.__exported){
@@ -3721,7 +3777,7 @@ class Condition extends Asset{
 
 		if(att !== true){
 			if(verbose){
-				console.log(this.type, this.data, "failed", a, b, ability, att, success, verbose, this.inverse); 
+				console.log(this.type, this.data, "failed", a, b, ability, att, success, verbose, this.inverse, this.target); 
 			}
 			return false;
 		}
@@ -3790,7 +3846,9 @@ class Condition extends Asset{
 
 		// Check only victim
 		if(this.type === Condition.TAGS && !victim.hasAnyTag(this.data))return false;
-		if(this.type === Condition.NOT_TAGS && victim.hasAnyTag(this.data)){return false;}
+		if(this.type === Condition.NOT_TAGS && victim.hasAnyTag(this.data)){
+			return false;
+		}
 
 
 		// Text conditions only
@@ -3835,8 +3893,13 @@ class Condition extends Asset{
 				if(!effect)
 					continue;
 				// Check if it has enough ticks
-				if(!this.data[1] || this.data[1] <= effect._ticks)
-					return true;
+				if(
+					// Min ticks on player
+					(!this.data[1] || this.data[1] <= effect._ticks) &&
+					// Min duration left
+					(!this.data[2] || this.data[2] <= effect._duration) 
+				)return true;
+				
 			}
 			return false;
 		}
@@ -3867,57 +3930,61 @@ class Condition extends Asset{
 
 	}
 
-}
-// This validates an array of conditions. Sub-arrays are validated as OR
-Condition.validateMultiple = function(conds, ored, attacker, victim, ability, success, verbose){
+
+
+	 // This validates an array of conditions. Sub-arrays are validated as OR
+	static validateMultiple(conds, ored, attacker, victim, ability, success, verbose){
 
 	
 
-	for(let cond of conds){
+		for(let cond of conds){
 
-		// Condition is invalid
-		if(!cond)
-			continue;
+			// Condition is invalid
+			if(!cond)
+				continue;
 
-		// Condition is an array of conditions that are ORed
-		if(cond.constructor === Array){
-			if(Condition.validateMultiple(cond, true, attacker, victim, ability, success, verbose)){
-				// If this itself is ORed, return true
+			// Condition is an array of conditions that are ORed
+			if(cond.constructor === Array){
+				if(Condition.validateMultiple(cond, true, attacker, victim, ability, success, verbose)){
+					// If this itself is ORed, return true
+					if(ored)
+						return true;
+					// Otherwise continue
+					continue;
+				}
+				return false;
+			}
+			
+			// Convert if generic object
+			if(cond.constructor !== Condition)
+				cond = new Condition(cond);
+			
+			// Condition DID validate
+			if(cond.validate(attacker, victim, ability, success, verbose)){
+				// If ORed, this is a success
 				if(ored)
 					return true;
-				// Otherwise continue
+				// Otherwise resume
 				continue;
 			}
+
+			// Condition did not validate, but this is an OR so we can try the next one
+			if(ored)
+				continue;
+
+			// Condition did not validate and this is an AND, so the entire thing failed
 			return false;
 		}
 		
-		// Convert if generic object
-		if(cond.constructor !== Condition)
-			cond = new Condition(cond);
-		
-		// Condition DID validate
-		if(cond.validate(attacker, victim, ability, success, verbose)){
-			// If ORed, this is a success
-			if(ored)
-				return true;
-			// Otherwise resume
-			continue;
-		}
-
-		// Condition did not validate, but this is an OR so we can try the next one
-		if(ored)
-			continue;
-
-		// Condition did not validate and this is an AND, so the entire thing failed
-		return false;
+		// We have looped through everything
+		if(ored)				// Nothing in an OR has validated, return false
+			return false;
+		// Everything in an AND has validate, return true
+		return true;
 	}
-	
-	// We have looped through everything
-	if(ored)				// Nothing in an OR has validated, return false
-		return false;
-	// Everything in an AND has validate, return true
-	return true;
-};
+
+}
+var CO = Condition; // Synonym
 
 
 // For naked, use Condition.TAGS ["nude"]
@@ -3940,7 +4007,7 @@ Condition.SIZE_LESS_THAN_N = "SLTN";		// (int)amount - Target size is smaller th
 Condition.BP_LESS_THAN = "BPLT";			// (float)percent - Battle points (hp+armor) less than percent of max
 Condition.PC = "PC";						// void - Victim is PC
 Condition.TEAM_PLAYERS_LESS = "TPlayersL";	// (int)n=4, (int)team = attacker_team : Validates if the team has less than n players
-Condition.EFFECT = "EFFECT";				// [(str)id1...] or (str)id, (int)min_ticks = 0 - Player has an effect. min_ticks is minimum amount of turns the effect has been applied for. 0 when applied immediately, 1 upon player turn start
+Condition.EFFECT = "EFFECT";				// [(str)id1...] or (str)id, (int)min_ticks = 0, (int)min_turns_left = 0 - Player has an effect. min_ticks is minimum amount of turns the effect has been applied for. 0 when applied immediately, 1 upon player turn start
 Condition.NO_GRAPPLE = 'NO_GRAPPLE';		// void - Neither attacker or target are involved in a grapple
 Condition.TEAM = 'TEAM';					// (arr)teams || (int)team - Team has to be this
 Condition.TOTAL_TURNS_GREATER = 'TTG';		// (int)turns || (str)math - Total turns this game has to be greater than this
@@ -3966,6 +4033,23 @@ class Text extends Asset{
 
 		this.load(data);
 		return this;
+	}
+
+	onLoaded(){
+		this.conditions = this.conditions.map(function(val){ return new Condition(val); });
+		
+	}
+
+	export(full){
+		return {
+			ait : this.ait,
+			conditions : this.conditions.map(function(val){ return val.export(full); }),
+			text : this.text,
+			sound : this.sound,
+			important : this.important,
+			a_turntags : this.a_turntags,
+			v_turntags : this.v_turntags
+		};
 	}
 
 	// Validate the conditions
@@ -4034,7 +4118,7 @@ class Text extends Asset{
 
 		let all = DB.Text,
 			allowed = [],
-			verb = false
+			verb = false//ability && ability.id === 'bondage'
 		; //ability && ability.id === 'LOW_BLOW';
 
 		for(let i =0; i<all.length; ++i){
@@ -4076,6 +4160,7 @@ class Text extends Asset{
 		if(verb){
 			console.log("Allowed texts", allowed);
 		}
+
 		var text = allowed[Math.floor(Math.random()*allowed.length)];
 
 		
@@ -4094,6 +4179,8 @@ class Text extends Asset{
 			console.error("Undefined AIT in text", this.text, "entry", this.ait);
 		}
 	}
+
+
 
 }
 
@@ -4144,25 +4231,6 @@ Text.AIT = {
 
 };
 
-/**
- * Text replacers:
- * replace x with A or V/T for attacker or victim/target
- * :xNAME: - Name
- * :xRACE: - Species
- * :xBREASTS: - Breasts, based on breast setting. If no breasts, returns a synonym for breasts.
- * :BUTT: - Synonym for butt
- * :xPENIS: - Penis, based on settings. If not present, returns the same as :CROTCH:
- * :xVAG: - Vagina, based on settings. If not present, returns the same as :CROTCH:
- * :xCROTCHEX: - Vagina, penis, or crotch based on the setting
- * :CROTCH: - Crotch, groin, etc
- * :xBTAG: - Random body part based on the character's bodytags
- * :xHE: - he/she / Custom pronoun
- * :xHIM: - him/her / Custom pronoun
- * :xHIS: - his/her / Custom pronoun
- * :ABIL: - Ability name
- * :xCLOTHES: - Clothing name or "clothes" if not set
-
- */
 
 
 
@@ -4213,11 +4281,9 @@ class Race extends Asset{
 	}
 
 	// This has been inserted into the database
-	onAdd(){
-		DB.sort("Race", "name_male");
-	}
+	onAdd(){}
 
-}
+} 
 
 
 // Stages in challenges need to have unique IDs
@@ -4235,6 +4301,14 @@ class Challenge extends Asset{
         this.load(data);
         return this;
     }
+
+
+	// Adds wing from a generic object
+	addWing(data){
+		let wing = new ChallengeWing(data);
+		this.wings.push(wing);
+		return wing;
+	}
 
 	getWing(id){
 		for(var i =0; i<this.wings.length; ++i){
@@ -4256,6 +4330,28 @@ class Challenge extends Asset{
 		return false;
 	}
 	
+	export(){
+		return {
+			UUID : this.UUID,
+			id : this.id,
+			name : this.name,
+			description : this.description,
+			buttonbg : this.buttonbg,
+			wings : this.wings.map(function(val){ return val.export(); }),
+			conditions : this.conditions.map(function(val){ return val.export(); }),
+			
+		};
+	}
+
+	onLoaded(){
+		this.wings = this.wings.map(function(val){
+			return new ChallengeWing(val);
+		});
+		this.conditions = this.conditions.map(function(val){
+			return new Condition(val);
+		});
+		
+	}
 
 }
 
@@ -4272,6 +4368,35 @@ class ChallengeWing extends Asset{
         this.load(data);
         return this;
     }
+
+	// Adds wing from a generic object
+	addStage(data){
+		let stage = new ChallengeStage(data);
+		this.stages.push(stage);
+		return stage;
+	}
+
+	export(){
+		return {
+			UUID : this.UUID,
+			id : this.id,
+			name : this.name,
+			description : this.description,
+			stages : this.stages.map(function(val){ return val.export(); }),
+			rewards : this.rewards.map(function(val){ return val.export(); }),
+			
+		};
+	}
+
+	onLoaded(){
+		this.stages = this.stages.map(function(val){
+			return new ChallengeStage(val);
+		});
+		this.rewards = this.rewards.map(function(val){
+			return new ChallengeReward(val);
+		});
+		
+	}
 
 }
 
@@ -4296,6 +4421,37 @@ class ChallengeStage extends Asset{
         this.load(data);
         return this;
     }
+
+	export(){
+		return {
+			UUID : this.UUID,
+			id : this.id,
+			icon : this.icon,
+			name : this.name,
+			description : this.description,
+			npcs : this.npcs.map(function(val){ return val.hostExportFull(true); }),
+			intro : this.intro.map(function(val){ return val.export(); }),
+			music : this.music,
+			backgroudn : this.background,
+			difficulty : this.difficulty,
+			passives : this.passives.map(function(val){ return val.export(); }),
+			
+		};
+	}
+
+	onLoaded(){
+		this.npcs = this.npcs.map(function(val){
+			return new Character(val);
+		});
+		this.intro = this.intro.map(function(val){
+			return new ChallengeTalkingHead(val);
+		});
+		this.passives = this.passives.map(function(val){
+			return new Effect(val);
+		});
+		
+		
+	}
 
 }
 
