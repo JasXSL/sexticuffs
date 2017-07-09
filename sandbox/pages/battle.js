@@ -415,7 +415,7 @@
     // LOGGING
 
         // Appends a chat element to the DOM
-        B.addToBattleLog = function(attacker, victim, text, classes, overrideNetwork, sound){
+        B.addToBattleLog = function(attacker, victim, text, classes, overrideNetwork, sound, raiser){
             
             if(Jasmop.active_page !== B){
                 return;
@@ -428,7 +428,11 @@
                 txt = txt.split('%t').join(victim.getName());
             if(attacker)
                 txt = txt.split('%a').join(attacker.getName());
+            if(raiser)
+                txt = txt.split('%r').join(raiser.getName());
             
+
+
             if(attacker === me || victim === me)
                 c+= ' me';
             if(attacker && attacker.team !== me.team)
@@ -447,12 +451,12 @@
 
             // In an online game and hosting
             if(B.isHost() && !overrideNetwork){
-                Netcode.hostAddToBattleLog((attacker ? attacker.UUID : null), (victim ? victim.UUID : null), text, classes, sound);
+                Netcode.hostAddToBattleLog((attacker ? attacker.UUID : null), (victim ? victim.UUID : null), text, classes, sound, (raiser ? raiser.UUID : null));
             }
         };
 
         // Schedules a "x took n damage" etc text to be output
-        B.statusTexts.add = function(attacker, victim, text, detrimental, isChat, forceSelf, sound){
+        B.statusTexts.add = function(attacker, victim, text, detrimental, isChat, forceSelf, sound, raiser){
         
             B.statusTexts.texts.push({
                 attacker:attacker, 
@@ -461,7 +465,8 @@
                 detrimental:detrimental,
                 isChat : isChat,
                 forceSelf : forceSelf,
-                sound : sound
+                sound : sound,
+                raiser : raiser
             });
 
             if(B.statusTexts.capture){return;}
@@ -481,7 +486,8 @@
                     isChat  = obj.isChat,
                     classes = ['statusText'],
                     force = obj.forceSelf,
-                    sound = obj.sound
+                    sound = obj.sound,
+                    raiser = obj.raiser
                 ;
 
                 if(detrimental)
@@ -492,7 +498,7 @@
                 if(isChat){
                     text = '%a says: '+text;
                 }
-                B.addToBattleLog(attacker, victim, text, classes.join(' '), force);
+                B.addToBattleLog(attacker, victim, text, classes.join(' '), force, sound, raiser);
                 if(sound){
                     GameAudio.playSound(sound);
                 }

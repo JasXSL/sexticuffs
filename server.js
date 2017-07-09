@@ -257,11 +257,11 @@ function SocketHandler(socket, task, args){
 			};
 			
 
-			this.pubAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound){
+			this.pubAddToBattleLog = function(attackerUUID, victimUUID, text, classes, sound, raiser){
 				if(!th.isHost()){
 					return;
 				}
-				this.respondToRoom([attackerUUID, victimUUID, text, classes, sound]);
+				this.respondToRoom([attackerUUID, victimUUID, text, classes, sound, raiser]);
 			};
 
 			this.pubEndTurn = function(){

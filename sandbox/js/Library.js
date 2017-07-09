@@ -246,7 +246,7 @@ class DB{
                     playable:true,
                     conditions : [
                         new Condition({type:Condition.ENEMY}), 
-                        new Condition({type:Condition.TAGS, data:["recently_attacked"], target : Game.Consts.TARG_ATTACKER}),
+                        new Condition({type:Condition.TAGS, data:["recently_attacked"], reverseAttacker : true}),
                     ],
                     ai_tags : ["defensive"],
                     effects:[
@@ -587,8 +587,8 @@ class DB{
 
         static buildChallenges(){
 
-            DB.buildChallengeTutorial();
-            DB.buildChallengeHell();
+            Challenge.insert(DB.buildChallengeTutorial());
+            Challenge.insert(DB.buildChallengeHell());
 
         }
     //
@@ -915,6 +915,7 @@ class DB{
                 description : 'Raid the sexy demonic dimension. Defeat the denizens to receive a reward!',
                 buttonbg : 'media/backgrounds/hell.jpg',
             });
+            
 
             // ABILITIES
                 // VAG_FIXATION
@@ -1376,7 +1377,7 @@ class DB{
                         charged : 1,
                         ranged : true,
                         // Two rounds have to have passed before you can use this ability
-                        conditions : [C(CO.TOTAL_TURNS_GREATER, "(vNumPlayers+1)*2")],
+                        conditions : [C(CO.ENEMY), C(CO.TOTAL_TURNS_GREATER, "(vNumPlayers+1)*2")],
                         charge_hit_conditions : [C(CO.ENEMY), C(CO.NOT_TAGS, ['tentacleSuit'])],
                         charge_text : ':ATTACKER: lets out a terrible yell, causing the ground to start shaking!',
                         charge_fail_text : ':TARGET: was shielded from :ATTACKER:\'s assault!',
@@ -1538,11 +1539,12 @@ class DB{
                     Ability.insert({
                         id : 'BUTLER_DISCIPLINE',   // Should be unique
                         name : 'Discipline',
-                        description : 'Deals 10 damage to all players.',
+                        description : 'Deals 10 damage to all players. Cannot be mitigated.',
                         manacost : {}, 
                         cooldown: 1,
                         detrimental : true,
                         aoe : true,
+                        always_hit : true,
                         conditions : [C(CO.ENEMY)],
                         ai_tags : [],
                         effects:[
@@ -1554,7 +1556,7 @@ class DB{
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
                                         effects:[
-                                            [EffectData.Types.damage, 10]
+                                            [EffectData.Types.damage, 10, true]
                                         ]
                                     }),
                                 ]
@@ -1586,6 +1588,9 @@ class DB{
                     });
 
                 // BUTLER_RANDOM
+                    // Cast discipline on everyone on TEAM_PC. Stick into effectData
+                    let butlerCastDiscipline = [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', [[C(CO.CHARACTER_ID, 'demonButler')]], [[C(CO.TEAM, [Character.TEAM_PC])]]];
+
                     Ability.insert({
                         id : 'BUTLER_RANDOM',   // Should be unique
                         name : 'Chores!',
@@ -1599,7 +1604,7 @@ class DB{
                         ai_tags : ["important"],
                         max_effects : 1,
                         effects_rand : true,
-                        no_text : true,
+                        max_texts : 0,
                         effects:[
                             
                             // Wash the dishes
@@ -1639,7 +1644,7 @@ class DB{
                                                                 [EffectData.Types.talking_head, new ChallengeTalkingHead({
                                                                     icon:'media/npc/butler.jpg', text:'Butler: I told you to do the dishes! You need discipline!', sound:'dishes'
                                                                 })],
-                                                                [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE]
+                                                                butlerCastDiscipline
                                                             ],
                                                         }),
                                                         new EffectData({ 
@@ -1687,7 +1692,7 @@ class DB{
                                                     triggers : [EffectData.Triggers.stacksLost],
                                                     effects: [
                                                         [EffectData.Types.text, ":ATTACKER: drops :AHIS: serving trays!", "plate_break", true],
-                                                        [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_VICTIM]
+                                                        butlerCastDiscipline
                                                     ]
                                                 }),
                                                 new EffectData({
@@ -1712,6 +1717,9 @@ class DB{
                                     ]
                                 })]
                             }),
+                            
+
+                            
                             // Service
                             new Effect({
                                 detrimental:false,
@@ -1826,7 +1834,7 @@ class DB{
                                                                     new EffectData({
                                                                         triggers:[EffectData.Triggers.turnStart],
                                                                         effects:[
-                                                                            [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE],
+                                                                            butlerCastDiscipline,
                                                                             [EffectData.Types.talking_head, new ChallengeTalkingHead({
                                                                                 icon:'media/npc/butler.jpg', text:'Butler: The customer is displeased! You must be disciplined!', sound:''
                                                                             })],
@@ -1962,7 +1970,7 @@ class DB{
                                                                             [EffectData.Types.talking_head, new ChallengeTalkingHead({
                                                                                 icon:'media/npc/butler.jpg', text:'Butler: I told you to remove the spill!', sound:'slime_squish_bright'
                                                                             })],
-                                                                            [EffectData.Types.useAbility, 'BUTLER_DISCIPLINE', 'demonButler', Game.Consts.TARG_AOE],
+                                                                            butlerCastDiscipline,
                                                                             [EffectData.Types.removeCharacter]
                                                                         ],
                                                                     }),
@@ -2001,7 +2009,7 @@ class DB{
                         ai_tags : ["damage"],
                         effects:[
                             new Effect({
-                                id : 'TentaclePitAttack',
+                                id : 'shivvTease',
                                 max_stacks : 1,
                                 duration : 0,
                                 detrimental : true,
@@ -2021,38 +2029,20 @@ class DB{
                         id : 'SHIVV_HEAL',   // Should be unique
                         name : 'Heal',
                         description : 'Heals all friendly players for 5 HP. Interrupted by damage. On interrupt, heal enemies instead.',
+                        icon : 'media/effects/heal.svg',
                         manacost : {support:2},
                         cooldown: 3,
                         detrimental : false,
                         charged : 1,
                         ranged : true,
-                        conditions : [],
+                        conditions : [C(CO.FRIEND)],
+                        aoe : true,
                         ai_tags : ["important"],
+                        max_texts : 1,
                         effects:[
                             new Effect({
                                 id : 'aoeHeal',
-                                max_stacks : 1,
-                                duration : 0,
                                 detrimental : false,
-                                target : Game.Consts.TARG_AOE,
-                                conditions : [C(CO.FRIEND)],
-                                events : [
-                                    new EffectData({
-                                        triggers: [EffectData.Triggers.apply],
-                                        effects:[[EffectData.Types.heal, 5]]
-                                    })
-                                ]
-                            }),               
-                        ],
-                        // TODO: Implement interrupt_effects
-                        interrupt_effects:[
-                            new Effect({
-                                id : 'aoeHeal',
-                                max_stacks : 1,
-                                duration : 0,
-                                detrimental : false,
-                                target : Game.Consts.TARG_AOE,
-                                conditions : [C(CO.ENEMY)],
                                 events : [
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
@@ -2066,18 +2056,20 @@ class DB{
                 // SHIVV_VIOLATE
                     Ability.insert({
                         id : 'SHIVV_VIOLATE',   // Should be unique
+                        icon : 'media/effects/grab.svg',
                         name : 'Violate',
-                        description : 'Violates a player affected by Aphrodisiac. If the target is not affected by aphrodisiac when the cast finishes, Shivv hits Pollux instead!',
+                        description : 'Violates a random player. If the target is mitigating, Shivv hits Pollux instead!',
                         manacost : {},
-                        cooldown: 1,
-                        detrimental : false,
+                        cooldown: 3,
+                        detrimental : true,
                         charged : 1,
                         ranged : true,
-                        aoe : false,
-                        conditions : [C(CO.EFFECT, 'SHIVV_APHRODISIAC', 0, 2)],
+                        // Cannot be used while already charging
+                        conditions : [C(CO.TOTAL_TURNS_GREATER, 5), C(CO.CHARGING, [], false, true)],
                         charge_hit_conditions : [],
-                        ai_tags : ["important"],
+                        ai_tags : [],
                         max_effects : 1,
+                        max_texts : 0,
                         effects:[
                             // If target has aphrodisiac, then cast on target
                             new Effect({
@@ -2085,14 +2077,17 @@ class DB{
                                 max_stacks : 1,
                                 duration : 1,
                                 detrimental : true,
-                                conditions : [C(CO.EFFECT, 'SHIVV_APHRODISIAC')],
+                                conditions : [C(CO.TAGS, 'fx_mitigation', false, true)],
                                 name: 'Violated',
                                 description : 'Stunned',
                                 icon : 'media/effects/stun.svg',
                                 events : [
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
-                                        effects:[[EffectData.Types.damage, 5]]
+                                        effects:[
+                                            [EffectData.Types.text],
+                                            [EffectData.Types.damage, 5]
+                                        ]
                                     }),
                                     new EffectData({
                                         triggers: [],
@@ -2101,20 +2096,23 @@ class DB{
                                 ]
                             }), 
 
+                            // Otherwise target Pollux
                             new Effect({
                                 id : 'SHIVV_VIOLATE',
                                 max_stacks : 1,
                                 duration : 1,
                                 detrimental : true,
-                                conditions : [C(CO.CHARACTER_ID, 'pollux')],
                                 name: 'Violated',
                                 description : 'Stunned',
                                 icon : 'media/effects/stun.svg',
-                                target : Game.Consts.TARG_AOE,
+                                target : [[C(CO.CHARACTER_ID, 'pollux')]],
                                 events : [
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
-                                        effects:[[EffectData.Types.damage, 5]]
+                                        effects:[
+                                            [EffectData.Types.text, ":ATTACKER: charges past :AHIS: target and accidentally hits :TARGET:!", 'punch_heavy'],
+                                            [EffectData.Types.damage, 5]
+                                        ]
                                     }),
                                     new EffectData({
                                         triggers: [],
@@ -2126,10 +2124,84 @@ class DB{
                                 
                         ],
                     });
+                
+                // SHIVV_DRAIN
+                    Ability.insert({
+                        id : 'SHIVV_DRAIN',   // Should be unique
+                        icon : 'media/effects/pretty-fangs.svg',
+                        name : 'Drain',
+                        description : 'Drains a player affected by Aphrodisiac. If the target is not affected by aphrodisiac when the cast finishes, Shivv takes 20% damage!',
+                        manacost : {},
+                        cooldown: 2,
+                        detrimental : true,
+                        charged : 1,
+                        ranged : true,
+                        conditions : [C(CO.EFFECT, ['SHIVV_APHRODISIAC', 0, 2]), C(CO.CHARGING, [], false, true)],
+                        charge_hit_conditions : [],
+                        ai_tags : ["important"],
+                        max_effects : 1,
+                        max_texts : 0,
+                        effects:[
+                            // If target has aphrodisiac, then cast on target
+                            new Effect({
+                                id : 'SHIVV_DRAIN',
+                                detrimental : true,
+                                conditions : [C(CO.EFFECT, 'SHIVV_APHRODISIAC')],
+                                events : [
+                                    new EffectData({
+                                        triggers: [EffectData.Triggers.apply],
+                                        effects:[
+                                            EffectData.Types.text,
+                                            [EffectData.Types.lifeSteal, 10]
+                                        ]
+                                    }),
+                                ]
+                            }), 
 
+                            // Otherwise hurt self
+                            new Effect({
+                                id : 'SHIVV_DRAIN',
+                                detrimental : true,
+                                target : Game.Consts.TARG_ATTACKER,
+                                events : [
+                                    new EffectData({
+                                        triggers: [EffectData.Triggers.apply],
+                                        effects:[
+                                            [EffectData.Types.text, "The lack of aphrodisiac causes :ATTACKER: to hurt :AHIM:self!", 'fail'],
+                                            [EffectData.Types.damage, 'aMAP*0.2']
+                                        ]
+                                    }),
+                                ]
+                            }),         
+                            
+                                
+                        ],
+                    });
 
-
-                // SHIVV_DRAIN, SHIVV_APHRODISIAC
+                // SHIVV_APHRODISIAC
+                    Ability.insert({
+                        id : 'SHIVV_APHRODISIAC',   // Should be unique
+                        name : 'Aphrodisiac',
+                        description : 'Allows Shivv to take advantage of you!',
+                        icon : 'media/effects/glass-heart.svg',
+                        manacost : {defensive:3},
+                        cooldown: 4,
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [],
+                        ai_tags : ["important"],
+                        effects:[
+                            // If target has aphrodisiac, then cast on target
+                            new Effect({
+                                id : 'SHIVV_APHRODISIAC',
+                                name : 'Aphrodisiac',
+                                description : 'Allows Shivv to take advantage of you!',
+                                icon : 'media/effects/glass-heart.svg',
+                                detrimental : true,
+                                duration : 3,
+                            }), 
+                        ],
+                    });
 
                 // Shivv concubine on death
                     let concubineOnDeath = new Effect({
@@ -2138,25 +2210,35 @@ class DB{
                         events : [
                             new EffectData({
                                 triggers : [EffectData.Triggers.death],
-                                effects : [EffectData.Types.applyEffect, new Effect({
-                                    id : 'shivvEnrage',
-                                    name : 'Enrage',
-                                    description : 'Damage increased by 200% per stack',
-                                    icon : 'media/effects/swallow.svg',
-                                    detrimental : false,
-                                    target : Game.Consts.TARG_AOE,
-                                    conditions : [C(CO.CHARACTER_ID, "shivv")],
-                                    events : [
-                                        new EffectData({
-                                            effects : [[EffectData.Types.damage_done_multi, 2]]
+                                effects : [
+                                    [
+                                        EffectData.Types.applyEffect, 
+                                        new Effect({
+                                            id : 'shivvEnrage',
+                                            name : 'Enrage',
+                                            duration : Infinity,
+                                            description : 'Damage increased by 200% per stack',
+                                            icon : 'media/effects/swallow.svg',
+                                            detrimental : false,
+                                            target : [[C(CO.CHARACTER_ID, "shivv")]],
+                                            events : [
+                                                new EffectData({
+                                                    effects : [[EffectData.Types.damage_done_multi, 3]]
+                                                })
+                                            ]
                                         })
-                                    ]
-                                })],
+                                    ],
+                                    [EffectData.Types.talking_head, new ChallengeTalkingHead({
+                                        icon : 'media/npc/shivv.jpg',
+                                        text : "Shivv: I'm going to end you for that!"
+                                    })]
+                                ],
+
                             })
                         ]
                     });
 
-            //
+            
 
 
             // CHARACTERS
@@ -2463,6 +2545,7 @@ class DB{
                 });
 
             //
+
             
 
             // WING C - Castle Heck
@@ -2543,10 +2626,10 @@ class DB{
                 // 2. Shivv
                 wing.addStage({
                     id : 'shivv',
-                    icon : '?',
+                    icon : 'media/npc/shivv.jpg',
                     name : 'Shivv',
                     music : 'rocket_power',
-                    background : '?',
+                    background : 'media/backgrounds/hell_cathedral.jpg',
                     description : 'Shivv is the keeper of the royal harem! Defeat him and his concubines to enter the royal chambers!',
                     intro : [
                         // new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
@@ -2568,7 +2651,7 @@ class DB{
                             description:"One of Shivv's concubines!", 
                             body_tags:["slender", "fuzzy"], 
                             image : '?',
-                            max_armor:0, max_hp:10, size:4, 
+                            max_armor:5, max_hp:5, size:4, 
                             tags:["c_penis", "CONCUBINE"], 
                             nonessential : true,
                             ignore_cp_scale : true,
@@ -2577,7 +2660,43 @@ class DB{
                                 "SHIVV_TEASE",
                                 "SHIVV_HEAL"
                             ],
-                            passives : [concubineOnDeath]
+
+                            // Increase shivv damage
+                            passives : [
+                                // Interrupts healing on damage taken, and heals PCs
+                                new Effect({
+                                    id : 'castorHealInterrupt',
+                                    max_stacks : 1,
+                                    duration : Infinity,
+                                    detrimental : false,
+                                    events : [
+                                        new EffectData({
+                                            triggers: [EffectData.Triggers.takeDamage],
+                                            conditions : [C(CO.CHARGING, 'SHIVV_HEAL')],
+                                            effects:[
+                                                [EffectData.Types.text, ':RAISER: deflects :TARGET:\'s heal! Causing it to heal the other team!', 'heal'],
+                                                [EffectData.Types.interrupt, 'SHIVV_HEAL'],
+                                                [
+                                                    EffectData.Types.applyEffect,
+                                                    new Effect({
+                                                        id : 'aoeHeal',
+                                                        target : [[C(CO.ENEMY)]],
+                                                        detrimental : false,
+                                                        events : [
+                                                            new EffectData({
+                                                                triggers: [EffectData.Triggers.apply],
+                                                                effects:[[EffectData.Types.heal, 5]]
+                                                            })
+                                                        ]
+                                                    }), 
+                                                ]
+
+                                            ]
+                                        }),
+                                    ]
+                                }),
+                                concubineOnDeath
+                            ]
                         }),
                         
                         // Players only have to defeat shivv to end the fight
@@ -2601,18 +2720,10 @@ class DB{
                                 new Effect({
                                     id : 'protectorAura',
                                     name: 'Protector Aura',
-                                    description : 'Healing received increased by 300%. If Castor or Pollux are defeated, Shivv gains a 200% damage increase.',
+                                    description : 'If Castor or Pollux are defeated, Shivv gains a 200% damage increase.',
                                     icon : 'media/effects/eye-shield.svg',
                                     duration : Infinity,
                                     detrimental : false,
-                                    events : [
-                                        new EffectData({
-                                            effects : [
-                                                [EffectData.Types.healing, 3],  // 3x healing received
-                                            ]
-                                        })
-                                    ]
-
                                 })
                             ]
                         }),
@@ -2624,7 +2735,7 @@ class DB{
                             description:"One of Shivv's concubines!", 
                             body_tags:["slender", "fuzzy"], 
                             image : '?',
-                            max_armor:0, max_hp:10, size:4, 
+                            max_armor:5, max_hp:5, size:4, 
                             tags:["c_penis", "CONCUBINE"], 
                             nonessential : true,
                             ignore_cp_scale : true,
@@ -2640,7 +2751,7 @@ class DB{
                     ]
                 });
 
-                // 3. THe Queen
+                // 3. TODO: THe Queen
                 wing.addStage({
                     id : 'demonQueen',
                     icon : 'media/npc/queen.jpg',
@@ -2663,6 +2774,11 @@ class DB{
                         
                     ]
                 });
+            //
+
+            // WING D - The king
+
+            //
 
 
 
@@ -2679,7 +2795,7 @@ class DB{
         static buildTexts(){
 
             let humanoid = C(CO.HUMANOID), 
-            a_humanoid = C(CO.HUMANOID, [], Game.Consts.TARG_ATTACKER);
+            a_humanoid = C(CO.HUMANOID, [], true);
         
             let ait = Text.AIT;
             // Base attack
@@ -2718,7 +2834,7 @@ class DB{
                 
 
                 // Succubus aura
-                var race_succubus = C(CO.RACE, 'succubus', Game.Consts.TARG_ATTACKER);
+                var race_succubus = C(CO.RACE, 'succubus', true);
                 var sucAura = C(CO.TAGS, ['succubus_aura']);
                 Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.VAG, sucAura], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: commands the mesmerized :TRACE: to reach inbetween :THIS: own legs, rubbing :THIS: :TVAG:!"});
                 Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.PENIS, sucAura], sound:'squish', ait:[ait.aVag, ait.tRub], text:":ANAME: commands the mesmerized :TRACE: to reach inbetween :THIS: own legs, stroking :THIS: :TPENIS:!"});
@@ -2756,8 +2872,8 @@ class DB{
                 
 
                 // imp
-                var race_imp = C(CO.RACE, 'imp', Game.Consts.TARG_ATTACKER);
-                var hydromancer = C(CO.TAGS, ['mc_hydromancer'], Game.Consts.TARG_ATTACKER);
+                var race_imp = C(CO.RACE, 'imp', true);
+                var hydromancer = C(CO.TAGS, ['mc_hydromancer'], true);
                 Text.insert({conditions:[abil, race_imp, C.A_NO_BOTTOM, C.A_PENIS], sound:'squish', ait:[ait.aMouth, ait.tPin], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground, before :THE: realizes what has happened, the :ARACE: shoves :AHIS: :APENIS: into the :TRACE:'s mouth, humping it for a little while, and leaving a trail of demonic cum."});
                 Text.insert({conditions:[abil, race_imp, C.A_NO_BOTTOM, C.A_PENIS], sound:'squish', ait:[ait.tFacial], text:":ANAME: jumps at :TARGET:, tripping :THIM: to the ground! :TARGET: recovers from the daze to see the :ARACE: standing over :THIM:, cock in hand. Before :TARGET: can react, :ATTACKER:'s :TPENIS: twitches slightly before squirting a big load of demonic jizz into the :TRACE:'s face!"});
                 Text.insert({conditions:[abil, race_imp, C.A_NO_BOTTOM, C.A_PENIS], sound:'squish', ait:[ait.tFacial], text:":ANAME: shoves :TARGET: from behind, tripping :THIM: face first to the ground! The :TRACE: pushes :THIS: torso off the ground, only to be greeted by the :ARACE:'s twitching :APENIS:. Before :TARGET: can turn away, :ATTACKER: launches a stream of demonic jizz right into the :TRACE:'s face!"});
@@ -2897,7 +3013,7 @@ class DB{
 
                 // Counter
                     abil = C(CO.ABILITY, "counterAttack");
-                    Text.insert({conditions:[abil], sound:'punch_heavy', text:":ANAME: counter-attacks :TARGET:, dealing a large amount of damage!"});
+                    Text.insert({conditions:[abil], sound:'punch_heavy', text:":ANAME: counter-attacks :TARGET:!"});
                 
                 // Counter
                     abil = C(CO.ABILITY, "corrupt");
@@ -2968,7 +3084,7 @@ class DB{
                     // Boss D (Tentacle pit)
                     
                         abil = C(CO.ABILITY, "TENTACLE_PIT_SUMMON");
-                        Text.insert({conditions:[abil], ait:[], sound:'tentacle_summoned', text:"A large tendril arises from the ground!"});
+                        Text.insert({conditions:[abil], ait:[], sound:'tentacle_summoned', text:"A large tendril rises from the ground!"});
                         abil = C(CO.ABILITY, "TENTACLE_SQUEEZE");
                         Text.insert({conditions:[abil], ait:[], sound:'slime_squish', text:":ATTACKER: wraps around :TARGET:, restraining :THIM:!"});
 
@@ -3088,7 +3204,37 @@ class DB{
                         Text.insert({conditions:[abil, C.VAG], sound:'squish', ait:[ait.aVag, ait.tPin], text:":TARGET: straddles :ATTACKER:'s lap, sliding :THIS: :TVAG: down onto the :ARACE:'s :APENIS: and riding it until the client is pleased!"});
                         Text.insert({conditions:[abil], sound:'squish', ait:[ait.aButt, ait.tPin, ait.tCumInside], text:":TARGET: places :THIS: :TBUTT: in :ATTACKER:'s lap, sliding down on the :ARACE:'s :APENIS:. :ATTACKER: grabs a hold of :TARGET:'s :TCLOTHES:, holding :THIM: in place and starts pounding the :TRACE:'s :TBUTT: firmly, not stopping until :AHE: cums!"});
                         Text.insert({conditions:[abil, C.VAG], sound:'squish', ait:[ait.aButt, ait.tPin, ait.tCumInside], text:":TARGET: places :THIS: :TBUTT: in :ATTACKER:'s lap, sliding down on the :ARACE:'s :APENIS:. :ATTACKER: grabs a hold of :TARGET:'s :TCLOTHES:, holding :THIM: in place and starts pounding the :TRACE:'s :TVAG: firmly, not stopping until :AHE: cums!"});
+                    
+                    // 
 
+                    // BOSS E (Shivv)
+
+                        abil = C(CO.ABILITY, 'SHIVV_HEAL');
+                        Text.insert({conditions:[abil], sound:'heal', text:":ANAME: casts a heal on :AHIS: team!"});
+
+                        abil = C(CO.ABILITY, 'SHIVV_APHRODISIAC');
+                        Text.insert({conditions:[abil], sound:'dark_cast', text:":ANAME: throws a vial at :TARGET:, coating :THIM: with a dark aphrodisiac!"});
+
+                        abil = C(CO.ABILITY, 'SHIVV_DRAIN');
+                        Text.insert({conditions:[abil], sound:'drain', text:":TARGET: submits to the aphrodisiac, allowing :ATTACKER: to drain :THIS: essence!"});
+
+                        abil = C(CO.ABILITY, 'SHIVV_TEASE');
+                        Text.insert({conditions:[abil], sound:'kiss', text:":ATTACKER: places a gentle kiss on :TARGET:'s :TGROIN:!"});
+                        Text.insert({conditions:[abil, C.BREASTS], sound:'kiss', text:":ATTACKER: places a gentle kiss on :TARGET:'s :TBREASTS:!"});
+                        Text.insert({conditions:[abil], sound:'kiss', text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TGROIN:!"});
+                        Text.insert({conditions:[abil, C.BREASTS], sound:'kiss', text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TBREASTS:!"});
+                        
+                        Text.insert({conditions:[abil], sound:'tickle', text:":ATTACKER: gently tickles :TARGET: between :THIS: legs!"});
+                        Text.insert({conditions:[abil, C.BREASTS, C.HAS_TOP], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s :TBREASTS:!"});
+                        Text.insert({conditions:[abil, C.BREASTS, C.NO_TOP], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s nipples!"});
+                        
+                        abil = C(CO.ABILITY, 'SHIVV_VIOLATE');
+                        Text.insert({conditions:[abil], sound:'squish', text:":ATTACKER: violates :TARGET:. This is a placeholder text, Shivv, write these!"});
+
+                        
+                        
+
+                    //
                         
                 //
             //
@@ -3131,7 +3277,7 @@ class DB{
                         
                     // By tentacle pit
         
-                        let pit = C(CO.RACE, "tentaclePit", Game.Consts.TARG_ATTACKER);
+                        let pit = C(CO.RACE, "tentaclePit", true);
 
                         // SADISTIC
                         Text.insert({
@@ -3169,7 +3315,7 @@ class DB{
                         Text.insert({conditions:[C(CO.ABILITY, '__PUNISHMENT_SUB__'), C(CO.RACE, "yoggoth"), C.PENIS], sound:'squish', text:":ATTACKER: jumps on :TARGET:, pinning :THIM: to the ground and positining :AHIM:self over the :TRACE:'s tentacle-:TPENIS:! :ATTACKER: allows the impressive :TPENIS: to slide up inside :AHIS: :ABUTT:, slitering deep inside! The victorious :ARACE: starts grinding back and forth as the gooey appendage wiggles about inside :AHIM:, riding for long enough to hit orgasm, shooting :AHIS: load across the defeated :TRACE:'s chest!"});
                         
                     // By yoggoth
-                        pit = C(CO.RACE, "yoggoth", Game.Consts.TARG_ATTACKER);
+                        pit = C(CO.RACE, "yoggoth", true);
                         Text.insert({conditions:[C(CO.ABILITY, '__PUNISHMENT_SAD__'), pit], sound:'squish', text:":ATTACKER: slithers :AHIS: tentacled arms around :TARGET:'s waist, pushing it forwards and exposing :THIS: :TBUTT:! With :AHIS: victim locked in place, the :ARACE: starts whapping the :TRACE:'s :TBUTT: with :AHIS: slimy arms! A while later, the :ARACE: drops :TARGET: to the floor, leaving :THIM: with slimy streaks across :THIS: stinging :TBUTT:!"});
                         
                         Text.insert({conditions:[C(CO.ABILITY, ['__PUNISHMENT_DOM__','__PUNISHMENT_SUB__']), pit, C.PENIS], sound:'squish', text:":ATTACKER: slithers :AHIS: tentacled arms around :TARGET:'s waist, lifting :THIM: onto :AHIS: face! Some of :AHIS: face tendrils wrap around :TARGET:'s :TPENIS:, squeezing it firmly, while another thicker tentacles slithers its way into the :TRACE:'s :TBUTT:! :ATTACKER: resumes the violation, holding :TARGET: up like a prize on :THIS: shoulders for everyone to see. Eventually :TARGET: cums, the droplets of spunk being absorbed into the :ARACE:'s gooey appendages. :ATTACKER: returns the favor by having the rear tentacle squirt a large glob of sticky slime up into :TARGET:'s :TBUTT:, before dropping :THIM: to the ground!"});
@@ -3194,15 +3340,15 @@ DB.Armor = [];
 DB.Character = [];
 DB.Race = [];
 DB.Ability = [];
-
+DB.Challenge = [];
 
 // Reusable conditions library
-function C(type, data, target, inverse){
+function C(type, data, reverseAttacker, inverse){
     if(data === undefined){data = [];}
     if(data.constructor !== Array){data = [data];}
-    target = target || Game.Consts.TARG_VICTIM;
+    reverseAttacker = reverseAttacker || false;
     inverse = inverse || false;
-    return new Condition({type:type, data:data, target:target, inverse:inverse});
+    return new Condition({type:type, data:data, reverseAttacker:reverseAttacker, inverse:inverse});
 }
 
 
@@ -3216,9 +3362,9 @@ C.ini = function(){
     C.CLOTHED = C(CO.NOT_TAGS, 'nude');
     C.NAKED = C(CO.TAGS, 'nude');
 
-    C.A_NAKED = C(CO.TAGS, 'nude', Game.Consts.TARG_ATTACKER);
-    C.A_PENIS = C(CO.TAGS, 'c_penis', Game.Consts.TARG_ATTACKER);
-    C.A_VAG = C(CO.TAGS, 'c_vagina', Game.Consts.TARG_ATTACKER);
+    C.A_NAKED = C(CO.TAGS, 'nude', true);
+    C.A_PENIS = C(CO.TAGS, 'c_penis', true);
+    C.A_VAG = C(CO.TAGS, 'c_vagina', true);
     
 
     C.HAS_TOP = C(CO.TAGS, 'a_upper');
@@ -3226,16 +3372,16 @@ C.ini = function(){
 	C.NO_TOP = C(CO.NOT_TAGS, 'a_upper');
 	C.NO_BOTTOM = C(CO.NOT_TAGS, 'a_lower');
 
-	C.A_HAS_TOP = C(CO.TAGS, 'a_upper', Game.Consts.TARG_ATTACKER);
-	C.A_HAS_BOTTOM = C(CO.TAGS, 'a_lower', Game.Consts.TARG_ATTACKER);
-	C.A_NO_TOP = C(CO.NOT_TAGS, 'a_upper', Game.Consts.TARG_ATTACKER);
-	C.A_NO_BOTTOM = C(CO.NOT_TAGS, 'a_lower', Game.Consts.TARG_ATTACKER);
+	C.A_HAS_TOP = C(CO.TAGS, 'a_upper', true);
+	C.A_HAS_BOTTOM = C(CO.TAGS, 'a_lower', true);
+	C.A_NO_TOP = C(CO.NOT_TAGS, 'a_upper', true);
+	C.A_NO_BOTTOM = C(CO.NOT_TAGS, 'a_lower', true);
     C.NOT_GRAPPLE = C(CO.NO_GRAPPLE);
 
     C.ARMOR_TIGHT = C(CO.TAGS, 'a_tight');
     C.ARMOR_THONG = C(CO.TAGS, 'a_thong');
 
-    C.A_TENTACLES = C(CO.TAGS, ["s_tentacles"], Game.Consts.TARG_ATTACKER);
+    C.A_TENTACLES = C(CO.TAGS, ["s_tentacles"], true);
 
 };
 

@@ -65,6 +65,63 @@ class Game{
     }
 
 
+	// Takes an input array of target consts or conditions and returns an array of viable targets
+	static convertTargets(input, attacker, victim, raiser){
+		if(!input)
+			return [];
+		if(input.constructor !== Array)
+			input = [input];
+		
+		let success = [];
+		for(let targ of input){
+			if(!targ)
+				continue;
+
+			if(targ === Game.Consts.TARG_ATTACKER)				
+				success.push(attacker);
+			if(targ === Game.Consts.TARG_VICTIM)				
+				success.push(victim);
+			if(targ === Game.Consts.TARG_ATTACKER_PARENT){
+				if(!attacker.parent)
+					continue;
+				success.push(attacker.parent);
+			}
+			if(targ === Game.Consts.TARG_VICTIM_PARENT){				
+				if(!victim.parent)
+					continue;
+				success.push(victim.parent);
+			}
+			if(targ === Game.Consts.TARG_AOE)
+				success = Netcode.players;
+			
+			if(targ.constructor === Character)
+				success.push(targ);
+			
+			if(targ === Game.Consts.TARG_RAISER)
+				success.push(raiser);
+			
+			// Add by filters
+			if(targ.constructor === Array){
+				let all = Netcode.players;
+				for(let t of all){
+
+					if(Condition.validateMultiple(targ, false, attacker, t, null, true, false))
+						success.push(t);
+
+				}
+
+			}
+
+		}
+
+
+		return success.filter(function(el, index, arr) {
+			return index == arr.indexOf(el);
+		});
+
+	}
+
+
 	// Load preferences from IDB
 	static loadPrefs(){
 		return new Promise(function(res){

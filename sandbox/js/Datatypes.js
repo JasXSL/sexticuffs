@@ -268,10 +268,12 @@ class Character extends Asset{
 
 	// Stats
 
-		damage(type, amount, attacker, ability, effect){
+		damage(type, amount, attacker, ability, effect, no_mitigation){
 
 			if(this.isDead())
-				return;
+				return 0;
+
+			
 
 			// If amount is a string, evaluate math. See Effect.runMath for vars you can use
 			if(typeof amount === 'string')
@@ -296,10 +298,25 @@ class Character extends Asset{
 			var takeDamage = (type === EffectData.Types.damage || type == EffectData.Types.armorDamage || type === EffectData.Types.hpDamage);
 			// Detrimental
 			if(takeDamage){
-				amount += this.getDmgTakenAdder(attacker, ability);
-				amount *= this.getDmgTakenMultiplier(attacker);
-				amount *= attacker.getDmgDoneMultiplier(this);
+				let adder = this.getDmgTakenAdder(attacker, ability),
+					multiTaken = this.getDmgTakenMultiplier(attacker),
+					multiDone = attacker.getDmgDoneMultiplier(this)
+				;
+				
+				if(no_mitigation){
+					if(adder < 0)
+						adder = 0;
+					if(multiTaken < 1)
+						multiTaken = 1;
+					if(multiDone < 1)
+						multiDone = 1;
+				}
+
+				amount += adder;
+				amount *= multiTaken;
+				amount *= multiDone;
 				amount = Math.ceil(amount);
+
 				this.applyEffectEvent(EffectData.Triggers.takeDamage, [amount], attacker, this, ability);
 				attacker.applyEffectEvent(EffectData.Triggers.dealDamage, [amount], attacker, this, ability);
 			}
@@ -342,7 +359,7 @@ class Character extends Asset{
 
 				if(typeof amount !== 'object'){
 					console.error("Can't add or subtract mana, amount is not an object", amount);
-					return;
+					return 0;
 				}
 
 				var multi = 1;
@@ -367,7 +384,7 @@ class Character extends Asset{
 
 					var num = this.mana[i]-pre;
 					if(num !== 0)
-						Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: "+(num > 0 ? 'gains' : 'loses')+" "+Math.abs(num)+" "+i+" mana."}).convert(attacker, this), true);
+						Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: "+(num > 0 ? 'gains' : 'loses')+" "+Math.abs(num)+" "+i+" mana."}).convert(attacker, this, ability, attacker), true);
 				}
 
 				
@@ -389,7 +406,7 @@ class Character extends Asset{
 			if(preArmor !== this.armor || preHP !== this.hp){
 				text = ':TNAME: ';
 				if(preArmor !== this.armor){
-					text += (preArmor > this.armor ? 'loses' : 'gains')+' '+Math.abs(this.armor-preArmor)+' '+(this.armor_text ? this.armor_text : 'armor')+' ';
+					text += (preArmor > this.armor ? 'loses' : 'gains')+' '+Math.abs(this.armor-preArmor)+' '+(this.armor_text ? this.armor_text : 'armor');
 				}
 				if(preHP !== this.hp){
 					if(preArmor !== this.armor)
@@ -398,7 +415,7 @@ class Character extends Asset{
 				}
 
 				text += ".";
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this), takeDamage);
+				Game.Battle.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this, ability, attacker), takeDamage);
 			}
 			
 			for(i in this.mana){
@@ -415,7 +432,7 @@ class Character extends Asset{
 					surrenderText = this.death_text;
 				text = new Text({text:surrenderText});
 
-				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this), true, false, false, (this.death_sound ? this.death_sound : 'knockout'));
+				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this, ability, attacker), true, false, false, (this.death_sound ? this.death_sound : 'knockout'));
 				this.onDeath(attacker);
 			}
 
@@ -428,6 +445,7 @@ class Character extends Asset{
 			if(amount && type !== EffectData.Types.manaDamage && type !== EffectData.Types.manaHeal)
 				this.generateSBT(Math.abs(amount), takeDamage);
 			
+			return amount;
 		}
 
 		// Gets a multiplier for campaign NPCs HP and attack
@@ -766,22 +784,25 @@ class Character extends Asset{
 			if(~[':ANAME:', ':ATTACKER:'].indexOf(type)){
 				return '%a';
 			}
+			if(~[':RNAME:', ':RAISER:'].indexOf(type)){
+				return '%r';
+			}
 			
-			if(~[':ARACE:', ":VRACE:", ":TRACE:"].indexOf(type)){
-				return escape(this.getRaceName());
+			if(~[':ARACE:', ":VRACE:", ":TRACE:", ":RRACE:"].indexOf(type)){
+				return this.getRaceName();
 			}
 
-			if(~[':ABREASTS:', ":VBREASTS:", ":TBREASTS:"].indexOf(type)){
+			if(~[':ABREASTS:', ":VBREASTS:", ":TBREASTS:", ":RRACE:"].indexOf(type)){
 				synonyms = ["boobs", "breasts", "tits"];
 				if(!this.hasAnyTag("c_breasts")){
 					synonyms = ["chest", "torso"];
 				}
 			}
-			if(~[':BUTT:', ':TBUTT:', ':ABUTT:', ':VBUTT:'].indexOf(type)){
+			if(~[':BUTT:', ':TBUTT:', ':ABUTT:', ':VBUTT:', ':RBUTT:'].indexOf(type)){
 				synonyms = ["butt", "hiney", "rump"];
 			}
 
-			if(~[':ACLOTHES:', ':VCLOTHES:', ':TCLOTHES:'].indexOf(type)){
+			if(~[':ACLOTHES:', ':VCLOTHES:', ':TCLOTHES:', ':RCLOTHES:'].indexOf(type)){
 				if(this.getArmorSet() && this.getArmorSet().name){
 					return this.getArmorSet().name.toLowerCase();
 				}
@@ -789,40 +810,40 @@ class Character extends Asset{
 			}
 
 			// No synonyms on its own, fall through
-			if(~[':VCROTCHEX:',':ACROTCHEX:',':TCROTCHEX:'].indexOf(type)){
+			if(~[':VCROTCHEX:',':ACROTCHEX:',':TCROTCHEX:', ':RCROTCHEX:'].indexOf(type)){
 				type = ':CROTCH:';
 				if(this.hasAnyTag('c_penis')){type = ':VPENIS:';}
 				else if(this.hasAnyTag('c_vagina')){type = ':VVAG:';}
 			}
 			
-			if(~[':APENIS:', ':VPENIS:', ':TPENIS:'].indexOf(type)){
+			if(~[':APENIS:', ':VPENIS:', ':TPENIS:', ':RPENIS:'].indexOf(type)){
 				synonyms = ["penis", "dick", "member", "cock"];
 				if(!this.hasAnyTag("c_penis")){
 					type = ':CROTCH:';
 				}
 			}
-			if(~[':AVAG:',':VVAG:',':TVAG:',':TVAGINA:',':VVAGINA:',':AVAGINA:'].indexOf(type)){
+			if(~[':AVAG:',':VVAG:',':TVAG:',':TVAGINA:',':VVAGINA:',':AVAGINA:', ':RVAGINA:', ':RVAG:'].indexOf(type)){
 				synonyms = ["vagina", "pussy", "cunt"];
 				if(!this.hasAnyTag("c_vagina")){
 					type = ':CROTCH:';
 				}
 			}
 			// Catchall for groins
-			if(~[':CROTCH:', ':GROIN:', ':TCROTCH:', ':TGROIN:', ':ACROTCH:', ':AGROIN:'].indexOf(type)){
+			if(~[':CROTCH:', ':GROIN:', ':TCROTCH:', ':TGROIN:', ':ACROTCH:', ':AGROIN:', ':RGROIN:', ':RCROTCH:'].indexOf(type)){
 				synonyms = ["crotch", "groin"];
 			}
 
-			if(~[':ABTAG:',':VBTAG:',':TBTAG:'].indexOf(type)){
+			if(~[':ABTAG:',':VBTAG:',':TBTAG:', ':RBTAG:'].indexOf(type)){
 				synonyms = this.body_tags;
 			}
 
-			if(~[':AHE:',":VHE:",":THE:"].indexOf(type)){
+			if(~[':AHE:',":VHE:",":THE:", ":RHE:"].indexOf(type)){
 				return pronouns[0];
 			}
-			if(~[':AHIM:', ":VHIM:", ":THIM:"].indexOf(type)){
+			if(~[':AHIM:', ":VHIM:", ":THIM:", ":RHIM:"].indexOf(type)){
 				return pronouns[1];
 			}
-			if(~[':AHIS:',":VHIS:",":THIS:"].indexOf(type)){
+			if(~[':AHIS:',":VHIS:",":THIS:", ":RHIS:"].indexOf(type)){
 				return pronouns[2]; 
 			}
 			
@@ -855,7 +876,7 @@ class Character extends Asset{
 
 		// Returns a (link?). Use this whenever getting text in a battle
 		getName(){
-			return '<span style="color:'+this.color+'">'+escape(this.name)+'</span>';
+			return '<span style="color:'+this.color+'">'+Jasmop.Tools.htmlspecialchars(this.name)+'</span>';
 		}
 
 		getImage(){
@@ -940,13 +961,13 @@ class Character extends Asset{
 					return v;
 				});
 
-			Game.Battle.statusTexts.add(player, this, new Text({text:":TARGET: is now grappled by :ATTACKER:."}).convert(player, this), true);
+			Game.Battle.statusTexts.add(player, this, new Text({text:":TARGET: is now grappled by :ATTACKER:."}).convert(player, this, null, player), true);
 		}
 
 		breakGrapple(){
 			if(!this.grappled_by)
 				return;
-			Game.Battle.statusTexts.add(this.grappled_by, this, new Text({text:":TARGET: is no longer grappled by :ATTACKER:!"}).convert(this.grappled_by, this), true);
+			Game.Battle.statusTexts.add(this.grappled_by, this, new Text({text:":TARGET: is no longer grappled by :ATTACKER:!"}).convert(this.grappled_by, this, null, this.grappled_by), true);
 			this.grappled_by = false;
 			this.grapple_passives = [];
 		}
@@ -2223,10 +2244,9 @@ class Ability extends Asset{
 		this.charge_text = false;			// Custom text for when ability charges
 		this.charge_fail_text = false;		// Text to output if charge fails
 		this.ranged = false;				// This ability is ranged
-		
 		this.max_effects = false;				// Limits the number of effects that can be applied
 		this.effects_rand = false;				// Randomizes the effects
-		this.no_text = false;					// Does not output text
+		this.max_texts = false;					// Max nr of texts to output.
 
         // Gameplay values
         this._cooldown = 0;
@@ -2283,11 +2303,11 @@ class Ability extends Asset{
 			out.charge_fail_text = this.charge_fail_text;
 			out.charge_text = this.charge_text;
 			out.aoe = this.aoe;
-			out.no_text = this.no_text;
 			out.passives =  this.passives.map(function(val){ return val.export(full); });
 			out.ranged = this.ranged;
 			out.max_effects = this.max_effects;
-			out.effects_rand = this.effects_rand; 
+			out.effects_rand = this.effects_rand;
+			out.max_texts = this.max_texts;
 			this.__exported = true;
 		}
 
@@ -2354,7 +2374,7 @@ class Ability extends Asset{
 	}
 
     // Returns an array of viable players for this spell or false if none
-    usableOn(targ, verbose, allowError, isCharged){
+    usableOn(targ, verbose, allowError, chargeHit){
         if(targ.constructor !== Array){
             targ = [targ];
         }
@@ -2377,8 +2397,9 @@ class Ability extends Asset{
 			return false; 
 		}
 
-		// Charge hits don't cost mana
-		if(!isCharged){
+		// All but charge hits cost mana
+		if(!chargeHit){
+
 			var cost = this.getManaCost();
 			for(i in cost){
 				if(this.parent.mana[i] < cost[i]){
@@ -2389,6 +2410,8 @@ class Ability extends Asset{
 					return false;
 				}
 			}
+
+
 		}
 
 		if(this._charged){
@@ -2416,7 +2439,7 @@ class Ability extends Asset{
 		}
         
 		// Manage taunt. Only relevant when starting a charge, not executed. Also AOE ignores taunts and grapples
-		if(!isCharged && !this.aoe){
+		if(!chargeHit && !this.aoe){
 			var taunts = this.parent.getTaunting();
 			// Calculate taunts. Should not work against buffs. Grapples override taunt.
 			if(taunts.length && this.detrimental && !this.parent.inGrapple()){
@@ -2439,9 +2462,11 @@ class Ability extends Asset{
 			console.log("Scanning", this.name, "against", targ.length, "players");
         
 		var conds = this.conditions;
-		if(isCharged)
+
+		// Conditions on charge execute
+		if(chargeHit){
 			conds = this.getChargeHitConditions();
-		
+		}
 		
 
 		// Cycle players
@@ -2456,6 +2481,9 @@ class Ability extends Asset{
 			let fxcond = this.parent.getFxArraysByStaticValue(EffectData.Types.conditionalSilence, this.parent, t, verbose),
 				fxcondFiltered = [];
 
+			
+
+			// Get filter conditions from effects
 			for(let arr of fxcond){
 				
 				let arg = arr[1];
@@ -2471,7 +2499,10 @@ class Ability extends Asset{
 			let success = true;
 
 
-			if(!Condition.validateMultiple(conds.concat(fxcondFiltered), false, this.parent, t, this, true, verbose))
+			let validation = Condition.validateMultiple(conds.concat(fxcondFiltered), false, this.parent, t, this, true, verbose);
+
+
+			if(!validation)
 				success = false;
 
             // At least one targ was accepted
@@ -2485,6 +2516,7 @@ class Ability extends Asset{
 
         }
 
+
         if(!out.length){
             return false;
         }
@@ -2496,10 +2528,7 @@ class Ability extends Asset{
 		if(targ.constructor !== Array){
 			targ = [targ];
 		}
-		// AOE should scan everyone
-		if(this.aoe){
-			targ = Netcode.players;
-		}
+		
 
 		if(!verbose)
 			verbose = this.debug;
@@ -2511,38 +2540,46 @@ class Ability extends Asset{
 		// Filter out usable
 		targ = this.usableOn(targ, false, false, chargeHit);
 
-		if(this.charged){
-			let scan = targ;
-			if(!scan)
-				scan = [];
-			for(let t of targs){
-				if(scan.indexOf(t) === -1){
-					Game.Battle.addToBattleLog(this.parent, t, new Text({text:(this.charge_fail_text ? this.charge_fail_text : ":ATTACKER:'s :ABIL: failed.")}).convert(this.parent, t, this), "rptext ability", false, 'fail');
-				}
-			}
-		}
-
 
 		// Handle charge
 		if(this.charged && !chargeHit){
 
-			this._charged = this.charged;
-			this._charge_targs = targ;
-			
-			var txt = ":ATTACKER: charges :ABIL: at :TARGET:!";
-			if(targ.length > 1)
-				txt = ":ATTACKER: charges :ABIL:!";
-			if(this.charge_text)
-				txt = this.charge_text;
+			// Begin charge
+			if(!chargeHit){
 
-			text = new Text({text:txt});
-			Game.Battle.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this), "rptext ability", false, 'charge');
-			this.parent.applyEffectEvent(EffectData.Triggers.abilityCharged, [this.id], attacker, targ[0], this);
-			
+				this._charged = this.charged;
+				this._charge_targs = targ;
+				
+				var txt = ":ATTACKER: charges :ABIL: at :TARGET:!";
+				if(targ.length > 1)
+					txt = ":ATTACKER: charges :ABIL:!";
+				if(this.charge_text)
+					txt = this.charge_text;
+
+				text = new Text({text:txt});
+				Game.Battle.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this, this.parent), "rptext ability", false, 'charge');
+				this.parent.applyEffectEvent(EffectData.Triggers.abilityCharged, [this.id], attacker, targ[0], this);
+
+			}
 		}
+		
 
 		// Non-charged ability or charge execs
 		else{
+
+
+			// Charge exec fail messages
+			if(this.charged && chargeHit){
+				let scan = targ;
+				if(!scan)
+					scan = [];
+				for(let t of targs){
+					if(scan.indexOf(t) === -1){
+						Game.Battle.addToBattleLog(this.parent, t, new Text({text:(this.charge_fail_text ? this.charge_fail_text : ":ATTACKER:'s :ABIL: failed.")}).convert(this.parent, t, this), "rptext ability", false, 'fail');
+					}
+				}
+			}
+
 
 			// Start text capture
 			Game.Battle.statusTexts.capture = true;				// Make sure status texts end up last 
@@ -2554,7 +2591,8 @@ class Ability extends Asset{
 			if(this.effects_rand)
 				Jasmop.Tools.array_shuffle(effects);
 			
-			
+			let texts = 0;
+
 			for(usr = 0; usr<targ.length && targ; ++usr){
 
 				let t = targ[usr];
@@ -2616,13 +2654,14 @@ class Ability extends Asset{
 
 
 				
-				var out = text.convert(this.parent, t, this);
+				var out = text.convert(this.parent, t, this, this.parent);
 				var sound = text.sound;
 				if(!sound)
 					sound = 'shake';
 				var textblock = out;
 
-				if(!this.no_text){
+				if(texts < this.max_texts || this.max_texts === false){
+					++texts;
 					Game.Battle.addToBattleLog(this.parent, t, textblock, "rptext ability", false, sound);
 					text.exec(this.parent, t); // Adds turn texts for subsequent texts
 				}
@@ -2657,8 +2696,10 @@ class Ability extends Asset{
 
 			}
 
-			// Add cooldown
+
+			// Set cooldown
 			this.setCooldown();
+
 		}
 
 		Game.Battle.statusTexts.output();	// This flushes queued battle texts and ends capture
@@ -2671,7 +2712,7 @@ class Ability extends Asset{
 			}
 		}
 
-		
+
 
 		return successes;
     }
@@ -2905,15 +2946,17 @@ class Effect extends Asset{
 		}
 	}
 
-	// Makes sure AoE target effects always hit AoE
+	// This converts targs to characters
 	useAgainst(attacker, victim, stacks, ability, verbose){
-		if(this.target === Game.Consts.TARG_AOE){
-			for(let p of Netcode.players){
-				this.useAgainstSingle(attacker, p, stacks, ability, verbose);
-			}
-			return;
-		}
-		this.useAgainstSingle(attacker, victim, stacks, ability, verbose);
+		let targs =  this.getTargets(attacker, victim);
+		let successes = 0;
+		for(let targ of targs)
+			successes += this.useAgainstSingle(attacker, targ, stacks, ability, verbose);
+		return successes;
+	}
+
+	getTargets(attacker, victim){
+		return Game.convertTargets(this.target, attacker, victim);
 	}
 
 	// Generic
@@ -2931,10 +2974,6 @@ class Effect extends Asset{
         clone._attacker = attacker.UUID;
         clone._victim = victim.UUID;
 
-		// A self cast
-		if(this.target === Game.Consts.TARG_ATTACKER){
-			clone._victim = attacker.UUID;
-		}
 
         clone._duration = this.duration;
 		clone._stacks = stacks || 1;		
@@ -2962,7 +3001,7 @@ class Effect extends Asset{
 		
 		if(this.applyText){
 			var text = new Text({text:this.applyText});
-			Game.Battle.statusTexts.add(clone.getAttacker(), clone.getVictim(), text.convert(clone.getVictim(), clone.getVictim()), this.detrimental);
+			Game.Battle.statusTexts.add(clone.getAttacker(), clone.getVictim(), text.convert(clone.getAttacker(), clone.getVictim(), null, clone.getAttacker()), this.detrimental);
 		}
 
 		clone.on(EffectData.Triggers.apply, [], attacker, victim, ability);
@@ -2995,12 +3034,11 @@ class Effect extends Asset{
 			return;
 
 		
-		var verb = false; //evtName === EffectData.Triggers.death;
+		let verb = false; //evtName === EffectData.Triggers.death;
 		if(verb)console.log("Checking ", evtName, " against", this.events);
 		
-		for(var i =0; i<this.events.length; ++i){
+		for(let evt of this.events){
 
-			var evt = this.events[i];
 			if(evt.hasTrigger(evtName, data, attacker, victim, verb)){
 				
 				if(verb)console.log("Trigger exists in", evt);
@@ -3008,6 +3046,7 @@ class Effect extends Asset{
 				this.runEvt(evt, attacker, data, ability);
 				if(this.depletable)
 					this._depleted = true;
+				
 			}
 			else if(verb)console.log("Trigger does not exist in", evt, EffectData.Triggers.gameEnded);
 
@@ -3032,265 +3071,265 @@ class Effect extends Asset{
 
     }
 
-	// Runs an event
+	// Runs an event. evt is an Effect
 	runEvt(evt, triggerer, data, ability){
+		
+		let fxs = evt.effects.slice(),
+			attacker = this.getAttacker(),
+			a, v,
+			targs = this.getTargets(attacker, this.getVictim())
+		;
 
-		var fxs = evt.effects.slice();
-		var attacker = this.getAttacker();
-		var victim = this.getVictim();
-		var a, v;
+		// Run on all targets
+		for(let victim of targs){
 
-		if(fxs.target === Game.Consts.TARG_ATTACKER){
-			attacker = this.getVictim();
-			victim = this.getAttacker();
-		}
+			for(let fx of fxs){
+
+				if(fx.constructor !== Array){fx = [fx];}
+				else{ fx = fx.slice(); }
+
+				var type = fx[0];
+				fx.splice(0,1);
+
+				// Standard damage types
+				if(
+					type === EffectData.Types.damage ||
+					type === EffectData.Types.heal ||
+					type === EffectData.Types.armorDamage ||
+					type === EffectData.Types.hpDamage ||
+					type === EffectData.Types.armorHeal ||
+					type === EffectData.Types.manaHeal ||
+					type === EffectData.Types.manaDamage
+				){
+					victim.damage(type, fx[0], attacker, ability, this, fx[1]);
+				}
+
+				if(type === EffectData.Types.lifeSteal){
+
+					// 0 is damage, 1 is drain, and 2 is ignore_mitigation
+					let dmg = victim.damage(EffectData.Types.damage, fx[0], attacker, ability, this, fx[2]);
+					if(dmg > 0){
+						let mult = fx[1];
+						if(isNaN(mult))
+							mult = 1;
+						let steal = Math.ceil(dmg*mult);
+						if(steal > 0){
+							attacker.damage(EffectData.Types.heal, steal, attacker, ability, this, false);
+						}
+					}
 
 
-		for(var i=0; i<fxs.length; ++i){
+				}
 
+				if(type === EffectData.Types.remByID){
+					if(victim)
+						victim.removeEffectsByIds(fx);
+				}
+				if(type === EffectData.Types.remThis){
+					victim.removeEffect(this.UUID);
+				}
 
+				if(type == EffectData.Types.addStacksTo){
+					let ids = fx[0], stacks = +fx[1], effects = victim.getEffects();
+					if(ids.constructor !== Array)
+						ids = [ids];
+					Jasmop.Tools.array_replace('_THIS_', this.id, ids);
 
-			var fx = fxs[i];
-			if(fx.constructor !== Array){fx = [fx];}
-			else{ fx = fx.slice(); }
+					for(let effect of effects){
+						if(ids.indexOf(effect.id) === -1)
+							continue;
+						effect.addStacks(stacks, triggerer, ability);
+					}
+				}
 
-			var type = fx[0];
-			fx.splice(0,1);
+				if(type === EffectData.Types.dispel){
+					var ben = fx[0] || false;
+					var max = fx[1] !== undefined ? +fx[1] : -1;
+					victim.dispel(ben, max, triggerer);
+				}
 
-			// Standard damage types
-			if(
-				type === EffectData.Types.damage ||
-				type === EffectData.Types.heal ||
-				type === EffectData.Types.armorDamage ||
-				type === EffectData.Types.hpDamage ||
-				type === EffectData.Types.armorHeal ||
-				type === EffectData.Types.manaHeal ||
-				type === EffectData.Types.manaDamage				
-			){
-				victim.damage(type, fx.shift(), attacker, ability, this);
-			}
+				// Apply an effect
+				if(type === EffectData.Types.applyEffect){
+					var dta = fx[0], stacks = fx[1] || 1;
+					if(!dta || typeof dta !== 'object'){
+						console.error("Error in applyEffect, ", dta, "is not an object");
+					}
+					if(dta.constructor !== 'Effect'){
+						dta = new Effect(dta);
+					}
+					
+					var targ = dta.target;
+					a = this.getVictim();					// A is always the person the event was raised on
+					v = Game.convertTargets(targ, a, a, triggerer);
+					
 
-			if(type === EffectData.Types.remByID){
-				if(victim)
-					victim.removeEffectsByIds(fx);
-			}
-			if(type === EffectData.Types.remThis){
-				victim.removeEffect(this.UUID);
-			}
+					dta.target = Game.Consts.TARG_VICTIM;	// Reset target
+ 
+					for(let t of v){
+						dta.useAgainst(a, t, stacks);
+					}
 
-			if(type == EffectData.Types.addStacksTo){
-				let ids = fx[0], stacks = +fx[1], effects = victim.getEffects();
-				if(ids.constructor !== Array)
-					ids = [ids];
-				Jasmop.Tools.array_replace('_THIS_', this.id, ids);
+				}
+				
+				// Output a text
+				if(type === EffectData.Types.text){
 
-				for(let effect of effects){
-					if(ids.indexOf(effect.id) === -1)
+					var text = new Text({
+						text : fx[0]
+					});
+
+					// Generate one
+					if(!fx[0] && ability){
+						text = Text.generate(attacker, victim, ability, true);
+					}
+
+					a = Netcode.getCharacterByUuid(this._attacker);
+					v = Netcode.getCharacterByUuid(this._victim);
+					
+					if(fx[2])
+						[a, v] = [v, a];	// switch places
+
+					var out = text.convert(a, v, ability, triggerer);
+					var sound = fx[1];
+					var textblock = out;
+
+					Game.Battle.addToBattleLog(a, v, textblock, "rptext ability", false, sound, triggerer);
+
+				}
+
+				if(type === EffectData.Types.talking_head){
+					Game.Battle.addTalkingHeads(fx);
+				}
+
+				if(type === EffectData.Types.removeArenaPassive){
+					var passives = fx[0];
+					if(passives.constructor !== Array)
+						passives = [passives];
+					
+					let pos;
+					while(~ (pos = passives.indexOf('_THIS_'))){
+						passives.splice(pos, 1, this.id);
+					}
+
+					for(let p of Netcode.players){
+						p.removeArenaPassives(passives);
+					}
+				}
+
+				if(type === EffectData.Types.interrupt){
+					victim.interrupt(fx[0], attacker);
+				}
+
+				// Summon NPC
+				if(type === EffectData.Types.summonNpc){
+					
+					let npc = fx[0];
+					if(typeof npc === 'string')
+						npc = Character.get(npc);
+					else if(npc.constructor !== Character)
+						npc = new Character(npc);
+					
+					if(!npc)
 						continue;
-					effect.addStacks(stacks, triggerer, ability);
-				}
-			}
 
-			if(type === EffectData.Types.dispel){
-				var ben = fx[0] || false;
-				var max = fx[1] !== undefined ? +fx[1] : -1;
-				victim.dispel(ben, max, triggerer);
-			}
-
-			// Apply an effect
-			if(type === EffectData.Types.applyEffect){
-				var dta = fx[0], stacks = fx[1] || 1;
-				if(!dta || typeof dta !== 'object'){
-					console.error("Error in applyEffect, ", dta, "is not an object");
-				}
-				if(dta.constructor !== 'Effect'){
-					dta = new Effect(dta);
-				}
-				
-				var targ = dta.target;
-				a = this.getVictim();					// A is always the person the event was raised on
-				v = a;
-				dta.target = Game.Consts.TARG_VICTIM;	// Reset target
-
-				if(targ === Game.Consts.TARG_ATTACKER)
-					v = this.getAttacker();
-				else if(targ === Game.Consts.TARG_RAISER)
-					v = triggerer;
-				else if(targ === Game.Consts.TARG_VICTIM_PARENT)
-					v = a.parent;
-				else if(targ === Game.Consts.TARG_ATTACKER_PARENT)
-					v = this.getAttacker().parent;
-				else if(targ === Game.Consts.TARG_AOE)
-					v = Netcode.players;
-
-				if(!v)
-					continue;
-
-				if(v.constructor !== Array)
-					v = [v];
-
-				for(let t of v){
-					dta.useAgainst(a, t, stacks);
+					npc = npc.clone();
+					let team = fx[1];
+					if(team === undefined)
+						team = attacker.team;
+					
+					npc.team = team;
+					npc.summoned = true;
+					npc.parent = attacker;
+					for(let n in Netcode.players){
+						if(Netcode.players[n] === attacker){
+							Netcode.players.splice(n, 0, npc);
+							++Game.Battle.turn;
+							break;
+						}	
+					}
+					
+					npc.onBattleStart();
+					// Send a full refresh to make sure all NPC data is sent
+					Netcode.refreshParty(true);
+					
 				}
 
-			}
-			
-			// Output a text
-			if(type === EffectData.Types.text){
+				// Makes tr use an ability
+				if(type === EffectData.Types.useAbility){
 
-				var text = new Text({
-					text : fx[0]
-				});
+					let ability = fx[0],
+						caster = fx[1],
+						vic = fx[2]
+					;
 
-				a = Netcode.getCharacterByUuid(this._attacker);
-				v = Netcode.getCharacterByUuid(this._victim);
-				
-				if(fx[2])
-					[a, v] = [v, a];	// switch places
+					if(typeof ability === 'string'){
+						if(victim.getAbilityById(ability))
+							ability = victim.getAbilityById(ability);
+						else
+							ability = Ability.get(ability).clone();
+					}
+					else if(!ability)
+						console.error("Ability is improper, data was", fx);
+					else if(ability.constructor !== Ability)
+						ability = new Ability(ability);
 
-				var out = text.convert(a, v, false);
-				var sound = fx[1];
-				var textblock = out;
-
-				Game.Battle.addToBattleLog(a, v, textblock, "rptext ability", false, sound);
-
-			}
-
-			if(type === EffectData.Types.talking_head){
-				Game.Battle.addTalkingHeads(fx);
-			}
-
-			if(type === EffectData.Types.removeArenaPassive){
-				var passives = fx[0];
-				if(passives.constructor !== Array)
-					passives = [passives];
-				
-				let pos;
-				while(~ (pos = passives.indexOf('_THIS_'))){
-					passives.splice(pos, 1, this.id);
-				}
-
-				for(let p of Netcode.players){
-					p.removeArenaPassives(passives);
-				}
-			}
-
-			if(type === EffectData.Types.interrupt){
-				victim.interrupt(fx[0], attacker);
-			}
-
-			// Summon NPC
-			if(type === EffectData.Types.summonNpc){
-				
-				let npc = fx[0];
-				if(typeof npc === 'string')
-					npc = Character.get(npc);
-				else if(npc.constructor !== Character)
-					npc = new Character(npc);
-				
-				if(!npc)
-					continue;
-
-				npc = npc.clone();
-				let team = fx[1];
-				if(team === undefined)
-					team = attacker.team;
-				
-				npc.team = team;
-				npc.summoned = true;
-				npc.parent = attacker;
-				for(let n in Netcode.players){
-					if(Netcode.players[n] === attacker){
-						Netcode.players.splice(n, 0, npc);
-						++Game.Battle.turn;
-						break;
-					}	
-				}
-				
-				npc.onBattleStart();
-				// Send a full refresh to make sure all NPC data is sent
-				Netcode.refreshParty(true);
-				
-			}
-
-			// Makes tr use an ability
-			if(type === EffectData.Types.useAbility){
-
-				let ability = fx[0],
-					caster = fx[1],
-					vic = fx[2]
-				;
-
-				if(typeof ability === 'string'){
-					if(victim.getAbilityById(ability))
-						ability = victim.getAbilityById(ability);
-					else
-						ability = Ability.get(ability).clone();
-				}
-				else if(!ability)
-					console.error("Ability is improper, data was", fx);
-				else if(ability.constructor !== Ability)
-					ability = new Ability(ability);
-
-				if(!ability){
-					console.error("Invalid ability", fx[0]);
-					continue;
-				}
-
-				if(!caster || caster === Game.Consts.TARG_VICTIM)
-					caster = victim;
-				if(caster === Game.Consts.TARG_ATTACKER)
-					caster = attacker;
-				if(typeof caster === 'string')
-					caster = Netcode.getCharacterById(caster);
-
-				if(!vic  || vic === Game.Consts.TARG_VICTIM)
-					vic = victim;
-				if(vic === Game.Consts.TARG_ATTACKER)
-					vic = attacker;
-				if(vic === Game.Consts.TARG_AOE)
-					vic = Netcode.players;
-				if(typeof vic === 'string')
-					vic = Netcode.getCharacterById(vic);
-				
-				if(!caster){
-					console.error("Invalid caster", caster, "Got", fx);
-					continue;
-				}
-
-				console.log("Caster", caster, "victim", vic);
-
-				ability.parent = caster;
-				ability.useAgainst(vic, false, false);
-				
-			}
-
-			if(type === EffectData.Types.removeCharacter){
-				let targs = [attacker], conds = fx[0];
-				if(fx[0] && fx[0].constructor === Array){
-					targs = Netcode.filterCharactersByConditions(conds);
-				}
-				for(let targ of targs){
-					if(targ.is_pc)
+					if(!ability){
+						console.error("Invalid ability", fx[0]);
 						continue;
-					Netcode.removeCharacter(targ);
+					}
+
+					// Default value
+					if(!caster)
+						caster = victim;
+					
+					// Default value
+					if(!vic)
+						vic = victim;
+					
+					let casters = Game.convertTargets(caster, attacker, victim, triggerer);
+					let victims = Game.convertTargets(vic, attacker, victim, triggerer);
+
+					for(let cast of casters){
+						
+						for(let v of victims){
+
+							let abil = ability.clone();
+							abil.parent = cast;
+							abil.useAgainst(v, false, false);
+
+						}
+
+					}
+
 				}
-			}
 
-			if(type === EffectData.Types.grapple){
-				victim.setGrappledBy(attacker, fx[0], fx[1]);
-			}
+				if(type === EffectData.Types.removeCharacter){
+					let targs = [attacker], conds = fx[0];
+					if(fx[0] && fx[0].constructor === Array){
+						targs = Netcode.filterCharactersByConditions(conds);
+					}
+					for(let targ of targs){
+						if(targ.is_pc)
+							continue;
+						Netcode.removeCharacter(targ);
+					}
+				}
 
-			if(type === EffectData.Types.breakGrapple){
-				victim.breakGrapple();
-			}
+				if(type === EffectData.Types.grapple){
+					victim.setGrappledBy(attacker, fx[0], fx[1]);
+				}
 
-			if(type === EffectData.Types.debug){
-				console.error(fx);
+				if(type === EffectData.Types.breakGrapple){
+					victim.breakGrapple();
+				}
+
+				if(type === EffectData.Types.debug){
+					console.error(fx);
+				}
+
 			}
 
 		}
-
 
 	}
 
@@ -3681,8 +3720,9 @@ EffectData.Triggers = {
 
 // CASE SENSITIVE
 EffectData.Types = {
-    damage : "dmg",                     // (int)points - Straight up damage
-    heal : "heal",                      // (int)points - Opposite of above
+    damage : "dmg",                     // (int)points, (bool)no_mitigation=false - Straight up damage. No mitigation ignores damage taken reduction effects.
+    lifeSteal : "lifesteal",			// (int)points, (float)multi=1, (bool)no_mitigation=false - Same as above but also heals the caster for an amount equal to multi*damage
+	heal : "heal",                      // (int)points - Opposite of above
     armorDamage : "ardmg",              // (int)points - Damage only armor
 	hpDamage : "hpdmg",              	// (int)points - Damage only hp
 	armorHeal : "arheal",              	// (int)points - Heal only armor
@@ -3699,7 +3739,7 @@ EffectData.Types = {
 	interrupt : "interrupt",			// (bool)all - Interrupts  
 	invul : "invul",					// Void - Makes target completely invulnerable
 	applyEffect : "applyeffect",		// (obj/Effect)effect, (int)stacks = 1 - Applies an effect. Use target: Game.Consts.TARG_RAISER for the character that raised the event, target:Game.Consts.TARG_ATTACKER for the person who added the original event, and Game.Consts.TARG_VICTIM for self
-	text : "text",						// (str)text, (str)sound, (bool)inverse - Outputs an RP text. Inverse switches target and attacker, allowing you to move the text right or left
+	text : "text",						// (str)text || falsy value, (str)sound, (bool)inverse - Outputs an RP text. Inverse switches target and attacker, allowing you to move the text right or left. If text is a false value, try to generate one by parent ability if possible.
 	damage_taken_multi : "DmgTM",		// (float)multiplier - HP and armor damage will be multiplied against this value and rounded up.
 	damage_done_multi : 'DmgDM',		// Same as above but done
 	heal_to_damage : 'htdmg',			// void - Converts all attacker's healing to damage
@@ -3712,7 +3752,7 @@ EffectData.Types = {
 	addStacksTo : 'addStacksTo',				// (arr)fxIDs || (str)fxID (You can use '_THIS_'), (int)stacks - Adds or subtracts stacks to one or multiple effects by ID
 	overrideClothes : 'overrideClothes',		// (obj)clothing - Accepts a generic object or an Armor object, the last one in is the one calculated. Overrides a player's clothes
 	conditionalSilence : 'conditionalSilence',	// (arr)conditions || (Condition)condition - Used in Ability.usableOn to validate if an ability can be used at all. Conditions can contain sub-arrays which will ORed
-	useAbility : 'useAbility',					// (str)id || (obj)abilityData || Ability[, (str)victim=effectVictim, (str)caster=effectVictim] - If you're using a string, it first checks if the caster has said ability before it tries to get it from the library. Targ is a Game.Consts targ of Attacker (player sending the effect) or Victim (player that cast the spell), or an id string.
+	useAbility : 'useAbility',					// (str)abilityID || (obj)abilityData || Ability[, (str)victim=effectVictim, (str)caster=effectVictim] - If you're using a string, it first checks if the caster has said ability before it tries to get it from the library. Targ is a default game targ with Attacker being the player who applied the original effect with castAbility and Victim being the victim of the original effect 
 	removeCharacter : 'removeCharacter',		// (arr)conditions = self - Removes a character. Does not work on PC.
 	max_hp : 'maxHP',							// (int)amount - Overrides max HP. NPCs are still multiplied by nr players.
 	max_armor : 'maxArmor',						// (int)amount - Overrides max ARMOR. NPCs are still multiplied by nr players.
@@ -3722,6 +3762,8 @@ EffectData.Types = {
 	
 
 };
+
+
 
 
 // Conditions
@@ -3734,10 +3776,17 @@ class Condition extends Asset{
 
 		this.type = "SELF";
 		this.data = [];
-		this.target = Game.Consts.TARG_VICTIM;     // If this is Game.TARG_ATTACKER, validate will validate
-		this.inverse = false;						// Inversese the condition
+		this.reverseAttacker = false;     	// Reverses attacker and victim
+		this.inverse = false;				// Inversese the condition
+
 
 		this.load(data);
+
+		// Remove later. Used for legacy error checking.
+		if(data && data.target){
+			console.error("Condition targets have been replaced by reverseAttacker. See", this);
+		}
+
 		return this;
 	}
 
@@ -3749,7 +3798,7 @@ class Condition extends Asset{
 
 			out.type = this.type;
 			out.data = this.data.slice();
-			out.target = this.target;
+			out.reverseAttacker = this.reverseAttacker;
 			out.inverse = this.inverse;
 
 			this.__exported = true;
@@ -3765,11 +3814,13 @@ class Condition extends Asset{
 	validate(attacker, victim, ability, success, verbose){
 
 		var a = attacker, b = victim;
-		if(this.target === Game.Consts.TARG_ATTACKER){
+
+		if(this.reverseAttacker){
 			// Reverse
 			a = victim;
 			b = attacker;
 		}
+		
 
 		var att = this.pvtValidate(a, b, ability, success);
 		if(this.inverse)
@@ -3826,6 +3877,21 @@ class Condition extends Asset{
 		if(this.type === Condition.HUMANOID && !victim.race.humanoid){return false;}
 		if(this.type === Condition.BEAST && victim.race.humanoid){return false;}
 		
+		if(this.type === Condition.CHARGING){
+			let abils = victim.getAbilities();
+			let ids = this.data[0];
+			if(!ids)
+				ids = [];
+			if(ids.constructor !== Array)
+				ids = [ids];
+
+			for(let abil of abils){
+				if(abil._charged && (!ids.length || ~ids.indexOf(abil.id)))
+					return true;
+			}
+			return false;
+		}
+
 		if(this.type === Condition.CHARACTER_ID){
 			let p = this.data;
 			if(!p || p.constructor !== Array)
@@ -3887,11 +3953,12 @@ class Condition extends Asset{
 			let ids = this.data[0];
 			if(!ids || ids.constructor !== Array)
 				ids = [ids];
-			
 			for(let id of ids){
 				let effect = victim.getEffectById(id, true);
 				if(!effect)
 					continue;
+
+				
 				// Check if it has enough ticks
 				if(
 					// Min ticks on player
@@ -3935,20 +4002,22 @@ class Condition extends Asset{
 	 // This validates an array of conditions. Sub-arrays are validated as OR
 	static validateMultiple(conds, ored, attacker, victim, ability, success, verbose){
 
-	
 
 		for(let cond of conds){
 
 			// Condition is invalid
-			if(!cond)
+			if(!cond){
+				console.error("Invalid condition", cond);
 				continue;
+			}
 
 			// Condition is an array of conditions that are ORed
 			if(cond.constructor === Array){
 				if(Condition.validateMultiple(cond, true, attacker, victim, ability, success, verbose)){
 					// If this itself is ORed, return true
-					if(ored)
+					if(ored){
 						return true;
+					}
 					// Otherwise continue
 					continue;
 				}
@@ -3962,8 +4031,10 @@ class Condition extends Asset{
 			// Condition DID validate
 			if(cond.validate(attacker, victim, ability, success, verbose)){
 				// If ORed, this is a success
-				if(ored)
+				if(ored){
 					return true;
+				}
+
 				// Otherwise resume
 				continue;
 			}
@@ -3985,6 +4056,8 @@ class Condition extends Asset{
 
 }
 var CO = Condition; // Synonym
+
+
 
 
 // For naked, use Condition.TAGS ["nude"]
@@ -4013,6 +4086,7 @@ Condition.TEAM = 'TEAM';					// (arr)teams || (int)team - Team has to be this
 Condition.TOTAL_TURNS_GREATER = 'TTG';		// (int)turns || (str)math - Total turns this game has to be greater than this
 Condition.ABILITY_RANGED = 'RANGED';		// void - Ability has to be ranged
 Condition.CHARACTER_ID = 'CID';				// (str)id1, (str)id2... - Limit by character ID
+Condition.CHARGING = 'CHARGING';			// (str)spellID || (arr)spellIDs - Is charging any of these
 
 
 // Texts
@@ -4076,7 +4150,7 @@ class Text extends Asset{
 	}
 
 	// Converts tags
-	convert(attacker, victim, ability){
+	convert(attacker, victim, ability, raiser){
 
 		var spl = this.text.split(/(:.*?:)/gi);
 		var out = [];
@@ -4098,6 +4172,14 @@ class Text extends Asset{
 				}
 				// Target attacker
 				short = attacker.getLabel(short);
+			}
+			else if(short.charAt(1) === "r"){
+
+				if(!raiser){
+					console.error("Trying to convert :R*: label with no attacker defined. Text was ", short);
+				}
+				// Target attacker
+				short = raiser.getLabel(short);
 			}
 			else{
 				// Target attacker

@@ -350,12 +350,12 @@ class Netcode {
         }
 
         // Adds HTML to all players battle logs
-        static hostAddToBattleLog(attackerUUID, victimUUID, text, classes, sound){
+        static hostAddToBattleLog(attackerUUID, victimUUID, text, classes, sound, raiser){
 
             if(!Netcode.hosting)
                 return;
 
-            Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound]);
+            Netcode.output("AddToBattleLog", [attackerUUID, victimUUID, text, classes, sound, raiser]);
         }
 
         // Game over!
@@ -387,7 +387,7 @@ Netcode.players = [];               // Joined players data
 Netcode.party_id = '';              // ID of party
 Netcode.battleInProgress = false;
 Netcode.host_id = '';                // socket ID of host
-Netcode.isHost = Netcode.hosting;
+Netcode.isHost = Netcode.isHosting;
 
 
 
@@ -504,7 +504,6 @@ Netcode.input = function(byHost, socketID, task, args){
             console.error("Socket ID not found in players", this.socketID, Netcode.players);
         player.is_pc = true;
 
-        console.log("Importing data onto player", data);
         player.load(data);
 
         player.socket_id = socketID;
