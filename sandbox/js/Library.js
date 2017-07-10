@@ -41,7 +41,8 @@ class DB{
                 Armor.insert({id:"sexticuffsShirt", name:"Sexticuffs Gear", description:"It's just a T-Shirt with the Sexticuffs logo, and a thong. All in cotton.", tags:["a_tight", "a_thong",  "a_upper", "a_lower", "a_wettable"], in_store:false});
                 Armor.insert({id:"tentacleSuitStandalone", name:"Tentacle Suit", description:"It's a top and bottom made in a hard shell-like material with tentacles on the inside tickling your sensitive spots.", tags:["a_upper", "a_lower", "a_tentacles"], in_store:false});
                 Armor.insert({id:"haremOutfit", name:"Harem Outfit", description:"The outfit is made of red see-through silk. It comes with stockings, a top, and a small thong with a flap of cloth in front of it.", tags:["a_upper", "a_lower", "a_tight", "a_loincloth"], in_store:false});
-                
+				Armor.insert({id: 'bowtie', name : 'Bow Tie', description : "It's just a bow tie. The rest of you is exposed!", tags:["a_bowtie"], in_store : false});
+
             // Public
                 Armor.insert({id:"goldenThong", name:"Golden Thong", cost:25, description:"A shiny gold-colored thong that fits tight over your crotch.", tags:["a_shiny", "a_tight", "a_thong", "a_lower"]});
                 Armor.insert({id:"goldenBikini", name:"Golden Bikini", cost:25, description:"A shiny gold-colored thong and bra set.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_bra"]});
@@ -2105,7 +2106,7 @@ class DB{
                                 name: 'Violated',
                                 description : 'Stunned',
                                 icon : 'media/effects/stun.svg',
-                                target : [[C(CO.CHARACTER_ID, 'pollux')]],
+                                target : [[C(CO.CHARACTER_ID, 'pollux'), C(CO.CHARGING, [], false, true)]],
                                 events : [
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
@@ -2238,6 +2239,271 @@ class DB{
                         ]
                     });
 
+
+
+
+
+
+                // BRUTUS_SLAM - Usable when you have 33% or less CP. Deals 4 damage to a player who isn't mitigating
+                    Ability.insert({
+                        id : 'BRUTUS_SLAM',   // Should be unique
+                        name : 'Brute Slam',
+                        description : 'Deals 4 damage to a non-mitigating player. Can only be used while HP is less than 30%',
+                        icon : 'media/effects/boxing-glove.svg',
+                        manacost : {offensive:3},
+                        cooldown: 1,
+                        detrimental : true,
+                        conditions : [
+                            C(CO.BP_LESS_THAN, [0.3]),
+                            C(CO.NOT_TAGS, ['fx_mitigation'])
+                        ],
+                        ai_tags : [],
+                        effects:[
+                            new Effect({
+                                id : 'BRUTUS_SLAM',
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [[EffectData.Types.damage, 4]]
+                                    })
+                                ]
+                            }), 
+                        ],
+                    });
+
+                // BRUTUS_GRAPPLE_BREAK
+                    Ability.insert({
+                        id : 'BRUTUS_GRAPPLE_BREAK',   // Should be unique
+                        name : 'Struggle!',
+                        description : 'Removes one stack from Brutus grapple.',
+                        icon : 'media/effects/recover.svg',
+                        manacost : {defensive:2},
+                        cooldown: 0,
+                        detrimental : false,
+                        conditions : [C(CO.SELF)],
+                        ai_tags : [],
+                        effects:[
+                            new Effect({
+                                id : 'BRUTUS_GRAPPLE_BREAK',
+                                detrimental : false,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [[EffectData.Types.addStacksTo, 'BRUTUS_GRAPPLE', -1]]
+                                    })
+                                ]
+                            }), 
+                        ],
+                    });
+
+                // BRUTUS_GRAPPLE - Grapples a player after 1 turn. 5 turn cooldown.
+                    Ability.insert({
+                        id : 'BRUTUS_GRAPPLE',   // Should be unique
+                        name : 'Grapple',
+                        description : 'Grapples a player. Cannot be interrupted.',
+                        icon : 'media/effects/grab.svg',
+                        manacost : {support:4},
+                        cooldown: 5,
+                        detrimental : true,
+                        ranged: true,
+						charged : 1,
+                        conditions : [],
+                        ai_tags : ["important"],
+                        effects:[
+                            [new Effect({
+                                id : 'BRUTUS_GRAPPLE',
+								icon : 'media/effects/grab.svg',
+								name : 'Grapple',
+								description : 'Grappled by :ATTACKER:. Escape before the ritual finishes!',
+                                detrimental : true,
+                                duration : 3,
+                                no_dispel : true,
+								max_stacks : 3,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [[EffectData.Types.grapple]]
+                                    }),
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.remove],
+                                        effects : [[EffectData.Types.breakGrapple]]
+                                    }),
+                                    new EffectData({
+                                        triggers : [],
+                                        effects : [[EffectData.Types.addAbility, 'BRUTUS_GRAPPLE_BREAK']]
+                                    }),
+                                ]
+                            }), 3], 
+                        ],
+                    });
+				/*
+                // QUEEN_SUBMIT - Removes kiss and your red gems
+                    Ability.insert({
+                        id : 'QUEEN_SUBMIT',   // Should be unique
+                        name : 'Submit',
+                        description : 'Submit to the queen, removing the kiss effect but also consuming all your red gems.',
+                        icon : 'media/effects/weaken.svg',
+                        manacost : {support:2},
+                        cooldown: 0,
+                        detrimental : false,
+                        conditions : [C(CO.SELF)],
+                        effects:[
+                            new Effect({
+                                id : 'QUEEN_SUBMIT',
+                                detrimental : false,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.manaDamage, {offensive:10}],
+                                            [EffectData.Types.remByID, 'QUEEN_KISS']
+                                        ]
+                                    })
+                                ]
+                            }), 
+                        ],
+                    });
+				
+				
+                // QUEEN_KISS - DoT and grant an ability to remove it
+                    Ability.insert({
+                        id : 'QUEEN_KISS',   // Should be unique
+                        name : 'Kiss',
+                        description : 'Kiss a player, infecting them with an aphrodisiac which deals 2 damage each turn for 5 turns and grants the Submit ability.',
+                        icon : 'media/effects/lips.svg',
+                        manacost : {offensive:4},
+                        cooldown: 3,
+                        detrimental : true,
+                        ranged: true,
+                        conditions : [],
+                        ai_tags : [],
+                        effects:[
+                            new Effect({
+                                id : 'QUEEN_KISS',
+								name : 'Kiss',
+								description : 'Deals 2 damage each turn.',
+								icon : 'media/effects/lips.svg',
+                                detrimental : true,
+                                duration : 5,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.turnStart],
+                                        effects : [[EffectData.Types.damage, 2]]
+                                    }),
+                                    new EffectData({
+                                        triggers : [],
+                                        effects : [[EffectData.Types.addAbility, 'QUEEN_SUBMIT']]
+                                    }),
+                                ]
+                            }), 
+                        ],
+                    });
+				*/
+
+				
+
+				// QUEEN_INFUSION - Allows players to attack when stunned
+					Ability.insert({
+                        id : 'QUEEN_INFUSION',   // Should be unique
+                        name : 'Demonic Strike',
+                        description : 'Damages Brutus for 10% of his max CP.',
+                        icon : 'media/effects/swallow.svg',
+                        manacost : {},
+                        cooldown: 0,
+                        detrimental : true,
+						always_hit : true,
+                        ranged: true,
+                        conditions : [C(CO.CHARACTER_ID, 'brutus')],
+						usable_while_stunned : true,
+                        effects:[
+                            new Effect({
+                                id : 'DEMONIC_STRIKE',
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [[EffectData.Types.damage, 'vMCP*0.1']]
+                                    }),
+                                ]
+                            }),
+							new Effect({
+								detrimental : false,
+								target : Game.Consts.TARG_ATTACKER,
+								events : [
+									new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [[EffectData.Types.addStacksTo, 'QUEEN_INFUSION', -1]]
+                                    }),
+								]
+							})
+                        ],
+                    });
+				
+				
+
+                // QUEEN_RITUAL - Deals damage
+                    Ability.insert({
+                        id : 'QUEEN_RITUAL',   // Should be unique
+                        icon : 'media/effects/pretty-fangs.svg',
+                        name : 'Ritual',
+                        description : 'Greatly arouses a grappled player. If the player isn\'t grappled when the ritual ends, the ritual will instead hit Brutus.',
+                        manacost : {},
+                        cooldown: 3,
+                        detrimental : true,
+                        charged : 2,
+                        ranged : true,
+                        // Cannot be used while already charging
+                        conditions : [C(CO.EFFECT, 'BRUTUS_GRAPPLE')],
+                        charge_hit_conditions : [],
+                        ai_tags : ['important'],
+                        max_effects : 1,
+                        max_texts : 0,
+						always_hit : true,
+                        effects:[
+                            // If target has aphrodisiac, then cast on target
+                            new Effect({
+                                id : 'QUEEN_RITUAL',
+                                detrimental : true,
+                                conditions : [C(CO.EFFECT, 'BRUTUS_GRAPPLE')],
+                                events : [
+                                    new EffectData({
+                                        triggers: [EffectData.Triggers.apply],
+                                        effects:[
+                                            [EffectData.Types.text],
+                                            [EffectData.Types.damage, 10]
+                                        ]
+                                    }),
+                                ]
+                            }), 
+
+                            // Otherwise target Brutus
+                            new Effect({
+                                id : 'QUEEN_INFUSION',
+                                detrimental : false,
+								duration : Infinity,
+								name : 'Dark Infusion',
+								description : 'Grants one use of the Demonic Strike ability per stack.',
+								icon : 'media/effects/swallow.svg',
+								max_stacks : 100,
+                                events : [
+                                    new EffectData({
+                                        triggers: [EffectData.Triggers.apply],
+                                        effects:[
+                                            [EffectData.Types.text, "The ritual fails, empowering :TARGET: instead!", 'dark_cast'],
+                                        ]
+                                    }),
+									new EffectData({
+                                        effects:[
+                                            [EffectData.Types.addAbility, 'QUEEN_INFUSION'],
+                                        ]
+                                    }),
+                                ]
+                            }),         
+                            
+                                
+                        ],
+                    });
             
 
 
@@ -2554,16 +2820,16 @@ class DB{
                     name : 'Castle Heck',
                     description : 'You have escaped to the upper levels! Defeat Satinan\'s most trusted to reach the king\'s chamber!',
                     rewards : [
-                        /*
+                        
                         new ChallengeReward({
                             type:ChallengeReward.Types.clothes,
-                            data:'tentacleSuitStandalone',
+                            data:'bowtie',
                         }),
                         new ChallengeReward({
                             type:ChallengeReward.Types.money,
                             data:100,
                         }),
-                        */
+                        
                     ],
                 });
 
@@ -2606,12 +2872,7 @@ class DB{
                                     effects : [
                                         
                                         [
-                                            EffectData.Types.overrideClothes, new Armor({
-                                                id: 'bowtie',
-                                                name : 'Bow Tie',
-                                                description : "It's just a bow tie. The rest of you is exposed!",
-                                                tags:["a_bowtie"],
-                                            })
+                                            EffectData.Types.overrideClothes, "bowtie"
                                         ],
                                         [
                                             EffectData.Types.max_armor, 0
@@ -2632,7 +2893,9 @@ class DB{
                     background : 'media/backgrounds/hell_cathedral.jpg',
                     description : 'Shivv is the keeper of the royal harem! Defeat him and his concubines to enter the royal chambers!',
                     intro : [
-                        // new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
+                        new ChallengeTalkingHead({icon:'media/npc/shivv.jpg', text:'Shivv: So it was you that aided our Butler? The staff thanks you, but your little exploration stops here!', sound:''}),
+						new ChallengeTalkingHead({icon:'media/npc/shivv.jpg', text:'Shivv: Boys? Come along, we have work to do!', sound:''}),
+						
                     ],
                     npcs : [
                         // Tactics
@@ -2751,7 +3014,7 @@ class DB{
                     ]
                 });
 
-                // 3. TODO: THe Queen
+                // 3. TODO: The Queen
                 wing.addStage({
                     id : 'demonQueen',
                     icon : 'media/npc/queen.jpg',
@@ -2760,16 +3023,112 @@ class DB{
                     background : 'media/backgrounds/hell_cathedral.jpg',
                     description : "Before you stands Satinan's wife. She may be more powerful than you think!",
                     intro : [
-                        // new ChallengeTalkingHead({icon:'', text:'Announcer: The brave adventurers have breached the gates of hell, when suddenly the floor gives way!', sound:''}),
+                        new ChallengeTalkingHead({icon:'media/npc/queen.jpg', text:'Queen: Brutus, seize them so I can destroy them!', sound:''}),
                     ],
                     npcs : [
-                        // Wants vagina
+                        // The queen has a bodyguard, and she is invulnerable.
+                        // After you defeat the bodyguard, the queen surrenders.
+
+                        // The body guard will charge a grapple at a player, which cannot be interrupted. When grappled, the player gains a struggle ability which can be used multiple times and consumes 2 defensive gems.
+                        // After the player struggles 3 times, they break free.
+                        // The queen will charge a powerful attack on a grappled player, with 2 turns charge. If the player breaks free before it ends, the player gains a stack of demonic energy which deals 10% of brutus' max CP and can be used while stunned.
+
+                        // Demonic Finality - When brutus has less than 30% HP left, the queen casts Demonic Finality, stunning all players permanently.
+
+                        // Tactics:
+                        // Don't attack the queen.
+                        // When you see the grapple charged at you, save some blue gems to break free. Then break free within 2 turns to prevent the queen from finishing her spell.
+                        // Make sure you gain at least 3 stacks of Demonic Finality before bringing brutus under 30% HP.
+
+                        new Character({
+                            "id":"brutus", name:'Brutus', race:Race.get('breakerDemon'), 
+                            description:"A large brute serving as a bodyguard for the demon queen.", body_tags:[], 
+                            image : '',
+                            armorSet : Armor.get('loincloth'),
+                            max_armor:15, max_hp:30, size:7, tags:["c_penis"], 
+                            abilities:[
+                                "BRUTUS_SLAM",
+                                "BRUTUS_GRAPPLE",
+								"LOW_BLOW"
+                            ],
+							passives:[
+								new Effect({
+									duration:Infinity,
+									detrimental:false,
+									id : 'timeLockTrigger',
+									depletable : true, 
+									events:[
+										new EffectData({
+											triggers : [[EffectData.Triggers.takeDamageAfter]],
+                                            conditions : [C(CO.BP_LESS_THAN, [0.301])],
+											effects : [
+												[EffectData.Types.talking_head, new ChallengeTalkingHead({icon:'media/npc/queen.jpg', text:'Queen: As much as I enjoy watching this, it is time to end this!', sound:''})],
+												[EffectData.Types.text, "The Queen casts a demonic spell, permanently stunning all opponents!", "dark_aura"],
+												[EffectData.Types.applyEffect, new Effect({
+													id : 'queenLock',
+													duration : Infinity,
+													name : 'Demonic Finality',
+													description: 'Permanently stunned.',
+													target : [[C(CO.TEAM, Character.TEAM_PC)]],
+													icon : 'media/effects/stun.svg',
+													events : [
+														new EffectData({
+															effects:[
+																EffectData.Types.stun
+															]
+														})
+													]
+												})],
+											]
+										})
+									]
+								}),
+								new Effect({
+									duration:Infinity,
+									detrimental:false,
+									id : 'deathTrigger',
+									depletable : true, 
+									events:[
+										new EffectData({
+											triggers : [[EffectData.Triggers.death]],
+                                            effects : [
+												[EffectData.Types.talking_head, new ChallengeTalkingHead({icon:'media/npc/queen.jpg', text:'Queen: It seems you have outsmarted me. I concede!', sound:''})],
+											]
+										})
+									]
+								})
+							]
+                        }),
+
+
                         new Character({
                             "id":"demonQueen", name:'Demon Queen', race:Race.get('succubus'), 
                             description:"The queen of demons is a ghastly lady in a blood red dress.", body_tags:[], 
                             image : 'media/npc/queen.jpg',
-                            max_armor:0, max_hp:60, size:10, tags:["c_vagina", "c_breasts"], 
-                            abilities:[],
+                            max_armor:20, max_hp:20, size:10, tags:["c_vagina", "c_breasts"], 
+                            ignore_default_abils : true,
+							nonessential : true,
+                            abilities:[
+                                "QUEEN_RITUAL"
+                            ],
+							passives:[
+								new Effect({
+									duration:Infinity,
+									detrimental:false,
+									name : 'Invulnerable',
+									id : 'queenInvul',
+									description : 'Invulnerable.',
+									icon :'media/effects/crystal-bars.svg',
+									events:[
+										new EffectData({
+											effects:[
+												EffectData.Types.invul
+											]
+										})
+									]
+								}),	
+								
+							]
                         }),
                         
                     ]
@@ -2974,7 +3333,7 @@ class DB{
                     
 
                 // GRASP
-                    abil = C(CO.ABILITY, "GRASP");
+                    abil = C(CO.ABILITY, ["GRASP", "BRUTUS_SLAM"]);
                     Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', text:":ANAME: grasps :TARGET: in a vice-like grip, painfully squeezing :thim:!"});
                     Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down with :THIS: :TGROIN: against the :ARACE:'s knee!"});
                     Text.insert({conditions:[abil, humanoid, C.NO_BOTTOM, C.A_NO_BOTTOM, C.A_PENIS], sound:'squish', text:":ANAME: grasps :TARGET: in :AHIS: arms, lifting the :TRACE: off the ground and slamming :THIM: down :BUTT: first onto the :ARACE:'s :APENIS:, letting :TARGET: bounce up and down on :AHIS: length for a while!"});
@@ -3014,6 +3373,7 @@ class DB{
                 // Counter
                     abil = C(CO.ABILITY, "counterAttack");
                     Text.insert({conditions:[abil], sound:'punch_heavy', text:":ANAME: counter-attacks :TARGET:!"});
+					
                 
                 // Counter
                     abil = C(CO.ABILITY, "corrupt");
@@ -3207,7 +3567,7 @@ class DB{
                     
                     // 
 
-                    // BOSS E (Shivv)
+                    // BOSS H (Shivv)
 
                         abil = C(CO.ABILITY, 'SHIVV_HEAL');
                         Text.insert({conditions:[abil], sound:'heal', text:":ANAME: casts a heal on :AHIS: team!"});
@@ -3229,13 +3589,44 @@ class DB{
                         Text.insert({conditions:[abil, C.BREASTS, C.NO_TOP], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s nipples!"});
                         
                         abil = C(CO.ABILITY, 'SHIVV_VIOLATE');
-                        Text.insert({conditions:[abil], sound:'squish', text:":ATTACKER: violates :TARGET:. This is a placeholder text, Shivv, write these!"});
+                        Text.insert({conditions:[abil], sound:'squish', text:":ATTACKER: violates :TARGET:!"});
 
                         
                         
 
                     //
-                        
+                    
+					// BOSS I (Queen)
+
+						abil = C(CO.ABILITY, 'BRUTUS_GRAPPLE_BREAK');
+                        Text.insert({conditions:[abil], sound:'stretch', text:":ANAME: struggles against the powerful grasp!"});
+						Text.insert({conditions:[abil], sound:'stretch', text:":ANAME: squirms, trying to break free!"});
+						
+						abil = C(CO.ABILITY, 'BRUTUS_GRAPPLE');
+						Text.insert({conditions:[abil], sound:'stretch', text:":ANAME: grabs a hold of :TARGET:'s wrists, pinning them behind :THIS: back!"});
+						
+						abil = C(CO.ABILITY, 'QUEEN_INFUSION');
+						Text.insert({conditions:[abil], sound:'dark_cast', text:":ANAME: uses :AHIS: demonic infusion to wrack :TARGET: with pain!"});
+						Text.insert({conditions:[abil], sound:'dark_cast', text:"Dark energies emanate from the stunned :ARACE: seeping into :TARGET: and hurting :THIM:!"});
+						Text.insert({conditions:[abil], sound:'dark_cast', text:"The dark energies infused within :ATTACKER: wrap around :TARGET:, damaging the :TRACE:!"});
+						
+						abil = C(CO.ABILITY, 'QUEEN_RITUAL');
+						Text.insert({conditions:[abil], sound:'dark_cast', text:":ANAME: finds :THIM:self surrounded by demonic hands, groping all over :THIS: body!"});
+						Text.insert({conditions:[abil, C.PENIS, C.NO_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to blow :THIS: load over the arena floor!"});
+						Text.insert({conditions:[abil, C.PENIS, C.HAS_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to shoot :THIS: load into :THIS: :TCLOTHES:!"});
+						Text.insert({conditions:[abil, C.VAG], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TVAG:, provoking a violent orgasm in the grappled :TRACE:!"});
+						
+						
+						
+
+					// 
+
+
+					// BOSS J (Satinan)
+
+
+					// 
+
                 //
             //
             

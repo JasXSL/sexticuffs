@@ -881,6 +881,7 @@ div{
            -moz-user-select: none;
             -ms-user-select: none;
                 user-select: none;
+        z-index:100;
     }
     #wrap[data-page=battle] #talkingHead.hidden{
         -webkit-transform:scale(0,0) translateY(-50%);
@@ -1183,6 +1184,7 @@ div{
     #wrap[data-page=battle] #manaGems{
         text-align: center;
         padding:0;
+
     }
     
     #wrap[data-page=battle] #manaGems div.manatype{
@@ -1238,6 +1240,7 @@ div{
     #wrap[data-page=battle] #cancelAbility
     {
         text-align: center;
+        z-index:30;
     }
     
     #wrap[data-page=battle] #abilities div.ability[data-id],

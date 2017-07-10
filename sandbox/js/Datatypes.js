@@ -906,11 +906,18 @@ class Character extends Asset{
 					let fxdata = wrapper.getEffectDataByType(EffectData.Types.overrideClothes)[0];
 					let armor = fxdata[1];
 
+					if(typeof armor === 'string')
+						armor = Armor.get(armor).clone();
+
+					if(!armor)
+						continue;
+
 					// Initialize it and update the FX data with it, so it's cached and won't have to be converted again.
-					if(!armor || armor.constructor !== Armor){
+					if(armor.constructor !== Armor){
 						armor = new Armor(armor);
-						fxdata[1] = armor;
 					}
+					fxdata[1] = armor;
+
 					return armor;
 				}
 
@@ -1174,12 +1181,24 @@ class Character extends Asset{
 					let fxdata = wrapper.getEffectDataByType(EffectData.Types.addAbility);
 					for(let arr of fxdata){
 						let abil = arr[1];
+
+						if(!abil)
+							continue;
+						
+						if(typeof abil === 'string')
+							abil = Ability.get(abil).clone();
+
 						// Abil is not initialized or a generic object. We initialize it and update the FX data with it, so it's cached and won't have to be converted again.
-						if(!abil || abil.constructor !== Ability || !abil.parent){
+						if(abil.constructor !== Ability){
 							abil = new Ability(abil);
+						}
+
+						// This was recently converted
+						if(!abil.parent){
 							arr[1] = abil;
 							abil.parent = this;
 						}
+
 						out.push(abil);
 					}
 				}
@@ -2247,6 +2266,7 @@ class Ability extends Asset{
 		this.max_effects = false;				// Limits the number of effects that can be applied
 		this.effects_rand = false;				// Randomizes the effects
 		this.max_texts = false;					// Max nr of texts to output.
+		this.usable_while_stunned = false;		// Allow this ability while stunned
 
         // Gameplay values
         this._cooldown = 0;
@@ -2308,6 +2328,7 @@ class Ability extends Asset{
 			out.max_effects = this.max_effects;
 			out.effects_rand = this.effects_rand;
 			out.max_texts = this.max_texts;
+			out.usable_while_stunned = this.usable_while_stunned;
 			this.__exported = true;
 		}
 
@@ -2429,7 +2450,8 @@ class Ability extends Asset{
 			if(verbose){console.log(this.name, "fail because Cooldown");} 
 			return false; 
 		}
-		if(this.parent.getIsStunned()){
+
+		if(this.parent.getIsStunned() && ! this.usable_while_stunned){
 
 			if(allowError)
 				Jasmop.Errors.addErrors('You are incapacitated');
@@ -2559,6 +2581,13 @@ class Ability extends Asset{
 				text = new Text({text:txt});
 				Game.Battle.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this, this.parent), "rptext ability", false, 'charge');
 				this.parent.applyEffectEvent(EffectData.Triggers.abilityCharged, [this.id], attacker, targ[0], this);
+
+				for(let t of targ){
+					if(this.parent.aiChat.get(AIChat.Events.charged, text, this.parent, t, this))
+						break;
+					if(t.aiChat.get(AIChat.Events.charged, text, this.parent, this, t))
+						break;
+				}
 
 			}
 		}
@@ -3748,9 +3777,9 @@ EffectData.Types = {
 	summonNpc : 'summonNpc',					// (str)id || (obj)characterData || Character, (int)team=attacker.team - Adds an NPC to the game
 	grapple : 'grapple',						// (arr)victimPassives, (arr)attackerPassives - Starts a grapple
 	breakGrapple : 'breakGrapple',				// void - Breaks a grapple
-	addAbility : 'addAbility',					// (obj)abilityData || Ability - Adds an extra ability that can be used
+	addAbility : 'addAbility',					// (obj)abilityData || Ability || (str)abilityID - Adds an extra ability that can be used
 	addStacksTo : 'addStacksTo',				// (arr)fxIDs || (str)fxID (You can use '_THIS_'), (int)stacks - Adds or subtracts stacks to one or multiple effects by ID
-	overrideClothes : 'overrideClothes',		// (obj)clothing - Accepts a generic object or an Armor object, the last one in is the one calculated. Overrides a player's clothes
+	overrideClothes : 'overrideClothes',		// (obj)clothing || (str)clothingID - Accepts a generic object or an Armor object, the last one in is the one calculated. Overrides a player's clothes
 	conditionalSilence : 'conditionalSilence',	// (arr)conditions || (Condition)condition - Used in Ability.usableOn to validate if an ability can be used at all. Conditions can contain sub-arrays which will ORed
 	useAbility : 'useAbility',					// (str)abilityID || (obj)abilityData || Ability[, (str)victim=effectVictim, (str)caster=effectVictim] - If you're using a string, it first checks if the caster has said ability before it tries to get it from the library. Targ is a default game targ with Attacker being the player who applied the original effect with castAbility and Victim being the victim of the original effect 
 	removeCharacter : 'removeCharacter',		// (arr)conditions = self - Removes a character. Does not work on PC.

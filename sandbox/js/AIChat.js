@@ -121,7 +121,8 @@ class AIChat{
 
             // Events AI Chat can listen to
             AIChat.Events = {
-                ability : 'ability',            // The AI character has used an ability
+                ability : 'ability',                // The AI character has used an ability
+                charged : 'charged',                // The AI character has charged an ability
             };
 
             // Messages sent
@@ -468,6 +469,16 @@ class AIChat{
             add(false, "TheJailor", aitl, {conditions:[abil], text: 'Now you are mine!'});
             add(false, "TheJailor", aitl, {conditions:[abil], text: 'It is useless to resist!'});
             add(false, "TheJailor", aitl, {conditions:[abil], text: 'Let the torture begin!'});
+        //
+
+
+        // Demonic queen
+            aitl = [];
+            abil = C(CO.ABILITY, "QUEEN_RITUAL");
+            // Charge ritual
+            add(false, "demonQueen", aitl, {conditions:[abil], text: 'Good, now hold :THIM: still while I prepare the ritual!'}, AIChat.Events.charged);
+			
+
         //
                 
 

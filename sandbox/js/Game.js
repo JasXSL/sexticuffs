@@ -28,7 +28,7 @@ class Game{
 		
         
         // Consts
-        Game.version = 2; 
+        Game.version = 3;  
 
 
         // SET UP STATIC VARS //
