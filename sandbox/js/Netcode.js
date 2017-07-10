@@ -202,6 +202,20 @@ class Netcode {
             }
         }
 
+        static removeNPCs(){
+
+            for(let i =0; i<Netcode.players.length && Netcode.players.length; ++i){
+                if(!Netcode.players[i].is_pc){
+                    Netcode.players.splice(i, 1);
+                    --i;
+                }
+            }
+
+            if(Netcode.isHosting())
+                Netcode.refreshParty();
+
+        }
+
 
     // PUBLIC TASKS
         // Send tasks
@@ -360,8 +374,10 @@ class Netcode {
 
         // Game over!
         static hostGameOver(teamWon){
-            if(!Netcode.hosting)
+
+            if(!Netcode.isHost())
                 return;
+
             Netcode.output("GameOver", [teamWon]);
             Netcode.battleInProgress = false;
 

@@ -2636,11 +2636,12 @@ class Ability extends Asset{
 					var d = t.getDodgeFloat(attacker)-this.parent.getHitFloat(t);
 					if(verbose)
 						console.log(attacker.name, "hit chance against", t.name, d);
-					if(Math.random() < d || t.getIsInvul()){
+					if(Math.random() < d)
 						fail = true;
-					} 
-
 				}
+
+				if(t.getIsInvul())
+					fail = true;
 
 				// Generate the text first
 				text = Text.generate(this.parent, t, this, !fail);

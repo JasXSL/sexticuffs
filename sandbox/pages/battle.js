@@ -400,6 +400,10 @@
                     Jasmop.Page.set('battle');
                 }
                 else{
+                    if(B.campaign){
+                        // Wipe players so they don't show up in skirmish
+                        Netcode.removeNPCs();
+                    }
                     Jasmop.Page.set('home', [(B.campaign ? 'campaignRoot' : 'lobby')]);
                 }
             });
@@ -750,7 +754,7 @@
                 });
 
                 $("#abilities div.lobby").on('click', function(){
-                    Jasmop.Page.set('home', [(this.campaign ? 'campaignRoot' : 'lobby')]);
+                    Jasmop.Page.set('home', [(this.stage ? 'campaignRoot' : 'lobby')]);
                 });
             }
 

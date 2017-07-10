@@ -3611,11 +3611,11 @@ class DB{
 						Text.insert({conditions:[abil], sound:'dark_cast', text:"The dark energies infused within :ATTACKER: wrap around :TARGET:, damaging the :TRACE:!"});
 						
 						abil = C(CO.ABILITY, 'QUEEN_RITUAL');
-						Text.insert({conditions:[abil], sound:'dark_cast', text:":ANAME: finds :THIM:self surrounded by demonic hands, groping all over :THIS: body!"});
-						Text.insert({conditions:[abil, C.PENIS, C.NO_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to blow :THIS: load over the arena floor!"});
-						Text.insert({conditions:[abil, C.PENIS, C.HAS_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to shoot :THIS: load into :THIS: :TCLOTHES:!"});
-						Text.insert({conditions:[abil, C.VAG], sound:'dark_cast', text:"As the ritual finishes, :ANAME: feels a sudden wave of pleasure hit :THIS: :TVAG:, provoking a violent orgasm in the grappled :TRACE:!"});
-						
+						Text.insert({conditions:[abil], sound:'dark_cast', text:":TNAME: finds :THIM:self surrounded by demonic hands, groping all over :THIS: body!"});
+						Text.insert({conditions:[abil, C.PENIS, C.NO_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :TNAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to blow :THIS: load over the arena floor!"});
+						Text.insert({conditions:[abil, C.PENIS, C.HAS_BOTTOM], sound:'dark_cast', text:"As the ritual finishes, :TNAME: feels a sudden wave of pleasure hit :THIS: :TPENIS:, provoking an orgasm and forcing the :TRACE: to shoot :THIS: load into :THIS: :TCLOTHES:!"});
+						Text.insert({conditions:[abil, C.VAG], sound:'dark_cast', text:"As the ritual finishes, :TNAME: feels a sudden wave of pleasure hit :THIS: :TVAG:, provoking a violent orgasm in the grappled :TRACE:!"});
+						 
 						
 						
 
