@@ -6,12 +6,15 @@
         - Administration
 
 */
+var B;      // Create a global battle variable for battle
+var hsc = Jasmop.Tools.htmlspecialchars;
+
 class Game{
     
     // Initializes all libraries
     static ini(){
 
-
+		B = new Battle();
 		
 		// TODO: Replace these
 		Game.Consts = {
@@ -32,7 +35,6 @@ class Game{
 
 
         // SET UP STATIC VARS //
-        Game.Battle = Jasmop.Page.get('battle');
         Game.player = null;
     
 		// Puts a sandbox div if this script was hosted under sandbox

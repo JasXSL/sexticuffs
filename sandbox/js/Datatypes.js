@@ -144,6 +144,15 @@ class Asset{
 		return out;
     }
 
+	// Returns if uuid is in arr
+	static isUuidInArr(arr, uuid){
+		for(let obj of arr){
+			if(obj.UUID === uuid)
+				return true;
+		}
+		return false;
+	}
+
 }
 
 
@@ -384,7 +393,7 @@ class Character extends Asset{
 
 					var num = this.mana[i]-pre;
 					if(num !== 0)
-						Game.Battle.statusTexts.add(attacker, this, new Text({text:":TNAME: "+(num > 0 ? 'gains' : 'loses')+" "+Math.abs(num)+" "+i+" mana."}).convert(attacker, this, ability, attacker), true);
+						B.statusTexts.add(attacker, this, new Text({text:":TNAME: "+(num > 0 ? 'gains' : 'loses')+" "+Math.abs(num)+" "+i+" mana."}).convert(attacker, this, ability, attacker), true);
 				}
 
 				
@@ -415,7 +424,7 @@ class Character extends Asset{
 				}
 
 				text += ".";
-				Game.Battle.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this, ability, attacker), takeDamage);
+				B.statusTexts.add(attacker, this, new Text({text:text}).convert(attacker, this, ability, attacker), takeDamage);
 			}
 			
 			for(i in this.mana){
@@ -432,7 +441,7 @@ class Character extends Asset{
 					surrenderText = this.death_text;
 				text = new Text({text:surrenderText});
 
-				Game.Battle.statusTexts.add(attacker, this, text.convert(attacker, this, ability, attacker), true, false, false, (this.death_sound ? this.death_sound : 'knockout'));
+				B.statusTexts.add(attacker, this, text.convert(attacker, this, ability, attacker), true, false, false, (this.death_sound ? this.death_sound : 'knockout'));
 				this.onDeath(attacker);
 			}
 
@@ -467,7 +476,7 @@ class Character extends Asset{
 			}
 
 			// Player character or skirmish doesn't scale HP
-			if(this.team === Character.TEAM_PC || !Game.Battle.campaign || this.ignore_cp_scale)
+			if(this.team === Character.TEAM_PC || !B.campaign || this.ignore_cp_scale)
 				return hp;
 
 			return Math.ceil(hp*this.getCampaignPowerMultiplier());
@@ -483,7 +492,7 @@ class Character extends Asset{
 			}
 
 			// Player character or skirmish doesn't scale HP or armor
-			if(this.is_pc || !Game.Battle.campaign  || this.ignore_cp_scale)
+			if(this.is_pc || !B.campaign  || this.ignore_cp_scale)
 				return arm;
 			
 			return Math.ceil(arm*this.getCampaignPowerMultiplier());
@@ -551,7 +560,7 @@ class Character extends Asset{
 			var out = this.getStaticValuePoints(EffectData.Types.damage_done_multi, this, victim, true);
 
 			// In campaigns, non TEAM_PC deal more damage to TEAM_PC
-			if(this.team !== Character.TEAM_PC && Game.Battle.campaign && victim.team === Character.TEAM_PC)
+			if(this.team !== Character.TEAM_PC && B.campaign && victim.team === Character.TEAM_PC)
 				out *= this.getCampaignPowerMultiplier();
 
 			return out;
@@ -561,7 +570,7 @@ class Character extends Asset{
 			var out = this.getStaticValuePoints(EffectData.Types.healing_done_multi, this, victim, true);
 
 			// In campaigns, non TEAM_PC heal more to TEAM_PC
-			if(this.team !== Character.TEAM_PC && Game.Battle.campaign && victim.team === Character.TEAM_PC)
+			if(this.team !== Character.TEAM_PC && B.campaign && victim.team === Character.TEAM_PC)
 				out *= this.getCampaignPowerMultiplier();
 
 			return out;
@@ -968,13 +977,13 @@ class Character extends Asset{
 					return v;
 				});
 
-			Game.Battle.statusTexts.add(player, this, new Text({text:":TARGET: is now grappled by :ATTACKER:."}).convert(player, this, null, player), true);
+			B.statusTexts.add(player, this, new Text({text:":TARGET: is now grappled by :ATTACKER:."}).convert(player, this, null, player), true);
 		}
 
 		breakGrapple(){
 			if(!this.grappled_by)
 				return;
-			Game.Battle.statusTexts.add(this.grappled_by, this, new Text({text:":TARGET: is no longer grappled by :ATTACKER:!"}).convert(this.grappled_by, this, null, this.grappled_by), true);
+			B.statusTexts.add(this.grappled_by, this, new Text({text:":TARGET: is no longer grappled by :ATTACKER:!"}).convert(this.grappled_by, this, null, this.grappled_by), true);
 			this.grappled_by = false;
 			this.grapple_passives = [];
 		}
@@ -1274,7 +1283,7 @@ class Character extends Asset{
 			}
 
 			this.experience+=amount;
-			Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained "+amount+" experience."}).convert(this, this));
+			B.statusTexts.add(this, this, new Text({text:":TARGET: gained "+amount+" experience."}).convert(this, this));
 
 			var gainedLevel = false;
 			while(this.experience >= this.getMaxExperience() && !this.isMaxLevel()){
@@ -1282,7 +1291,7 @@ class Character extends Asset{
 
 				gainedLevel = true;
 				this.experience -= this.getMaxExperience();
-				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: gained an ability point! Visit the gym to spend it!"}).convert(this, this), false, false, true);
+				B.statusTexts.add(this, this, new Text({text:":TARGET: gained an ability point! Visit the gym to spend it!"}).convert(this, this), false, false, true);
 			}
 
 			if(this.isMaxLevel())
@@ -1307,8 +1316,8 @@ class Character extends Asset{
 				return false;
 			}
 
-			if(amount > 0 && Game.Battle)
-				Game.Battle.statusTexts.add(this, this, new Text({text:":TARGET: was rewarded "+amount+" Ð."}).convert(this, this), false, false, true);
+			if(amount > 0 && B)
+				B.statusTexts.add(this, this, new Text({text:":TARGET: was rewarded "+amount+" Ð."}).convert(this, this), false, false, true);
 
 			this.cash+= amount;
 			if(save)
@@ -1322,8 +1331,8 @@ class Character extends Asset{
 
 	// DOM
 		inspect(){
-			var hsc = Jasmop.Tools.htmlspecialchars;
-			var html = '<div id="characterInspect">';
+
+			let html = '<div id="characterInspect">';
 				html+= '<img class="icon" src="'+this.getImage()+'" />';
 				html+= '<h1>'+hsc(this.name)+'</h1>';
 				html+= '<p class="race">'+hsc(this.getGender())+' '+hsc(this.getRaceName())+' - '+hsc(this.affinity.toUpperCase())+' Affinity</p>';
@@ -1338,7 +1347,7 @@ class Character extends Asset{
 
 			Jasmop.Overlay.set(html);
 
-			var th = this;
+			let th = this;
 			$("#overlay input.kickPlayer").on('click', function(){
 				Netcode.kick(th.socket_id);
 			});
@@ -1572,7 +1581,7 @@ class Character extends Asset{
 					var fx = this.effects[i];
 					if(fx.fadeText && !silent){
 						var text = new Text({text:fx.fadeText});
-						Game.Battle.statusTexts.add(fx.getAttacker(), this, text.convert(fx.getAttacker(), fx.getVictim()), !fx.detrimental);
+						B.statusTexts.add(fx.getAttacker(), this, text.convert(fx.getAttacker(), fx.getVictim()), !fx.detrimental);
 					}
 					this.effects.splice(i, 1);
 					return;
@@ -1952,7 +1961,7 @@ class Character extends Asset{
 				money = 10+stageObj.difficulty*10;		// 10-40 doge
 				
 				if(this.challengeCompleteStep(campaignObj.id, stageObj.id)){
-					Game.Battle.statusTexts.add(this, this, new Text({text:"Challenge stage completed! Return for the next stage or a reward!"}).convert(this, this), false, false, true);
+					B.statusTexts.add(this, this, new Text({text:"Challenge stage completed! Return for the next stage or a reward!"}).convert(this, this), false, false, true);
 				}
 
 			}
@@ -2182,6 +2191,11 @@ Character.TEAM_NPC = 1;
 
 Character.MAX_ABILITIES = 5;
 
+Character.MANA_TYPES = [
+    "offensive",
+    "defensive",
+    "support"
+];
     
 
 
@@ -2284,7 +2298,7 @@ class Ability extends Asset{
 			return;
 		this.setCooldown();
 		this._charged = 0;
-		Game.Battle.statusTexts.add(attacker, this.parent, new Text({text:":TNAME:'s :ABIL: was interrupted!"}).convert(attacker, this.parent, this), true);
+		B.statusTexts.add(attacker, this.parent, new Text({text:":TNAME:'s :ABIL: was interrupted!"}).convert(attacker, this.parent, this), true);
 	}
 
 	// Netgame export
@@ -2579,7 +2593,7 @@ class Ability extends Asset{
 					txt = this.charge_text;
 
 				text = new Text({text:txt});
-				Game.Battle.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this, this.parent), "rptext ability", false, 'charge');
+				B.addToBattleLog(this.parent, targ[0], text.convert(this.parent, targ[0], this, this.parent), "rptext ability", false, 'charge');
 				this.parent.applyEffectEvent(EffectData.Triggers.abilityCharged, [this.id], attacker, targ[0], this);
 
 				for(let t of targ){
@@ -2604,14 +2618,14 @@ class Ability extends Asset{
 					scan = [];
 				for(let t of targs){
 					if(scan.indexOf(t) === -1){
-						Game.Battle.addToBattleLog(this.parent, t, new Text({text:(this.charge_fail_text ? this.charge_fail_text : ":ATTACKER:'s :ABIL: failed.")}).convert(this.parent, t, this), "rptext ability", false, 'fail');
+						B.addToBattleLog(this.parent, t, new Text({text:(this.charge_fail_text ? this.charge_fail_text : ":ATTACKER:'s :ABIL: failed.")}).convert(this.parent, t, this), "rptext ability", false, 'fail');
 					}
 				}
 			}
 
 
 			// Start text capture
-			Game.Battle.statusTexts.capture = true;				// Make sure status texts end up last 
+			B.statusTexts.capture = true;				// Make sure status texts end up last 
 
 			// Raise ability use
 			this.parent.applyEffectEvent(EffectData.Triggers.abilityUsed, [this.id], this.parent, this.parent, this);
@@ -2692,7 +2706,7 @@ class Ability extends Asset{
 
 				if(texts < this.max_texts || this.max_texts === false){
 					++texts;
-					Game.Battle.addToBattleLog(this.parent, t, textblock, "rptext ability", false, sound);
+					B.addToBattleLog(this.parent, t, textblock, "rptext ability", false, sound);
 					text.exec(this.parent, t); // Adds turn texts for subsequent texts
 				}
 
@@ -2732,7 +2746,7 @@ class Ability extends Asset{
 
 		}
 
-		Game.Battle.statusTexts.output();	// This flushes queued battle texts and ends capture
+		B.statusTexts.output();	// This flushes queued battle texts and ends capture
 
 		// Don't consume mana if it was a charge hit, but do if it was a charge start
 		if(!chargeHit){
@@ -3031,7 +3045,7 @@ class Effect extends Asset{
 		
 		if(this.applyText){
 			var text = new Text({text:this.applyText});
-			Game.Battle.statusTexts.add(clone.getAttacker(), clone.getVictim(), text.convert(clone.getAttacker(), clone.getVictim(), null, clone.getAttacker()), this.detrimental);
+			B.statusTexts.add(clone.getAttacker(), clone.getVictim(), text.convert(clone.getAttacker(), clone.getVictim(), null, clone.getAttacker()), this.detrimental);
 		}
 
 		clone.on(EffectData.Triggers.apply, [], attacker, victim, ability);
@@ -3223,12 +3237,12 @@ class Effect extends Asset{
 					var sound = fx[1];
 					var textblock = out;
 
-					Game.Battle.addToBattleLog(a, v, textblock, "rptext ability", false, sound, triggerer);
+					B.addToBattleLog(a, v, textblock, "rptext ability", false, sound, triggerer);
 
 				}
 
 				if(type === EffectData.Types.talking_head){
-					Game.Battle.addTalkingHeads(fx);
+					B.addTalkingHeads(fx);
 				}
 
 				if(type === EffectData.Types.removeArenaPassive){
@@ -3273,7 +3287,7 @@ class Effect extends Asset{
 					for(let n in Netcode.players){
 						if(Netcode.players[n] === attacker){
 							Netcode.players.splice(n, 0, npc);
-							++Game.Battle.turn;
+							++B.turn;
 							break;
 						}	
 					}
@@ -3936,7 +3950,7 @@ class Condition extends Asset{
 			if(typeof n === 'string'){
 				n = Effect.runMath(n, attacker, victim, [], new Effect());
 			}
-			if(Game.Battle.total_turns <= n)
+			if(B.total_turns <= n)
 				return false;
 		}
 

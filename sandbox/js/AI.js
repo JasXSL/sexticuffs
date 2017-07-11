@@ -38,7 +38,7 @@ class AI{
                 if(!resume)
                     [a,v] = [v,a]; // Swaps attacker and victim, otherwise the chat would come from the PC.
 
-                Game.Battle.statusTexts.add(a, v, text, false, true);
+                B.statusTexts.add(a, v, text, false, true);
                 GameAudio.playSound("shake");
 
                 // Not our turn, so let's not try to use an ability
@@ -117,7 +117,7 @@ class AI{
         ;
         
         setTimeout(function(){
-            Game.Battle.drawPunishment(player, victim, type);
+            B.drawPunishment(player, victim, type);
         }, 2000);
         
         
@@ -126,7 +126,7 @@ class AI{
     // make the play
     static execAction(){
         // Pick an ability if abilities are proper
-        if(AI.numPlays > 0 && !Game.Battle.ended){
+        if(AI.numPlays > 0 && !B.ended){
 
             let player = AI.player, 
                 abilities = player.abilities, 
@@ -147,7 +147,7 @@ class AI{
                 if(ability.aoe){
                     targ = Netcode.players;
                 }
-                Game.Battle.useAbility(ability, targ);
+                B.useAbility(ability, targ);
 
                 // Then continue
                 AI.performAction();
@@ -160,7 +160,7 @@ class AI{
         }
 
         // No ability was viable, advance turn
-        Game.Battle.advanceTurn();
+        B.advanceTurn();
     }
 
     // Set a timer to make a play

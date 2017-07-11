@@ -30,6 +30,7 @@
     <script src="js/libraries/createjs-2015.11.26.min.js"></script>
     <script src="js/Jasmop.js?"></script> 
     <script src="js/Datatypes.js?"></script>
+    <script src="js/Battle.js?"></script> 
     <script src="js/Game.js?"></script>
     <script src="js/AI.js?"></script>
     <script src="js/IDB.js?"></script>

@@ -8,7 +8,6 @@
     var page = new Jasmop.Page();
     Jasmop.Page.add(page);
     page.id = 'home';
-    var hsc = Jasmop.Tools.htmlspecialchars;
 
     page.need_ajax_data = false;                    // If true, will attempt an ajax fetch first
     // All except onLoaded can return promises
@@ -495,11 +494,6 @@
 
 
         $("div.right > div.startBattle").on('click', function(){
-            var b = Game.Battle;
-            // Wipe any previous campaign
-            b.campaign = null;
-            b.stage = null;
-
             Jasmop.Page.set('battle', []);
             GameAudio.clickSound();
         });

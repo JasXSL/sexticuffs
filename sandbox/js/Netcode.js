@@ -217,6 +217,7 @@ class Netcode {
         }
 
 
+
     // PUBLIC TASKS
         // Send tasks
         static partyJoin(id){
@@ -263,9 +264,6 @@ class Netcode {
 
         // Similar to Game.startBattle
         static hostStartChallenge(challengeobj, stageobj){
-            var B = Game.Battle;
-            B.campaign = challengeobj;
-            B.stage = stageobj;
             var p = [];
             // Purge previous NPCs
             for(var i =0; i<Netcode.players.length; ++i){
@@ -283,7 +281,7 @@ class Netcode {
             Netcode.refreshParty();
             Netcode.hostRefreshBattle();
             
-            Jasmop.Page.set('battle', []);
+            Jasmop.Page.set('battle', [challengeobj, stageobj]);
         }
 
         // Sends lobby data to players
@@ -320,9 +318,8 @@ class Netcode {
         static hostRefreshBattle(){
             if(!Netcode.hosting)
                 return;
-            var B = Game.Battle;
 
-            var obj = {
+            let obj = {
                 turn : B.turn,
                 punishment_done : B.punishment_done,
                 ended : B.ended,
@@ -565,7 +562,7 @@ Netcode.input = function(byHost, socketID, task, args){
             var player = Netcode.getPlayerBySocketID(socketID);
             if(player){
                 player.is_pc = false;
-                Game.Battle.statusTexts.add(player, player, '%a has disconnected and will be played by an NPC', true, false, false);
+                B.statusTexts.add(player, player, '%a has disconnected and will be played by an NPC', true, false, false);
             }
         }
 
@@ -657,7 +654,6 @@ Netcode.input = function(byHost, socketID, task, args){
     this.pubRefreshBattle = function(){
         // updates turn and generic properties
         var data = args[0];
-        var B = Game.Battle;
         if(data.campaign)
             B.campaign = Challenge.get(data.campaign);
         if(data.stage)

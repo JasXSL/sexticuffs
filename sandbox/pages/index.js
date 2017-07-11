@@ -3,7 +3,6 @@
     var page = new Jasmop.Page();
     Jasmop.Page.add(page);
     page.id = 'index';
-    var hsc = Jasmop.Tools.htmlspecialchars;
 
     page.need_ajax_data = false;                    // If true, will attempt an ajax fetch first
     // All except onLoaded can return promises
