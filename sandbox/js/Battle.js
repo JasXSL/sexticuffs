@@ -2,9 +2,9 @@ class Battle{
 
     constructor(page, campaign, stage){
 
-        this.jasmop_page = page;
+        this.jasmop_page = page;                
         this.campaign = campaign;
-        this.stage = stage;
+        this.stage = stage;                     // If this fight is part of a campaign, this is the stage object
 
         this.total_turns = 0;                  // Total turns played
         this.turn = 0;                         // Turn from netcode
@@ -12,8 +12,6 @@ class Battle{
         this.turn_done_alert = false;          // Alerted that turn is done
         this.turn_done_timer = null;           // Timer to trigger the turn done sound
         
-        this.campaign = null;                  // If this fight is a part of a campaign, this is the campaign object
-        this.stage = null;                     // If this fight is part of a campaign, this is the stage object
         this.intro = false;                    // Intro is ongoing
         this.talkingHeads = [];                // Talking head queue
         this.talkingHeadQueue = false;         // A talking head is active
@@ -43,6 +41,8 @@ class Battle{
             th = this
         ;
 
+
+
         // Tell netcode to send battle start
         Netcode.startBattle();
         // Set music
@@ -50,8 +50,6 @@ class Battle{
 
         // RESET Stuff
             AIChat.reset();                             // Reset AI chats
-
-
             
             // Clear custom background
             $("#wrap").attr('style', '');
@@ -62,6 +60,23 @@ class Battle{
                 // This resets their status
                 c.onBattleStart(this.stage);
             }
+        //
+
+        // bvars
+
+            if(this.stage){
+				// Set bvars used in stage
+                for(let i in this.stage.bvars){
+                    this.setBvar(i, this.stage.bvars[i]);
+                }
+				// Set bvars used in characters
+				for(let p of Netcode.players){
+					let bv = p.getBvars();
+					for(let i in bv)
+                    	this.setBvar(i, bv[i]);
+                }
+            }
+
         //
 
 
@@ -245,6 +260,7 @@ class Battle{
                     data[i] = new ChallengeTalkingHead(data);
             }
             this.talkingHeads = this.talkingHeads.concat(data);
+
             this.advanceTalkingHead();
             Netcode.hostTalkingHeads(data);
         }
@@ -291,7 +307,27 @@ class Battle{
 
     // bVars - Variables that effects and set and get from, and are used in math
 
-        
+        // Sets a bvar
+        setBvar(id, val){
+            this.bvars[id] = val;
+        }
+
+        // updates a bvar with a mathematical operation, ex: "bvar+1"
+        // If bvar doesn't exist, it will be added with a value of 0
+        setBvarMath(id, operations){
+            if(!this.bvars.hasOwnProperty(id))
+                this.bvars[id] = 0;
+            
+            let v = math.eval(operations, {bvar:this.bvars[id]});
+            this.setBvar(id, v);
+        }
+
+        // Returns a bvar or 0 if it doesn't exist
+        getBvar(id){
+            if(this.bvars.hasOwnProperty(id))
+                return this.bvars[id];
+            return 0;
+        }
 
 
     //
@@ -440,9 +476,14 @@ class Battle{
     // GAME END
 
         // Checks if battle has ended, and if so, selects the punishment picker
-        checkBattleEnded(){
+		// ignoreOnGameOver prevents a stack overflow
+        checkBattleEnded(ignoreOnGameOver){
             if(!this.isHost())
                 return;
+
+			if(this.getBvar('_BLOCK_DEATH_')){
+				return;
+			}
 
             let teams = {}, p;
             for(let p of Netcode.players){
@@ -463,18 +504,8 @@ class Battle{
                 }
             }
 
-            this.ended = true;
-            this.addToBattleLog(null, null, 'The battle has ended!', 'important');
-
-            for(let p of Netcode.players){
-                p.onBattleEnd();
-            }
-
-            // Clear all summoned players
-            Netcode.wipeSummonedPlayers();
-            
-            // Get punishment
-            var victors = [];
+			// Get punishment
+            let victors = [];
             for(let i in teams){
                 if(teams[i]){
                     this.winning_team = +i.substr(2);
@@ -489,6 +520,36 @@ class Battle{
                     break;
                 }
             }
+
+
+			// 
+			if(this.stage && this.stage.onGameOver.length && !ignoreOnGameOver){
+				
+				for(let fx of this.stage.onGameOver){
+
+					let v = victors[0];
+					let f = fx.clone();
+					f._attacker = v;
+
+					f.useAgainst(v, v, 1, null, false);
+
+				}
+
+				// Check again. Characters might have been restored
+				return this.checkBattleEnded(true);
+			}
+
+            this.ended = true;
+            this.addToBattleLog(null, null, 'The battle has ended!', 'important');
+
+            for(let p of Netcode.players){
+                p.onBattleEnd();
+            }
+
+            // Clear all summoned players
+            Netcode.wipeSummonedPlayers();
+            
+            
 
             // Game has ended. Waiting to pick punishment
             this.raiseEventOnPlayers(EffectData.Triggers.gameEnded, []);
@@ -928,9 +989,11 @@ class Battle{
                 return;
 
             $("#talkingHead").toggleClass('hidden', true);
+			
+			let th = this;
 
             // Start the battle
-            if(!this.stage || !this.talkingHeads.length){
+            if(!this.talkingHeads.length){
                 // This talking head was not a part of an intro
                 if(!this.intro) 
                     return;
@@ -960,9 +1023,9 @@ class Battle{
                     $("#talkingHead div.head").attr('style', 'background-image:url('+hsc(icon)+')');
                     GameAudio.playSound(sound);
 
-                    this.talkingHeadTimer = setTimeout(function(){
-                        this.talkingHeadQueue = false;
-                        this.advanceTalkingHead();
+                    th.talkingHeadTimer = setTimeout(function(){
+                        th.talkingHeadQueue = false;
+                        th.advanceTalkingHead();
 
                     }, 4000);
 

@@ -111,7 +111,6 @@ class Game{
 						success.push(t);
 
 				}
-
 			}
 
 		}
@@ -140,7 +139,6 @@ class Game{
                         GameAudio.musicVolume = +val;
                     else if(type === 'mute'){
                         GameAudio.mute = val > 0;
-                        createjs.Sound.muted = GameAudio.mute;
                     }
                 }
                 res();
@@ -411,7 +409,10 @@ class GameAudio{
 
 			// Initialize createjs
 
-			createjs.Sound.volume = 0.5;           // Global volume
+			createjs.Sound.volume = 0.5;           	// Global volume
+			createjs.Sound.muted = GameAudio.mute;	// Muted
+			
+			
 			createjs.AbstractSoundInstance.prototype.localVolume = 1;
 			createjs.AbstractSoundInstance.prototype.updateLocal = function(){
 				var base = GameAudio.soundVolume;

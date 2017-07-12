@@ -18,10 +18,6 @@
     <link rel="icon" href="/media/logo-32.png">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
 
-</head>
-
-<body>
-    <!-- Scripts go in body -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.13.3/math.min.js"></script>
@@ -38,6 +34,10 @@
     <script src="js/Netcode.js?"></script>
     <script src="js/Library.js?"></script>
     <script src="js/Mod.js?"></script>
+
+</head>
+
+<body>
     
 
 <?php

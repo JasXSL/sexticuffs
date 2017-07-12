@@ -42,7 +42,8 @@ class DB{
                 Armor.insert({id:"tentacleSuitStandalone", name:"Tentacle Suit", description:"It's a top and bottom made in a hard shell-like material with tentacles on the inside tickling your sensitive spots.", tags:["a_upper", "a_lower", "a_tentacles"], in_store:false});
                 Armor.insert({id:"haremOutfit", name:"Harem Outfit", description:"The outfit is made of red see-through silk. It comes with stockings, a top, and a small thong with a flap of cloth in front of it.", tags:["a_upper", "a_lower", "a_tight", "a_loincloth"], in_store:false});
 				Armor.insert({id: 'bowtie', name : 'Bow Tie', description : "It's just a bow tie. The rest of you is exposed!", tags:["a_bowtie"], in_store : false});
-
+                Armor.insert({id: 'satinanRobe', name : 'Plush Robe', description : "A fancy looking robe in pink leopard plush and satin.", tags:["a_upper", "a_lower"], in_store : false});
+                
             // Public
                 Armor.insert({id:"goldenThong", name:"Golden Thong", cost:25, description:"A shiny gold-colored thong that fits tight over your crotch.", tags:["a_shiny", "a_tight", "a_thong", "a_lower"]});
                 Armor.insert({id:"goldenBikini", name:"Golden Bikini", cost:25, description:"A shiny gold-colored thong and bra set.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_bra"]});
@@ -823,6 +824,9 @@ class DB{
                     id : 'challenger',
                     icon : 'media/npc/muscle-up.svg',
                     name : 'Challenger',
+                    bvars : {
+                        'ChargeScene' : false,          // Challenger slam scene played out
+                    },
                     //music : 'rocket_power',
                     //background : '',
                     description : 'To win the fabulous official T-shirt and underwear set, you must defeat the other challenger!',
@@ -847,12 +851,16 @@ class DB{
                                 new Effect({
                                     id : 'alertOnChallengerSlam',
                                     duration : Infinity,
-                                    depletable : true,
-                                    detrimental : false,
+                                    
+                                    detrimental : false, 
                                     events : [
                                         new EffectData({
+                                            conditions : [C(CO.MATH, 'bvarChargeScene == false')],
                                             triggers : [[EffectData.Triggers.abilityCharged, "CHALLENGER_SLAM"]],
                                             effects : [
+                                                 [
+                                                    EffectData.Types.setBvar, 'ChargeScene', true
+                                                ],
                                                 [
                                                     EffectData.Types.talking_head, 
                                                     new ChallengeTalkingHead({icon:'', text:'Instructor: He\'s charging an attack!', sound:''}),
@@ -2507,6 +2515,72 @@ class DB{
             
 
 
+
+                // SATINAN_START_DANCE_OFF
+                    Ability.insert({
+                        id : 'SATINAN_START_DANCE_OFF',   // Should be unique
+                        icon : '',
+                        name : 'Dance Off',
+                        description : 'Challenge Satinan to a dance-off!',
+                        manacost : {},
+                        detrimental : false,
+                        ranged : true,
+                        conditions : [C(CO.SELF)],
+                        always_hit : true,
+                        usable_while_stunned : true,
+                        effects:[
+
+                            // Satinan RP and set turn. This is only run on one player
+                            new Effect({
+                                detrimental : false,
+                                events : [
+
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [
+                                                EffectData.Types.talking_head, 
+                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: Fuck!", sound:''}),
+                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: The demon code prevents me from declining a dance-off challenge!", sound:''}),
+                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: See if you can keep up!", sound:''}),
+                                            ],
+                                            [EffectData.Types.setTurnById, 'satinan']
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            
+                            // Remove danceOff ability
+                            new Effect({
+                                detrimental : false,
+                                target : Game.Consts.TARG_AOE,
+                                events : [
+
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            // Remove dance off ability
+                                            [EffectData.Types.remByID, 'danceOff'],
+                                        ]
+                                    })
+
+                                ]
+                            }),
+
+                            // Grant new dance abilities
+                            new Effect({
+                                detrimental : false,
+                                target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                events : [
+
+                                    // TODO: Add dance abilities
+
+                                ]
+                            })
+                        ],
+                    });
+
+
             // CHARACTERS
                 Character.insert({"id":"imp", image:'media/npc/imp.svg', name:'Imp', race:Race.get('imp'), description:"", body_tags:["impish"], abilities:[
                     //"BITE",
@@ -2913,7 +2987,7 @@ class DB{
                             "id":"castor", name:'Castor', race:Race.get('rabbit'), 
                             description:"One of Shivv's concubines!", 
                             body_tags:["slender", "fuzzy"], 
-                            image : '?',
+                            image : 'media/npc/bunny.jpg',
                             max_armor:5, max_hp:5, size:4, 
                             tags:["c_penis", "CONCUBINE"], 
                             nonessential : true,
@@ -2997,7 +3071,7 @@ class DB{
                             "id":"pollux", name:'Pollux', race:Race.get('rabbit'), 
                             description:"One of Shivv's concubines!", 
                             body_tags:["slender", "fuzzy"], 
-                            image : '?',
+                            image : 'media/npc/bunny.jpg',
                             max_armor:5, max_hp:5, size:4, 
                             tags:["c_penis", "CONCUBINE"], 
                             nonessential : true,
@@ -3014,7 +3088,7 @@ class DB{
                     ]
                 });
 
-                // 3. TODO: The Queen
+                // 3. The Queen
                 wing.addStage({
                     id : 'demonQueen',
                     icon : 'media/npc/queen.jpg',
@@ -3063,7 +3137,7 @@ class DB{
                                             conditions : [C(CO.BP_LESS_THAN, [0.301])],
 											effects : [
 												[EffectData.Types.talking_head, new ChallengeTalkingHead({icon:'media/npc/queen.jpg', text:'Queen: As much as I enjoy watching this, it is time to end this!', sound:''})],
-												[EffectData.Types.text, "The Queen casts a demonic spell, permanently stunning all opponents!", "dark_aura"],
+												[EffectData.Types.text, "Brutus' health is low! The Queen casts a demonic spell, permanently stunning all opponents!", "dark_aura"],
 												[EffectData.Types.applyEffect, new Effect({
 													id : 'queenLock',
 													duration : Infinity,
@@ -3136,6 +3210,289 @@ class DB{
             //
 
             // WING D - The king
+                wing = ch.addWing({
+                    id : 'satinan',
+                    name : "Satinan's Chamber",
+                    description : 'The ruler of Heck awaits!',
+                    rewards : [
+                        /*
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.clothes,
+                            data:'bowtie',
+                        }),
+                        
+                        new ChallengeReward({
+                            type:ChallengeReward.Types.money,
+                            data:100,
+                        }),
+                        */
+                    ],
+                });
+
+
+                // The king
+                wing.addStage({
+                    id : 'satinan',
+                    icon : 'media/npc/satinan.jpg',
+                    name : 'Satinan',
+                    music : 'rocket_power',
+                    background : 'media/backgrounds/hell_cathedral.jpg',
+                    description : "Satinan, the lord of Heck awaits! Beware, he will not fight fair!",
+                    bvars : {
+                        SatinanPhase : 0,
+                    },
+
+                    // Effects to run before the game ends. attacker will be the first player on the winning team
+                    onGameOver : [
+
+                        // Satinan wiped - Only run on satinan
+                        new Effect({
+                            detrimental:false,
+                            id : 'satinanDeathHandler',
+                            target : Game.Consts.TARG_AOE,
+                            allow_dead : true,
+                            // PC has won
+                            conditions : [
+                                // Attacker is on the team PC
+                                C(CO.TEAM, Character.TEAM_PC, true),
+                                // Victim was satinan
+                                C(CO.CHARACTER_ID, 'satinan')
+                            ],
+
+                            events:[
+
+                                // Second death (These numbers have to be in reverse order for validation)
+                                
+                                new EffectData({
+                                    conditions : [C(CO.MATH, 'bvarSatinanPhase == 1')],
+                                    triggers : [EffectData.Triggers.apply],
+                                    effects : [
+
+                                        [
+                                            EffectData.Types.talking_head,
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: This is MY domain! I will NOT be denied! Again!", sound:''}),
+                                        ],
+                                    
+                                        // Lower everyone elses HP to 5
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            id : 'HPReduction',
+                                            target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                            detrimental : false,
+                                            no_dispel : true,
+                                            allow_dead : true,
+                                            persist_through_death : true,
+                                            duration : Infinity,
+                                            events : [
+                                                new EffectData({
+                                                    effects : [
+                                                        [EffectData.Types.max_hp, 5]
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+
+                                        [EffectData.Types.setBvar, 'SatinanPhase', 2],
+
+                                        // Restore everyones health
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            id : 'healthReduction',
+                                            target : Game.Consts.TARG_AOE,
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            events : [
+                                                new EffectData({
+                                                    triggers : [EffectData.Triggers.apply],
+                                                    effects : [
+                                                        EffectData.Types.fullRestore
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+
+                                        // Prevent satinan from dying
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            conditions : [C(CO.CHARACTER_ID, 'satinan')],
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            id : 'satinanPreventDeath',
+                                            duration : Infinity,
+                                            events : [
+                                                // Prevent dying
+                                                new EffectData({
+                                                    effects : [
+                                                        [EffectData.Types.min_hp, 1]
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+                                        
+                                    ],
+                                }),
+                                
+                                // First death
+                                new EffectData({
+                                    conditions : [C(CO.MATH, 'bvarSatinanPhase == 0')],
+                                    triggers : [EffectData.Triggers.apply],
+                                    effects : [
+                                        [
+                                            EffectData.Types.talking_head,
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: I am not that easy! Let's see if you can do that again without clothes!", sound:''}),
+                                        ],
+                                        // Lower everyone elses armor to 0
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            id : 'armorReduction',
+                                            target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                            detrimental : false,
+                                            no_dispel : true,
+                                            allow_dead : true,
+                                            duration : Infinity,
+                                            persist_through_death : true,
+                                            events : [
+                                                // Restore everyones HP to full
+                                                new EffectData({
+                                                    effects : [
+                                                        [EffectData.Types.max_armor, 0]
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+
+                                        [EffectData.Types.setBvar, 'SatinanPhase', 1],
+                                        // Restore everyones health
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            id : 'healthRestore',
+                                            target : Game.Consts.TARG_AOE,
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            events : [
+                                                // Restore everyones HP to full
+                                                new EffectData({
+                                                    triggers : [EffectData.Triggers.apply],
+                                                    effects : [
+                                                        EffectData.Types.fullRestore
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+                                        
+                                    ],
+                                }),
+                                
+                            ]
+                        }),
+
+                        // Players wiped
+                        new Effect({
+                            detrimental:false,
+                            id : 'pcDeathHandler',
+                            target : Game.Consts.TARG_ATTACKER,
+                            conditions : [
+                                // Attacker (winner) is satinan
+                                C(CO.CHARACTER_ID, 'satinan', true),
+                                // Stage is 2
+                                C(CO.MATH, 'bvarSatinanPhase == 2')
+                            ],
+                            events:[
+
+                                // Second death (These numbers have to be in reverse order for validation)
+                                new EffectData({
+                                    triggers : [EffectData.Triggers.apply],
+                                    effects : [
+                                        [
+                                            EffectData.Types.talking_head,
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: HA HA HA! Now you are mine!", sound:''}),
+                                        ],
+
+                                        // Set phase 3 (dance off)
+                                        [EffectData.Types.setBvar, 'SatinanPhase', 3],
+
+                                        // Restore everyones health
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            target : Game.Consts.TARG_AOE,
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            events : [
+                                                new EffectData({
+                                                    triggers : [EffectData.Triggers.apply],
+                                                    effects : [
+                                                        EffectData.Types.fullRestore
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+
+                                        // Un-prevent satinan from dying satinan from dying
+                                        [EffectData.Types.remByID, 'satinanPreventDeath'],
+                                        
+                                        // Grant a new ability to players and block all their previous ones
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            // Target all PC
+                                            target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                            id : 'danceOff',
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            duration : Infinity,
+                                            events : [
+                                                new EffectData({
+                                                    effects : [
+                                                        EffectData.Types.stun,
+                                                        EffectData.Types.hideAbilities,
+                                                        [EffectData.Types.addAbility, 'SATINAN_START_DANCE_OFF']
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+
+                                        // Stun satinan
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            // Target all PC
+                                            target : [[C(CO.CHARACTER_ID, 'satinan')]],
+                                            id : 'tempStun',
+                                            allow_dead : true,
+                                            detrimental : false,
+                                            duration : Infinity,
+                                            events : [
+                                                new EffectData({
+                                                    effects : [EffectData.Types.stun]
+                                                })
+                                            ]
+                                        })],
+
+
+                                    ],
+                                }),
+                                
+                            ]
+                        }),
+                        
+                    ],
+
+                    intro : [
+                        new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: You have broken into MY domain!? You will be made to serve!", sound:''}),
+                    ],
+                    npcs : [
+                        // 
+
+                        new Character({
+                            "id":"satinan", name:'Satinan', race:Race.get('breakerDemon'), 
+                            description:"A large demon, clad in plush and satin clothes!", body_tags:[], 
+                            image : 'media/npc/satinan.jpg',
+                            armorSet : Armor.get('satinanRobe'),
+                            max_armor:10, max_hp:10, size:8, tags:["c_penis", "c_wings", "c_tail"], 
+                            abilities:[
+                                "SATINAN_DECIMATE",
+                            ],
+							passives:[
+							]
+                        }),
+                    ],
+
+                    // Arena passives
+                    passives : [
+
+                    ]
+                });
+
 
             //
 
