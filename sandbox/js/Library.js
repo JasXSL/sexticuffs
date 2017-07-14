@@ -2520,8 +2520,8 @@ class DB{
                     Ability.insert({
                         id : 'SATINAN_START_DANCE_OFF',   // Should be unique
                         icon : '',
-                        name : 'Dance Off',
-                        description : 'Challenge Satinan to a dance-off!',
+                        name : 'Rock Off',
+                        description : 'Challenge Satinan to a rock-off!',
                         manacost : {},
                         detrimental : false,
                         ranged : true,
@@ -2541,10 +2541,11 @@ class DB{
                                             [
                                                 EffectData.Types.talking_head, 
                                                 new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: Fuck!", sound:''}),
-                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: The demon code prevents me from declining a dance-off challenge!", sound:''}),
-                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: See if you can keep up!", sound:''}),
+                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: It clearly states in the demon code that I must accept your challenge!", sound:''}),
+                                                new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: Very well. But keep up or I'll have your soul!", sound:'', pause:true}),
                                             ],
-                                            [EffectData.Types.setTurnById, 'satinan']
+                                            [EffectData.Types.setTurnById, 'satinan'],
+                                            [EffectData.Types.setMusic, 'organic_grunge'],
                                         ]
                                     }),
                                 ]
@@ -2569,16 +2570,245 @@ class DB{
 
                             // Grant new dance abilities
                             new Effect({
+                                id : 'PCrockOff',
+                                duration : Infinity,
                                 detrimental : false,
                                 target : [[C(CO.TEAM, Character.TEAM_PC)]],
                                 events : [
 
                                     // TODO: Add dance abilities
+                                    new EffectData({
+                                        effects : [
+                                            EffectData.Types.stun,
+                                            [EffectData.Types.hideAbilities, C(CO.ABILITY, ['SATINAN_PC_POWER_CHORD', 'SATINAN_PC_SWEET_SHRED', 'SATINAN_PC_SMOOTH_LICK'], false, true)],
+                                            [EffectData.Types.addAbility, 'SATINAN_PC_POWER_CHORD'],
+                                            [EffectData.Types.addAbility, 'SATINAN_PC_SWEET_SHRED'],
+                                            [EffectData.Types.addAbility, 'SATINAN_PC_SMOOTH_LICK'],
+                                        ]
+                                    })
 
+                                ]
+                            }),
+
+                            // Grant dance abilities to satinan
+                            new Effect({
+                                detrimental : false,
+                                target : [[C(CO.CHARACTER_ID, "satinan")]],
+                                duration : Infinity,
+                                events : [
+                                    // Add dance ability
+                                    new EffectData({
+                                        effects : [
+                                            [EffectData.Types.addAbility, 'SATINAN_DANCE_RANDOM'],
+                                        ]
+                                    }),
                                 ]
                             })
                         ],
                     });
+
+
+                    let satinanDmgPlayerIfNotDispelled = [EffectData.Types.damage, 5];
+
+                    // SATINAN_DANCE_RANDOM
+                    // Picks a random dance the players have to mimic, otherwise they take 1 damage
+                    Ability.insert({
+                        id : 'SATINAN_DANCE_RANDOM',   // Should be unique
+                        icon : '',
+                        name : 'Dance Moves',
+                        description : 'Uses a random chord against all opponents.',
+                        manacost : {},
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        always_hit : true,
+                        usable_while_stunned : true,
+                        effects_rand : true,
+                        max_effects : 1,
+                        max_texts : 0,
+                        ai_tags : ["important"],
+                        effects:[
+                            new Effect({
+                                id : 'powerChord',
+                                name : 'Power Chord',
+                                icon : 'media/effects/ultrasound.svg',
+                                description : 'Countered by a sweet shred!',
+                                detrimental : false,
+                                duration : 1,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.turnEnd],
+                                        effects : [
+                                            satinanDmgPlayerIfNotDispelled,
+                                        ]
+                                    }),
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a powerful chord!", ""]]})
+                                ]
+                            }),
+                            new Effect({
+                                id : 'sweetShred',
+                                name : 'Sweet Shred',
+                                icon : 'media/effects/anthem.svg',
+                                description : 'Countered by a smooth lick!',
+                                detrimental : false,
+                                duration : 1,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.turnEnd],
+                                        effects : [
+                                            satinanDmgPlayerIfNotDispelled
+                                        ]
+                                    }),
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a sweet shred!", ""]]})
+                                ]
+                            }),
+                            new Effect({
+                                id : 'smoothLick',
+                                name : 'Smooth Lick',
+                                icon : 'media/effects/love-song.svg',
+                                description : 'Countered by a power chord!',
+                                detrimental : false,
+                                duration : 1,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.turnEnd],
+                                        effects : [
+                                            satinanDmgPlayerIfNotDispelled,
+                                            
+                                        ]
+                                    }),
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a smooth lick!", ""]]})
+                                ]
+                            }),
+                        ]
+                    });
+
+                    Ability.insert({
+                        id : 'SATINAN_PC_POWER_CHORD',   // Should be unique
+                        icon : 'media/effects/ultrasound.svg',
+                        name : 'Power Chord',
+                        description : 'Counters smooth lick and deals 5 damage to satinan.',
+                        manacost : {offensive:2},
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        always_hit : true,
+                        usable_while_stunned : true,
+                        cooldown : 0,
+                        effects:[
+                            new Effect({
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.damage, 3]
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            new Effect({
+                                detrimental : false,
+                                target : Game.Consts.TARG_ATTACKER,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.remByID, 'smoothLick']
+                                        ]
+                                    })
+                                ]
+                            })
+                        ]
+                    });
+
+                    Ability.insert({
+                        id : 'SATINAN_PC_SWEET_SHRED',   // Should be unique
+                        icon : 'media/effects/anthem.svg',
+                        name : 'Sweet Shred',
+                        description : 'Counters smooth lick and deals 3 damage to satinan.',
+                        manacost : {defensive:2},
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        always_hit : true,
+                        usable_while_stunned : true,
+                        cooldown : 0,
+                        effects:[
+                            new Effect({
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.damage, 3]
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            new Effect({
+                                detrimental : false,
+                                target : Game.Consts.TARG_ATTACKER,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.remByID, 'powerChord']
+                                        ]
+                                    })
+                                ]
+                            })
+                        ]
+                    });
+
+                    Ability.insert({
+                        id : 'SATINAN_PC_SMOOTH_LICK',   // Should be unique
+                        icon : 'media/effects/love-song.svg',
+                        name : 'Smooth Lick',
+                        description : 'Counters power chord and deals 5 damage to satinan.',
+                        manacost : {support:2},
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        always_hit : true,
+                        usable_while_stunned : true,
+                        cooldown : 0,
+                        effects:[
+                            new Effect({
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.damage, 5]
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            new Effect({
+                                detrimental : false,
+                                target : Game.Consts.TARG_ATTACKER,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.remByID, 'sweetShred']
+                                        ]
+                                    })
+                                ]
+                            })
+                        ]
+                    });
+
+                    /*
+
+                        TODO:
+                        - Add pause to talkingheads
+                        - NPCs should not play while at least one talking head in queue has pause set, making only the last one in a chain require pausing.
+                        
+                        - Death sound plays multiple times?
+
+                    */
 
 
             // CHARACTERS
@@ -3270,7 +3500,7 @@ class DB{
 
                                         [
                                             EffectData.Types.talking_head,
-                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: This is MY domain! I will NOT be denied! Again!", sound:''}),
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: This is MY domain! I will NOT be denied!", pause:true, sound:''}),
                                         ],
                                     
                                         // Lower everyone elses HP to 5
@@ -3336,7 +3566,7 @@ class DB{
                                     effects : [
                                         [
                                             EffectData.Types.talking_head,
-                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: I am not that easy! Let's see if you can do that again without clothes!", sound:''}),
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: I am not that easy! Let's see if you can do that again without clothes!", pause:true, sound:''}),
                                         ],
                                         // Lower everyone elses armor to 0
                                         [EffectData.Types.applyEffect, new Effect({
@@ -3400,7 +3630,7 @@ class DB{
                                     effects : [
                                         [
                                             EffectData.Types.talking_head,
-                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: HA HA HA! Now you are mine!", sound:''}),
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: HA HA HA! Now you are mine!", pause:true, sound:''}),
                                         ],
 
                                         // Set phase 3 (dance off)
@@ -3436,8 +3666,13 @@ class DB{
                                                 new EffectData({
                                                     effects : [
                                                         EffectData.Types.stun,
-                                                        EffectData.Types.hideAbilities,
-                                                        [EffectData.Types.addAbility, 'SATINAN_START_DANCE_OFF']
+                                                        EffectData.Types.showAsDead,
+                                                        EffectData.Types.hideEndTurn,       // Hide end turn button
+                                                        EffectData.Types.gemPickBlocked,    // No gems to pick
+                                                        [EffectData.Types.addAbility, 'SATINAN_START_DANCE_OFF'],
+                                                        // Hide all abilities except danceOff
+                                                        EffectData.Types.showAsDead,
+                                                        [EffectData.Types.hideAbilities, C(CO.ABILITY, ['SATINAN_START_DANCE_OFF'], false, true)]
                                                     ]
                                                 })
                                             ]
@@ -3478,7 +3713,7 @@ class DB{
                             description:"A large demon, clad in plush and satin clothes!", body_tags:[], 
                             image : 'media/npc/satinan.jpg',
                             armorSet : Armor.get('satinanRobe'),
-                            max_armor:10, max_hp:10, size:8, tags:["c_penis", "c_wings", "c_tail"], 
+                            max_armor:20, max_hp:20, size:8, tags:["c_penis", "c_wings", "c_tail"], 
                             abilities:[
                                 "SATINAN_DECIMATE",
                             ],
@@ -4130,6 +4365,7 @@ C.ini = function(){
     C.ARMOR_THONG = C(CO.TAGS, 'a_thong');
 
     C.A_TENTACLES = C(CO.TAGS, ["s_tentacles"], true);
+
 
 };
 

@@ -108,6 +108,10 @@
                     B.punishment_done = data.punishment_done;
                     B.intro = data.intro;
                     B.total_turns = data.total_turns;
+                    let prepause = B.paused;
+                    B.paused = data.paused;
+                    if(B.paused !== prepause)
+                        B.onPauseChange();
 
                     B.updateUI();
 
@@ -219,6 +223,11 @@
                     }
 
                     else if(task === 'EndTurn'){
+                        if(byPlayer.getIsEndTurnHidden())
+                            return Jasmop.Errors.addErrors('Can\'t do that right now.');
+                        if(B.paused){
+                            return Jasmop.Errors.addErrors('Can\'t advance turn, game is paused.');
+                        }
                         if(byPlayer.offeredGemsPicked < 3){
                             return Jasmop.Errors.addErrors('Can\'t advance turn, player needs to pick mana gems first.');
                         }

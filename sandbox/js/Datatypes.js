@@ -609,6 +609,51 @@ class Character extends Asset{
 			return this.getEffectsWithStaticValue(EffectData.Types.invul, this, this).length;
 		}
 
+		// Returns true if this should show as dead
+		getIsShowAsDead(){
+			return this.getEffectsWithStaticValue(EffectData.Types.showAsDead, this, this).length > 0;
+		}
+		
+		getIsGemPickerBlocked(){
+			return this.getEffectsWithStaticValue(EffectData.Types.gemPickBlocked, this, this).length > 0;
+		}
+		
+
+		getIsEndTurnHidden(){
+			return this.getEffectsWithStaticValue(EffectData.Types.hideEndTurn, this, this).length > 0;
+		}
+
+		// Returns hidden ability IDs
+		getHiddenAbilityIDs(){
+
+			let abils = this.getAbilities(),
+				arrs = this.getFxArraysByStaticValue(EffectData.Types.hideAbilities, this, this, false)
+			;
+
+			let out = abils.filter(function(val){
+
+				for(let arr of arrs){
+
+					let conds = arr[1];
+					if(!conds)
+						continue;
+					if(conds.constructor !== Array)
+						conds = [conds];
+
+					if(Condition.validateMultiple(conds, false, this, this, val, true, false)){
+						// If condition validates, the item should be hidden
+						return true;
+					}
+				}
+				return false;
+			}); 
+
+			return out.map(function(val){
+				return val.id;
+			});
+		}
+
+
 		hasEnoughMana(input){
 
 			for(var i in input){
@@ -2035,6 +2080,10 @@ class Character extends Asset{
 				);
 			}
 			this.offeredGemsPicked = 0;
+
+			// Block gems picks
+			if(this.getIsGemPickerBlocked())
+				this.offeredGemsPicked = 5;
         }
 
         onTurnEnd(){
@@ -2312,7 +2361,7 @@ class Ability extends Asset{
 		this.charge_text = false;			// Custom text for when ability charges
 		this.charge_fail_text = false;		// Text to output if charge fails
 		this.ranged = false;				// This ability is ranged
-		this.max_effects = false;				// Limits the number of effects that can be applied
+		this.max_effects = false;				// Limits the number of effects that can be applied. Can also be a math string
 		this.effects_rand = false;				// Randomizes the effects
 		this.max_texts = false;					// Max nr of texts to output.
 		this.usable_while_stunned = false;		// Allow this ability while stunned
@@ -2707,13 +2756,17 @@ class Ability extends Asset{
 				// Add effects
 				if(!fail){
 
+					let mfx = this.max_effects;
+					if(mfx && typeof mfx === 'string')
+						mfx = Effect.runMath(mfx, attacker, t);
+
 					for(let fx of effects){
 						// Effects can be either an effect or an array of [Effect, (int)stacks]
 						if(fx.constructor !== Array){fx = [fx];}
 
 						if(fx[0].useAgainst( this.parent, t, (fx[1] || 1), this, verbose)){
 							++numHits;
-							if(this.max_effects > 0 && numHits >= this.max_effects){
+							if(mfx > 0 && numHits >= mfx){
 								break;
 							}
 						}
@@ -3429,6 +3482,16 @@ class Effect extends Asset{
 				console.error(fx);
 			}
 
+			if(type === EffectData.Types.setTurnById){
+				B.overrideTurnById(fx[0]);
+			}
+
+			if(type === EffectData.Types.setMusic){
+				GameAudio.setMusic(fx[0]);
+			}
+
+			
+
 		}
 
 	}
@@ -3501,10 +3564,11 @@ class Effect extends Asset{
 	
 		let args = {
 			// Statistics
-				// Num players on team
-				aNumPlayers : Netcode.getPlayersOnTeam(attacker.team).length,
-				vNumPlayers : Netcode.getPlayersOnTeam(victim.team).length,
-				
+			// Num players on team
+			aNumPlayers : Netcode.getPlayersOnTeam(attacker.team).length,
+			vNumPlayers : Netcode.getPlayersOnTeam(victim.team).length,
+			pcNumPlayers : Netcode.getPlayersOnTeam(Character.TEAM_PC).length,
+			npcNumPlayers : Netcode.getPlayersOnTeam(Character.TEAM_NPC).length,
 		};
 
 		// Prevents a catch 22 when this is run to GET max armor
@@ -3867,12 +3931,12 @@ EffectData.Types = {
 	setBvarMath : 'setBvarMath',				// (str)id, (str)expression - Update a battle-var via math. ex: "bvar+1" to add 1 to a bvar
 	fullRestore : 'fullRestore',				// void - Fully restores armor and HP
 	min_hp : 'minHP',							// (int)hp - Limits how low someone's HP can go this turn
-	
-	// TODO
 	setTurnById : 'setTurnById',				// (str)id - Changes the active turn to ID
 	hideAbilities : 'hideAbilities',			// (arr)conditions || Condition - Hides all abilities that don't match conditions
-
-
+	setMusic : 'setMusic',						// (str)id - Instant effect. Overrides the music.
+	showAsDead : 'showAsDead',					// void - Show this player as dead
+	hideEndTurn : 'hideEndTurn',				// void - Unable to hit the end turn button 
+	gemPickBlocked : "gemPickBlocked",			// void - Gem picker is blocked
 
 
 };
@@ -4038,7 +4102,9 @@ class Condition extends Asset{
 
 
 		// Text conditions only
-		if(this.type === Condition.ABILITY && (!ability || this.data.indexOf(ability.id) === -1)){ return false; }
+		if(this.type === Condition.ABILITY && (!ability || this.data.indexOf(ability.id) === -1)){ 
+			return false; 
+		}
 		if(this.type === Condition.MISS && success){ return false; }
 		
 		if(this.type === Condition.SIZE_LESS_THAN_N && victim.size >= this.data[0])
@@ -4681,9 +4747,21 @@ class ChallengeTalkingHead extends Asset{
 		this.text = '';					// Text
 		this.sound = '';				// Sound ID
 		this.left = true;				// Alignment of head
+		this.pause = true;				// Pause the game while this is in the queue
+
         this.load(data);
         return this;
     }
+
+	export(){
+		return {
+			icon : this.icon,
+			text : this.text,
+			sound : this.sound,
+			left : this.left,
+			pause : this.pause
+		};
+	}
 
 }
 

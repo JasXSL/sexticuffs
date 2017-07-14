@@ -88,7 +88,7 @@ class AI{
             }
         }
 
-        let frst = AI.getViable(player.abilities, player, all);
+        let frst = AI.getViable(player.getAbilities(), player, all);
         if(frst && ~frst.ai_tags.indexOf("important"))
             skip = 0;
 
@@ -125,11 +125,14 @@ class AI{
 
     // make the play
     static execAction(){
+        if(B.paused)
+            return;
+
         // Pick an ability if abilities are proper
         if(AI.numPlays > 0 && !B.ended){
 
             let player = AI.player, 
-                abilities = player.abilities, 
+                abilities = player.getAbilities(), 
                 all = AI.all,
                 ability = AI.getViable(abilities, player, all)
             ;
@@ -158,7 +161,6 @@ class AI{
             }
 
         }
-
         // No ability was viable, advance turn
         B.advanceTurn();
     }
@@ -167,9 +169,10 @@ class AI{
     static performAction(){
 
         // Timer has been intercepted by RP text
-        if(!AI.blocked)
+        if(!AI.blocked){
+            clearTimeout(AI.nextActionTimer);
             AI.nextActionTimer = setTimeout(AI.execAction, 500);
-
+        }
     }
 
     // Gets viable players for an ability

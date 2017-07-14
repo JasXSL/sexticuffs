@@ -23,7 +23,7 @@ class Battle{
 
         this.ended = false;                    // Game has ended, but nobody has been punished.
         this.punishment_done = false;          // Punishment has ended and it's all done.
-        
+        this.paused = false;
         
         this.queued_ability = null;            // Ability selected for the target picker
         this.winning_team = 0;                 // Cache of winning team after battle ends
@@ -146,7 +146,7 @@ class Battle{
 
             // End turn button
             $("#abilities div.ability.endTurn").on('click', function(){
-                if(!th.myTurn() || th.getMyCharacter().offeredGemsPicked < 3){return;}
+                if(!th.myTurn() || th.getMyCharacter().offeredGemsPicked < 3 || th.paused || me.getIsEndTurnHidden()){return;}
 
                 GameAudio.playSound('shake');
 
@@ -156,11 +156,7 @@ class Battle{
                     th.advanceTurn();
             });
 
-            // Ability button
-            $("#abilities div.ability[data-uuid]", this.page).on('mouseover mouseout', function(event){
-                th.updateGems(event);
-            });
-
+            
             // Bind chat
             $("#chat").on('keypress', function(event){
                 if(event.keyCode !== 13)
@@ -301,6 +297,14 @@ class Battle{
             Netcode.refreshParty();
         }
 
+		onPauseChange(){
+			// Unpaused. Resume AI
+			if(!this.paused && !this.getTurnCharacter().is_pc && this.isHost()){
+				this.playAI();
+			}
+			this.updateUI();
+		}
+
     // 
 
     
@@ -368,7 +372,45 @@ class Battle{
             }
         }
 
+		// Overrides turn by ID
+		overrideTurnById(id){
+			for(let i =0; i<Netcode.players.length; ++i){
+				if(Netcode.players[i].id === id){
+					this.turn = i-1;
+					this.advanceTurn();
+					return;
+				}
+			}
+		}
         
+		// Checks whether the game is paused and updates the flag
+		checkPaused(){
+
+			if(this.paused === this.isPaused())
+				return;
+			
+			this.paused = this.isPaused();
+			Netcode.hostRefreshBattle();
+
+			this.onPauseChange();
+
+		}
+		
+		// Helper function for above
+		isPaused(){
+
+			// Intro pauses the game
+			if(this.intro)
+				return true;
+
+			for(let th of this.talkingHeads){
+				if(th.pause)
+					return true;
+			}
+
+			return false;
+
+		}
 
         // Draws the target selector, or uses an ability if only 1 target is viable
         selectTarget(ability){
@@ -416,7 +458,6 @@ class Battle{
         // Do heuristics for AI play
         playAI(){
             if(this.ended){return;}
-
             // AI will grab the first best gems
             let player = this.getTurnCharacter();
 
@@ -435,7 +476,7 @@ class Battle{
         useAbility(ability, victim){
 
             // Intro is ongoing
-            if(this.intro)
+            if(this.paused)
                 return;
         
             let attacker = this.getTurnCharacter(), 
@@ -581,7 +622,8 @@ class Battle{
                 abil = Ability.get(type),
                 text = Text.generate(attacker, victim, abil, true),
                 out = text.convert(attacker, victim, abil),
-                sound = text.sound
+                sound = text.sound,
+				th = this
             ;
 
             if(!sound)
@@ -611,7 +653,7 @@ class Battle{
                         // Wipe players so they don't show up in skirmish
                         Netcode.removeNPCs();
                     }
-                    Jasmop.Page.set('home', [(this.campaign ? 'campaignRoot' : 'lobby')]);
+                    th.backToLobby();
                 }
             });
 
@@ -621,6 +663,10 @@ class Battle{
 
             Netcode.hostRefreshBattle();
         }
+
+		backToLobby(){
+			Jasmop.Page.set('home', [(this.campaign ? 'campaignRoot' : 'lobby')]);
+		}
 
     //
 
@@ -708,7 +754,10 @@ class Battle{
 
             // Update all players
             for(i=0; i<Netcode.players.length; ++i){
-                var p = Netcode.players[i];
+
+                let p = Netcode.players[i],
+					showAsDead = p.getIsShowAsDead()
+				;
 
                 var portrait = $("div.character[data-uuid='"+p.UUID+"']", this.page);
                 if(!portrait.length){
@@ -716,15 +765,15 @@ class Battle{
                     portrait = $("div.character[data-uuid='"+p.UUID+"']", this.page);
                 }
 
-                $("div.armor > span", portrait).html(p.armor);
-                $("div.hp > span", portrait).html(p.hp);
+                $("div.armor > span", portrait).html(showAsDead ? 0 : p.armor);
+                $("div.hp > span", portrait).html(showAsDead ? 0 : p.hp);
                 $("div.mana.offensive > span", portrait).html(p.mana.offensive);
                 $("div.mana.defensive > span", portrait).html(p.mana.defensive);
                 $("div.mana.support > span", portrait).html(p.mana.support);
                 
 
-                $("div.armor", portrait).toggleClass('full', p.armor === p.getMaxArmor());
-                $("div.hp", portrait).toggleClass('full', p.hp === p.getMaxHP());
+                $("div.armor", portrait).toggleClass('full', p.armor === p.getMaxArmor() && !showAsDead);
+                $("div.hp", portrait).toggleClass('full', p.hp === p.getMaxHP() && !showAsDead);
                 $("div.mana.offensive", portrait).toggleClass('full', p.mana.offensive === p.max_mana);
                 $("div.mana.defensive", portrait).toggleClass('full', p.mana.defensive === p.max_mana);
                 $("div.mana.support", portrait).toggleClass('full', p.mana.support === p.max_mana);
@@ -733,7 +782,8 @@ class Battle{
                 // Next turn this amount is added: 
                 
                 portrait.toggleClass("turn", (Netcode.players[this.turn] === p));
-                portrait.toggleClass("dead", (p.hp <= 0));
+
+                portrait.toggleClass("dead", (p.isDead() || showAsDead));
 
 
                 let fx = '';
@@ -782,12 +832,10 @@ class Battle{
 
 
             // Update abilities
-            if(this.myTurn() && !this.punishment_done && !this.intro){
+            if(!this.punishment_done && !this.intro){
 
                 // We pick punishment
-                if(this.ended){
-
-
+                if(this.ended && this.myTurn()){
                     var html = '';
                         html+= '<div class="button ability active" data-punishment="__PUNISHMENT_DOM__">Dominate</div>';
                         html+= '<div class="button ability active" data-punishment="__PUNISHMENT_SUB__">Submit</div>';
@@ -809,23 +857,29 @@ class Battle{
                 }
 
                 // Update ability buttons
-                let successfulAbilities = 0, abilities = me.getAbilities();
+                let successfulAbilities = 0, abilities = me.getAbilities(), hidden = me.getHiddenAbilityIDs();
                 for(let a of abilities){
-                    let active = a.usableOn(Netcode.players).length > 0;
-                    let element = $("#abilities div.ability[data-uuid="+a.UUID+"]", this.page);
-                    // Temp ability
+					
+                    let active = a.usableOn(Netcode.players).length > 0,
+						isHidden = (hidden.indexOf(a.id) > -1 || this.paused),
+						element = $("#abilities div.ability[data-uuid="+a.UUID+"]", this.page)
+					;
+                    
+					// Temp ability
                     if(!element.length){
                         $("#abilities", this.page).prepend(a.getButton());
                         element = $("#abilities div.ability[data-uuid="+a.UUID+"]", this.page);
                     }
 
-                    element.toggleClass('active', active);
+                    element.toggleClass('active', active).toggleClass('hidden', isHidden);
+
 
                     let cooldown = a._cooldown;
                     $('span.cooldown', element).html(cooldown ? ' ['+cooldown+']' : '');
 
                     successfulAbilities+= active;
                 }
+
 
                 $("#abilities > div.ability.button[data-uuid]").each(function(){
                     let uuid = $(this).attr('data-uuid');
@@ -834,6 +888,8 @@ class Battle{
                     }
                 });
                 
+
+
                 // Handle turn done checks
                 if(!successfulAbilities && !this.turn_done_alert && this.getMyCharacter().offeredGemsPicked >= 3){
                     // turn_done
@@ -846,8 +902,15 @@ class Battle{
                 else if(successfulAbilities)
                     clearTimeout(this.turn_done_timer);
                 
+
+
+
                 // Toggle end turn active
-                $("#abilities div.ability.endTurn").toggleClass('active', successfulAbilities === 0);
+                $("#abilities div.ability.endTurn")
+					.toggleClass('active', successfulAbilities === 0)
+					.toggleClass('hidden', this.paused || me.getIsEndTurnHidden());
+
+
 
                 // Rebind ability buttons
                 $("#abilities div.ability[data-uuid]", this.page).off('click').on('click', function(){
@@ -869,9 +932,14 @@ class Battle{
 
                 });
 
+				// Rebind ability hovers
+				$("#abilities div.ability[data-uuid]", this.page).off('mouseover mouseout').on('mouseover mouseout', function(event){
+					th.updateGems(event);
+				});
+
 
                 // Handle gem picker
-                if(me.offeredGemsPicked >= 3)
+                if(me.offeredGemsPicked >= 3 || this.ended || !this.myTurn())
                     $("#gemPicker").toggleClass('hidden', true);
                 else{
 
@@ -907,6 +975,7 @@ class Battle{
                 if(this.punishment_done){
                     ht+= '<div class="button lobby">Return</div>';
                 }
+				let th = this;
 
                 $("#abilities").html(ht);
                 $("#abilities div.disconnect").on('click', function(){
@@ -915,7 +984,7 @@ class Battle{
                 });
 
                 $("#abilities div.lobby").on('click', function(){
-                    Jasmop.Page.set('home', [(this.stage ? 'campaignRoot' : 'lobby')]);
+					th.backToLobby();
                 });
             }
 
@@ -992,22 +1061,24 @@ class Battle{
 			
 			let th = this;
 
+			
+			
+
             // Start the battle
             if(!this.talkingHeads.length){
-                // This talking head was not a part of an intro
-                if(!this.intro) 
-                    return;
-
-                // This talking head was the final of the intro. Start the game  here
-                this.advanceTurn();
-                this.intro = false;
-                this.raiseEventOnPlayers(EffectData.Triggers.gameStarted, []);
-                Netcode.hostRefreshBattle();
-                this.updateUI();
+                // The talking head was at the start of the game
+                if(this.intro){
+					// This talking head was the final of the intro. Start the game  here
+					this.advanceTurn();
+					this.intro = false;
+					this.raiseEventOnPlayers(EffectData.Triggers.gameStarted, []);
+					Netcode.hostRefreshBattle();
+					this.updateUI();
+				}
             }
             // Output talking head
             else{
-                let head = this.talkingHeads.shift(),
+                let head = this.talkingHeads[0],
                     text = head.text,
                     icon = head.icon,
                     sound = head.sound
@@ -1032,6 +1103,12 @@ class Battle{
                 }, 250);
                 
             }
+
+			// Talking heads can pause the game
+			this.checkPaused();
+
+			this.talkingHeads.shift(); // Remove the head AFTER paused
+
         }
 
         // Adds a player portrait thingy

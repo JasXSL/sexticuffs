@@ -326,7 +326,8 @@ class Netcode {
                 campaign : (B.campaign ? B.campaign.id : false),
                 stage : (B.stage ? B.stage.id : false),
                 intro : B.intro,
-                total_turns : B.total_turns
+                total_turns : B.total_turns,
+                paused : B.paused
             };
             Netcode.output("RefreshBattle", [obj]);
         }

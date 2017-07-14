@@ -473,6 +473,8 @@ class GameAudio{
                 {"id":'home', src:'media/audio/soundtracks/home.ogg'},
                 {"id":'store', src:'media/audio/soundtracks/store.ogg'},
                 {"id":'rocket_power', src:'media/audio/soundtracks/rocket_power.ogg'},
+				{"id":'organic_grunge', src:'media/audio/soundtracks/organic_grunge.ogg'},
+				
             ]);
 
             res();

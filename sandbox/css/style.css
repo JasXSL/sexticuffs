@@ -1253,6 +1253,12 @@ div{
         border-color:#AAA;
     }
 
+    #wrap[data-page=battle] #abilities div.ability[data-id].hidden,
+    #wrap[data-page=battle] #abilities div.ability.endTurn.hidden
+    {
+        display:none;
+    }
+
     #wrap[data-page=battle] #abilities div.ability span.tooltip{
         top:0;
         -webkit-transform:translate(-50%, -100%);
