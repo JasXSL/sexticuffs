@@ -480,6 +480,43 @@ class AIChat{
 			
 
         //
+
+        // Satinan
+
+            aitl = [[ait.aButt, ait.tPin], [ait.aVag, ait.tPin]];
+            add(false, "satinan", aitl, {conditions:[], text: 'A taste of what is to come!'});
+            add(false, "satinan", aitl, {conditions:[], text: 'I can\'t wait to make you my slave!'});
+            add(false, "satinan", aitl, {conditions:[], text: 'Squeal for me!'});
+            add(false, "satinan", aitl, {conditions:[], text: 'You will be mine!'});
+            add(false, "satinan", aitl, {conditions:[], text: 'Gonna fill you with my hot demon gel!'});
+            
+
+            aitl = [];
+            abil = C(CO.ABILITY, "SATINAN_SHACKLES");
+            add(false, "satinan", aitl, {conditions:[abil], text: 'It is useless to resist!'});
+
+            abil = C(CO.ABILITY, "SATINAN_DECIMATE");
+            add(false, "satinan", aitl, {conditions:[abil], text: 'I will destroy you!'}, AIChat.Events.charged);
+            add(false, "satinan", aitl, {conditions:[abil], text: 'You will not survive this!'}, AIChat.Events.charged);
+            add(false, "satinan", aitl, {conditions:[abil], text: 'You will be mine!'}, AIChat.Events.charged);
+            
+            
+
+            abil = C(CO.ABILITY, "SATINAN_VOLATILE_IMP");
+            add(false, "satinan", aitl, {conditions:[abil], text: 'Minions of Heck, obey me!'});
+            add(false, "satinan", aitl, {conditions:[abil], text: 'Come to my aid!'});
+            add(false, "satinan", aitl, {conditions:[abil], text: 'My minions will destroy you!'});
+            
+
+            abil = C(CO.ABILITY, "SATINAN_DANCE_RANDOM");
+            add(false, "satinan", aitl, {conditions:[abil], text: 'Behold my power!'});
+            add(false, "satinan", aitl, {conditions:[abil], text: 'Listen to a true master!'});
+            add(false, "satinan", aitl, {conditions:[abil], text: 'There\'s never been a rock-off I ever lost!'});
+            add(false, "satinan", aitl, {conditions:[abil], text: 'There\'s no way you\'ll win!'});
+            
+            
+			
+        //
                 
 
 

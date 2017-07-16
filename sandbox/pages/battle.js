@@ -20,7 +20,6 @@
                 i
             ;
 
-
             // Build the skeleton
             let html = '<div class="top">'+
                 '<div id="friends"><div class="bottom"></div></div>'+
@@ -64,14 +63,11 @@
             this.setContent(html);
 
 
-
             // Build the battle
             B = new Battle(page, challengeobj, stageobj);
             B.ini();
 
             
-
-
         };
 
 

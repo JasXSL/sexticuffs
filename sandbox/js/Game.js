@@ -16,7 +16,9 @@ class Game{
 
 		B = new Battle();
 		
-		// TODO: Replace these
+		// Consts
+        Game.version = 4;   
+
 		Game.Consts = {
 
 			// Used for conditions
@@ -27,11 +29,11 @@ class Game{
 			TARG_ATTACKER_PARENT : 'ATTACKER_PARENT',           // == || ==. Ex: Summoned character deals damage
 			TARG_AOE : 'AOE',                                   // Run against everyone. Currently only supported in Effect
 
+
 		};
 		
         
-        // Consts
-        Game.version = 3;  
+        
 
 
         // SET UP STATIC VARS //
@@ -546,7 +548,13 @@ class GameAudio{
                 {id:'dishes_die', src:'dishes_die.ogg'},
                 {id:'plate_break', src:'plate_break.ogg'},
                 {id:'bell', src:'bell.ogg'},
-                
+                {id:'defense_break', src:'defense_break.ogg'},
+                {id:'burst', src:'burst.ogg'},
+                {id:'smoke_puff', src:'smoke_puff.ogg'},
+                {id:'power_chord', src:'power_chord.ogg'},
+                {id:'sweet_shred', src:'sweet_shred.ogg'},
+				{id:'smooth_lick', src:'smooth_lick.ogg'},
+				
 
                 // Start opening
                 {id:'chest_open', src:'chest_open.ogg'},

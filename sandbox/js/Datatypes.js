@@ -288,7 +288,7 @@ class Character extends Asset{
 
 	// Stats
 
-		damage(type, amount, attacker, ability, effect, no_mitigation){
+		damage(type, amount, attacker, ability, effect, no_mitigation, no_npc_scaling){
 
 			if(this.isDead())
 				return 0;
@@ -320,7 +320,7 @@ class Character extends Asset{
 			if(takeDamage){
 				let adder = this.getDmgTakenAdder(attacker, ability),
 					multiTaken = this.getDmgTakenMultiplier(attacker),
-					multiDone = attacker.getDmgDoneMultiplier(this)
+					multiDone = attacker.getDmgDoneMultiplier(this, no_npc_scaling)
 				;
 				
 				if(no_mitigation){
@@ -579,11 +579,11 @@ class Character extends Asset{
 			return this.getStaticValuePoints(EffectData.Types.healing_taken_multi, attacker, this, true);
 		}
 
-		getDmgDoneMultiplier(victim){
+		getDmgDoneMultiplier(victim, no_npc_scaling){
 			var out = this.getStaticValuePoints(EffectData.Types.damage_done_multi, this, victim, true);
 
 			// In campaigns, non TEAM_PC deal more damage to TEAM_PC
-			if(this.team !== Character.TEAM_PC && B.campaign && victim.team === Character.TEAM_PC)
+			if(this.team !== Character.TEAM_PC && B.campaign && victim.team === Character.TEAM_PC && !no_npc_scaling)
 				out *= this.getCampaignPowerMultiplier();
 
 			return out;
@@ -1245,6 +1245,31 @@ class Character extends Asset{
 			}
 		}
 
+		// Ability is an Ability class object
+		getAbilityCooldownMod(ability){
+
+			let arrs = this.getFxArraysByStaticValue(EffectData.Types.cooldownMod, this, this, false);
+			let out = 0;
+			for(let arr of arrs){
+				let n = Effect.runMath(arr[1], this, this, ability.getMathVars());
+				if(isNaN(n))
+					continue;
+				
+				let conds = arr[2];
+				if(conds){
+					if(conds.constructor !== Array){
+						conds = [conds];
+					}
+					if(!Condition.validateMultiple(conds, false, this, this, ability, true, false))
+						continue;
+				}
+
+				out+= n;
+			}
+
+			return out;
+		}
+
 		// Returns all abilities including effect abilities
 		getAbilities(active_only){
 			let out = this.abilities.slice();
@@ -1874,7 +1899,8 @@ class Character extends Asset{
 			
 
 			// Handle abilities
-			this.abilities = [];
+			// This doesn't work because of minimized loading of abilities
+			// this.abilities = [];
 
 			// Add required abilities
 			if(!this.ignore_default_abils){
@@ -2095,6 +2121,7 @@ class Character extends Asset{
 
 
 		onDeath(attacker){
+
 			this.applyEffectEvent(EffectData.Triggers.death, [], attacker, this, null);
 
 			// Remove effects with wipeOnAttackerDeath
@@ -2123,6 +2150,12 @@ class Character extends Asset{
 				player.breakGrapple();
 			}
 
+			// Stop all charged abilities
+			let abilities = this.getAbilities();
+			for(let abil of abilities){
+				abil._charged = 0;
+			}
+
 			this.breakGrapple();
 
 			// Remove self if summoned
@@ -2134,6 +2167,7 @@ class Character extends Asset{
 					}
 				}
 			}
+
 		}
 
 	//
@@ -2862,6 +2896,12 @@ class Ability extends Asset{
 		// Base attack can be used multiple times, but not by NPCs
 		if(this.id === '__BASE_ATTACK__' && !this.parent.is_pc)
 			cd = 1;
+
+		cd += this.parent.getAbilityCooldownMod(this);
+		
+		if(cd<0)
+			cd = 0;
+		
 		this._cooldown = cd;
 	}
 
@@ -2920,6 +2960,19 @@ class Ability extends Asset{
 	getManaCost(){
 		// You might wanna check if this is a punishment before returning any custom val here. Otherwise punishments will fail because mana
 		return this.manacost;
+	}
+
+	getMathVars(){
+		return {
+			_cooldown : this._cooldown,
+			mc_offensive : this.manacost.offensive,
+			mc_defensive : this.manacost.defensive,
+			mc_support : this.manacost.support,
+			cooldown : this.cooldown,
+			charged : this.charged,
+			_charged : this._charged,
+			total_mana : this.manacost.offensive+this.manacost.defensive+this.manacost.support,
+		};
 	}
 
 	getButton(highlight){
@@ -3246,7 +3299,7 @@ class Effect extends Asset{
 				type === EffectData.Types.manaHeal ||
 				type === EffectData.Types.manaDamage
 			){
-				victim.damage(type, fx[0], attacker, ability, this, fx[1]);
+				victim.damage(type, fx[0], attacker, ability, this, fx[1], fx[2]);
 			}
 
 			if(type === EffectData.Types.lifeSteal){
@@ -3888,7 +3941,7 @@ EffectData.Triggers = {
 
 // CASE SENSITIVE
 EffectData.Types = {
-    damage : "dmg",                     // (int)points, (bool)no_mitigation=false - Straight up damage. No mitigation ignores damage taken reduction effects.
+    damage : "dmg",                     // (int)points, (bool)no_mitigation=false, (bool)ignore_npc_scaling - Straight up damage. No mitigation ignores damage taken reduction effects.
     lifeSteal : "lifesteal",			// (int)points, (float)multi=1, (bool)no_mitigation=false - Same as above but also heals the caster for an amount equal to multi*damage
 	heal : "heal",                      // (int)points - Opposite of above
     armorDamage : "ardmg",              // (int)points - Damage only armor
@@ -3937,6 +3990,7 @@ EffectData.Types = {
 	showAsDead : 'showAsDead',					// void - Show this player as dead
 	hideEndTurn : 'hideEndTurn',				// void - Unable to hit the end turn button 
 	gemPickBlocked : "gemPickBlocked",			// void - Gem picker is blocked
+	cooldownMod : 'cooldownMod',				// (int)turns, (arr)conditions - Modifies all cooldowns of effects that meet these conditions (conditions are optional) 
 
 
 };

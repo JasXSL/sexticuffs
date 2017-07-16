@@ -56,7 +56,6 @@ class Battle{
 
             // Reset the players
             for(let c of players){ 
-                Netcode.players[i] = c;
                 // This resets their status
                 c.onBattleStart(this.stage);
             }
@@ -287,6 +286,7 @@ class Battle{
             }
 
             if(!Netcode.players[this.turn].is_pc && this.isHost()){
+				console.log("Play AI", Netcode.players[0].isDead());
                 this.playAI();
             }
         }
@@ -344,11 +344,12 @@ class Battle{
         advanceTurn(){
             if(this.ended){return;}
             // If battle has ended, deal with it and don't continue
-            if(this.checkBattleEnded())
+            if(this.checkBattleEnded()){
                 return;
+			}
+
 
             Netcode.players[this.turn].onTurnEnd();
-
 
             for(var i=0; i<Netcode.players.length; ++i){
                 ++this.turn;
@@ -359,6 +360,11 @@ class Battle{
 
 
                     Netcode.players[this.turn].onTurnStart();
+
+					// Battle might have ended due to onTurnStart
+					if(this.checkBattleEnded())
+						return;
+
                     ++this.total_turns;
                     // Player might have died
                     if(Netcode.players[this.turn].isDead()){
@@ -563,7 +569,7 @@ class Battle{
             }
 
 
-			// 
+			// Stage can run events before game over
 			if(this.stage && this.stage.onGameOver.length && !ignoreOnGameOver){
 				
 				for(let fx of this.stage.onGameOver){
@@ -749,7 +755,8 @@ class Battle{
             let me = this.getMyCharacter(), 
                 i,
                 isHost = this.isHost(),
-                th = this
+                th = this,
+				myTurn = this.myTurn()
             ;
 
             // Update all players
@@ -827,7 +834,7 @@ class Battle{
                 $("#abilities").toggleClass('dead', false);
             }
 
-            $("#abilities", this.page).toggleClass('disabled', !this.myTurn() || me.offeredGemsPicked < 3);
+            $("#abilities", this.page).toggleClass('disabled', !myTurn || me.offeredGemsPicked < 3);
             
 
 
@@ -835,7 +842,7 @@ class Battle{
             if(!this.punishment_done && !this.intro){
 
                 // We pick punishment
-                if(this.ended && this.myTurn()){
+                if(this.ended && myTurn){
                     var html = '';
                         html+= '<div class="button ability active" data-punishment="__PUNISHMENT_DOM__">Dominate</div>';
                         html+= '<div class="button ability active" data-punishment="__PUNISHMENT_SUB__">Submit</div>';
@@ -891,17 +898,18 @@ class Battle{
 
 
                 // Handle turn done checks
-                if(!successfulAbilities && !this.turn_done_alert && this.getMyCharacter().offeredGemsPicked >= 3){
-                    // turn_done
-                    this.turn_done_alert = true;
-                    this.turn_done_timer = setTimeout(function(){
-                        GameAudio.playSound('accept');
-                        $("#abilities div.ability.endTurn").toggleClass('glow', true);
-                    }, 3000);
-                }
-                else if(successfulAbilities)
-                    clearTimeout(this.turn_done_timer);
-                
+				if(myTurn){
+					if(!successfulAbilities && !this.turn_done_alert && this.getMyCharacter().offeredGemsPicked >= 3){
+						// turn_done
+						this.turn_done_alert = true;
+						this.turn_done_timer = setTimeout(function(){
+							GameAudio.playSound('accept');
+							$("#abilities div.ability.endTurn").toggleClass('glow', true);
+						}, 3000);
+					}
+					else if(successfulAbilities)
+						clearTimeout(this.turn_done_timer);
+				}
 
 
 
@@ -915,7 +923,7 @@ class Battle{
                 // Rebind ability buttons
                 $("#abilities div.ability[data-uuid]", this.page).off('click').on('click', function(){
 
-                    if(!th.myTurn()){
+                    if(!myTurn){
                         console.error("Not your turn");
                         return;
                     }
@@ -939,7 +947,7 @@ class Battle{
 
 
                 // Handle gem picker
-                if(me.offeredGemsPicked >= 3 || this.ended || !this.myTurn())
+                if(me.offeredGemsPicked >= 3 || this.ended || !myTurn)
                     $("#gemPicker").toggleClass('hidden', true);
                 else{
 

@@ -51,6 +51,12 @@ class DB{
                 Armor.insert({id:"latexSet", name:"Latex Set", cost:150, description:"An outfit made of tight and shiny black latex. Comes with a top, thong and stockings.", tags:["a_shiny", "a_tight", "a_thong", "a_stockings", "a_upper", "a_lower"]});
                 Armor.insert({id:"latexSwimsuit", name:"Latex Swimsuit", cost:95, description:"A shiny tight black latex swimsuit with a thong back.", tags:["a_shiny", "a_tight", "a_thong", "a_upper", "a_lower", "a_swimsuit"]});
                 Armor.insert({id:"techSuit", name:"Tech Swimsuit", cost:295, description:"A high tech one-piece with armored breasts and legs.", tags:["a_shiny", "a_tight", "a_upper", "a_lower", "a_swimsuit", "a_armored"]});
+                Armor.insert({id:"stripedPanties", name:"Striped Panty Set", cost:150, description:"A set of striped panties and a top, plus arm and leg stockings.", tags:["a_tight", "a_upper", "a_lower"]});
+                Armor.insert({id:"leatherThong", name:"Leather Thong", cost:195, description:"A tranditionally crafted leather thong.", tags:["a_tight", "a_shiny", "a_lower"]});
+                Armor.insert({id:"leatherBikini", name:"Leather Bikini", cost:245, description:"A tranditionally crafted leather thong that also comes with chest wraps.", tags:["a_tight", "a_shiny", "a_lower", "a_upper"]});
+                
+                
+                
 
         }
 
@@ -2608,6 +2614,118 @@ class DB{
                     });
 
 
+                // SATINAN_DECIMATE - Charged. Deals 20 damage but not scaling.
+                    Ability.insert({
+                        id : 'SATINAN_DECIMATE',   // Should be unique
+                        icon : 'media/effects/axe-swing.svg',
+                        name : 'Decimate',
+                        description : 'Deals 20 damage to all players unless mitigating, in which case it consumes all defensive gems instead.',
+                        manacost : {defensive:4},
+                        charged : 1,
+                        cooldown: 3,
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        aoe : true,
+                        max_effects : 1,
+                        max_texts : 0,
+                        effects:[
+
+                            new Effect({
+                                detrimental : true,
+                                conditions : [C(CO.NOT_TAGS, ['fx_mitigation'])],
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.damage, 20, false, true],
+                                            [EffectData.Types.text]
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            new Effect({
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.manaDamage, {defensive:10}],
+                                            [EffectData.Types.text, ":ATTACKER:'s decimation fails, breaking :TARGET:'s defenses instead!", 'defense_break']
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            
+                        ],
+                    });
+                
+                // SATINAN_SHACKLES 
+                    Ability.insert({
+                        id : 'SATINAN_SHACKLES',   // Should be unique
+                        icon : 'media/effects/handcuffs.svg',
+                        name : 'Demonic Shackles',
+                        description : 'Increases cooldown of all enemy abilities by 1.',
+                        manacost : {support:3},
+                        cooldown: 3,
+                        detrimental : true,
+                        ranged : true,
+                        conditions : [C(CO.ENEMY)],
+                        aoe : true,
+                        effects:[
+
+                            new Effect({
+                                id : 'satinanShackles',
+                                name : 'Shackles',
+                                description : 'Cooldown of all abilities increased by 1',
+                                icon : 'media/effects/handcuffs.svg',
+                                duration:3,
+                                detrimental : true,
+                                events : [
+                                    new EffectData({
+                                        triggers : [],
+                                        effects : [
+                                            [EffectData.Types.cooldownMod, 1]
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            
+                            
+                        ],
+                    });
+                
+                // SATINAN_VOLATILE_IMP
+                    Ability.insert({
+                        id : 'SATINAN_VOLATILE_IMP',   // Should be unique
+                        icon : '',
+                        name : 'Volatile Imp',
+                        description : 'Summons a volatile imp with 5 HP. The imp will detonate after 2 turns, dealing 10 damage to all players.',
+                        manacost : {},
+                        cooldown: 5,
+                        detrimental : false,
+                        ranged : true,
+                        conditions : [C(CO.SELF), C(CO.TOTAL_TURNS_GREATER, 6)],
+                        effects:[
+
+                            new Effect({
+                                detrimental : false,
+                                events : [
+                                    new EffectData({
+                                        triggers : [EffectData.Triggers.apply],
+                                        effects : [
+                                            [EffectData.Types.summonNpc, 'volatileImp']
+                                        ]
+                                    }),
+                                ]
+                            }),
+                            
+                            
+                        ],
+                    });
+
+
+
                     let satinanDmgPlayerIfNotDispelled = [EffectData.Types.damage, 5];
 
                     // SATINAN_DANCE_RANDOM
@@ -2642,7 +2760,7 @@ class DB{
                                             satinanDmgPlayerIfNotDispelled,
                                         ]
                                     }),
-                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a powerful chord!", ""]]})
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a powerful chord!", "power_chord"]]})
                                 ]
                             }),
                             new Effect({
@@ -2659,7 +2777,7 @@ class DB{
                                             satinanDmgPlayerIfNotDispelled
                                         ]
                                     }),
-                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a sweet shred!", ""]]})
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a sweet shred!", "sweet_shred"]]})
                                 ]
                             }),
                             new Effect({
@@ -2677,7 +2795,7 @@ class DB{
                                             
                                         ]
                                     }),
-                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a smooth lick!", ""]]})
+                                    new EffectData({triggers:[EffectData.Triggers.apply], effects:[[EffectData.Types.text, ":ATTACKER: plays a smooth lick!", "smooth_lick"]]})
                                 ]
                             }),
                         ]
@@ -2800,16 +2918,6 @@ class DB{
                         ]
                     });
 
-                    /*
-
-                        TODO:
-                        - Add pause to talkingheads
-                        - NPCs should not play while at least one talking head in queue has pause set, making only the last one in a chain require pausing.
-                        
-                        - Death sound plays multiple times?
-
-                    */
-
 
             // CHARACTERS
                 Character.insert({"id":"imp", image:'media/npc/imp.svg', name:'Imp', race:Race.get('imp'), description:"", body_tags:["impish"], abilities:[
@@ -2857,9 +2965,6 @@ class DB{
                                     effects : [
                                         [EffectData.Types.text, 'The Tentacle Pit was hurt by defeating the tendril!'],
                                         [EffectData.Types.applyEffect, new Effect({
-                                            id: '',
-                                            duration : 0,
-                                            detrimental : true,
                                             target : Game.Consts.TARG_VICTIM_PARENT,
                                             events:[new EffectData({
                                                 triggers : [EffectData.Triggers.apply], 
@@ -2874,6 +2979,52 @@ class DB{
                     ignore_default_abils : true,
                     max_armor:0, max_hp:15, size:7
                 });
+
+                Character.insert({"id":"volatileImp", image:'media/npc/imp.svg', name:'Volatile Imp', race:Race.get('imp'), description:"The volatile imp looks like it's ready to burst!", 
+                    body_tags:["impish"], max_armor:0, max_hp:5, social:0, size:3, tags:["c_penis", "s_demon"], armorSet:Armor.get('loincloth'), playable:false,
+                    ignore_default_abils : true,
+                    death_text : ':ATTACKER: vanishes in a cloud of smoke!',
+                    death_sound : 'smoke_puff',
+                    
+                    effects_on_spawn : [
+                        new Effect({
+                            id : 'volatility',
+                            icon : 'media/effects/gooey-impact.svg',
+                            name : 'Volatility',
+                            description : 'Explodes when this effect expires.',
+                            duration : 2,
+                            no_dispel : true,
+                            events : [
+                                new EffectData({
+                                    triggers : [EffectData.Triggers.expire],
+                                    effects : [
+                                        [
+                                            EffectData.Types.applyEffect, 
+                                            new Effect({
+                                                target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                                events : [
+                                                    new EffectData({
+                                                        triggers : [EffectData.Triggers.apply],
+                                                        effects : [
+                                                            [EffectData.Types.damage, 10]
+                                                        ]
+                                                    })
+                                                ]
+                                            })
+                                        ],
+                                        [
+                                            EffectData.Types.text, ":ATTACKER: explodes!", "burst"
+                                        ],
+                                        [
+                                            EffectData.Types.removeCharacter
+                                        ]
+                                    ]
+                                }),
+                            ]
+                        })
+                    ]
+                });
+                
 
                 // Succubi
                     var suca = Character.get('succubus').clone(),
@@ -3445,21 +3596,17 @@ class DB{
                     name : "Satinan's Chamber",
                     description : 'The ruler of Heck awaits!',
                     rewards : [
-                        /*
-                        new ChallengeReward({
-                            type:ChallengeReward.Types.clothes,
-                            data:'bowtie',
-                        }),
-                        
+
                         new ChallengeReward({
                             type:ChallengeReward.Types.money,
-                            data:100,
+                            data:500,
                         }),
-                        */
+                        
                     ],
                 });
 
-
+                let satinanRace = Race.get('breakerDemon').clone();
+                satinanRace.id = 'arch demon';
                 // The king
                 wing.addStage({
                     id : 'satinan',
@@ -3491,8 +3638,20 @@ class DB{
 
                             events:[
 
+                                // Final death
+                                new EffectData({
+                                    conditions : [C(CO.MATH, 'bvarSatinanPhase == 3')],
+                                    triggers : [EffectData.Triggers.apply],
+                                    effects : [
+
+                                        [
+                                            EffectData.Types.talking_head,
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: Impossible!", pause:true, sound:''}),
+                                        ],
+                                    ]
+                                }),
+
                                 // Second death (These numbers have to be in reverse order for validation)
-                                
                                 new EffectData({
                                     conditions : [C(CO.MATH, 'bvarSatinanPhase == 1')],
                                     triggers : [EffectData.Triggers.apply],
@@ -3501,9 +3660,10 @@ class DB{
                                         [
                                             EffectData.Types.talking_head,
                                             new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: This is MY domain! I will NOT be denied!", pause:true, sound:''}),
+                                            new ChallengeTalkingHead({icon:'media/npc/satinan.jpg', text:"Satinan: Let's see you defeat me without your precious gems!", pause:true, sound:''}),
                                         ],
                                     
-                                        // Lower everyone elses HP to 5
+                                        // Lower everyone elses HP to 5 and block gems
                                         [EffectData.Types.applyEffect, new Effect({
                                             id : 'HPReduction',
                                             target : [[C(CO.TEAM, Character.TEAM_PC)]],
@@ -3515,11 +3675,29 @@ class DB{
                                             events : [
                                                 new EffectData({
                                                     effects : [
-                                                        [EffectData.Types.max_hp, 5]
+                                                        [EffectData.Types.max_hp, 5],
+                                                        []
                                                     ]
                                                 })
                                             ]
                                         })],
+
+                                        // Block player gems. Does not persist through death
+                                        [EffectData.Types.applyEffect, new Effect({
+                                            id : 'gemsBlockedFinalPhase',
+                                            target : [[C(CO.TEAM, Character.TEAM_PC)]],
+                                            detrimental : false,
+                                            no_dispel : true,
+                                            duration : Infinity,
+                                            events : [
+                                                new EffectData({
+                                                    effects : [
+                                                        [EffectData.Types.gemPickBlocked]
+                                                    ]
+                                                })
+                                            ]
+                                        })],
+                                        
 
                                         [EffectData.Types.setBvar, 'SatinanPhase', 2],
 
@@ -3623,6 +3801,7 @@ class DB{
                                 C(CO.MATH, 'bvarSatinanPhase == 2')
                             ],
                             events:[
+                                // Final death
 
                                 // Second death (These numbers have to be in reverse order for validation)
                                 new EffectData({
@@ -3689,7 +3868,10 @@ class DB{
                                             events : [
                                                 new EffectData({
                                                     effects : [EffectData.Types.stun]
-                                                })
+                                                }),
+                                                new EffectData({
+                                                    triggers : [EffectData.Triggers.apply]
+                                                }),
                                             ]
                                         })],
 
@@ -3709,13 +3891,15 @@ class DB{
                         // 
 
                         new Character({
-                            "id":"satinan", name:'Satinan', race:Race.get('breakerDemon'), 
+                            "id":"satinan", name:'Satinan', race:satinanRace, 
                             description:"A large demon, clad in plush and satin clothes!", body_tags:[], 
                             image : 'media/npc/satinan.jpg',
                             armorSet : Armor.get('satinanRobe'),
-                            max_armor:20, max_hp:20, size:8, tags:["c_penis", "c_wings", "c_tail"], 
+                            max_armor:15, max_hp:15, size:8, tags:["c_penis", "c_wings", "c_tail"],  
                             abilities:[
-                                "SATINAN_DECIMATE",
+                                "SATINAN_DECIMATE",     // deals a flat 20 damage, unless mitigating, in which case it deals half
+                                "SATINAN_SHACKLES",     // AoE, Increases all ability cooldowns by 1. Can be dispelled. 3 turn cooldown.
+                                "SATINAN_VOLATILE_IMP", // Summons a volatile imp. It has to be destroyed within 2 turns or it detonates, doing AoE damage to all players.
                             ],
 							passives:[
 							]
@@ -3883,8 +4067,8 @@ class DB{
                     Text.insert({conditions:[abil, humanoid, C.PENIS, C.NO_BOTTOM], sound:'slime_squish_bright', ait:[ait.aGroin, ait.tWet, ait.tTickle, ait.aForeskin], text:":ANAME: hurls a watery glob at :TARGET:'s :TGROIN:! The :TRACE: gasps as a small length of watermilfoil wraps tight around :THIS: :TPENIS:, sending tingles across it as it starts wriggling!"});
                     
 
-                // Low blow, Challenger slam & PC crush
-                    abil = C(CO.ABILITY, ["LOW_BLOW", "CHALLENGER_SLAM", "generic_crush", "BUTLER_DISCIPLINE"]);
+                // Low blow, Challenger slam, PC crush, SATINAN_DECIMATE
+                    abil = C(CO.ABILITY, ["LOW_BLOW", "CHALLENGER_SLAM", "generic_crush", "BUTLER_DISCIPLINE", "SATINAN_DECIMATE"]);
                     Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', ait:[ait.aGroin, ait.tPunch], text:":ANAME: throws a punch between :TNAME:'s legs!"});
                     Text.insert({conditions:[abil, humanoid], sound:'punch_heavy', ait:[ait.aGroin, ait.tKick], text:":ANAME: throws a swift kick between :TNAME:'s legs!"});
                     Text.insert({conditions:[abil, humanoid, C.BREASTS, C.HAS_TOP], sound:'punch_heavy', ait:[ait.aBreasts, ait.tPunch], text:":ANAME: throws a punch at :TNAME:'s :TBREASTS:, jiggling them around within :THIS: :TCLOTHES:"});
@@ -4171,18 +4355,21 @@ class DB{
                         Text.insert({conditions:[abil], sound:'drain', text:":TARGET: submits to the aphrodisiac, allowing :ATTACKER: to drain :THIS: essence!"});
 
                         abil = C(CO.ABILITY, 'SHIVV_TEASE');
-                        Text.insert({conditions:[abil], sound:'kiss', text:":ATTACKER: places a gentle kiss on :TARGET:'s :TGROIN:!"});
-                        Text.insert({conditions:[abil, C.BREASTS], sound:'kiss', text:":ATTACKER: places a gentle kiss on :TARGET:'s :TBREASTS:!"});
-                        Text.insert({conditions:[abil], sound:'kiss', text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TGROIN:!"});
-                        Text.insert({conditions:[abil, C.BREASTS], sound:'kiss', text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TBREASTS:!"});
+                        Text.insert({conditions:[abil], sound:'kiss', ait:[ait.tKiss, ait.aGroin], text:":ATTACKER: places a gentle kiss on :TARGET:'s :TGROIN:!"});
+                        Text.insert({conditions:[abil, C.BREASTS], ait:[ait.tKiss, ait.aBreasts], sound:'kiss', text:":ATTACKER: places a gentle kiss on :TARGET:'s :TBREASTS:!"});
+                        Text.insert({conditions:[abil], sound:'squish', ait:[ait.tLick, ait.aGroin], text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TGROIN:!"});
+                        Text.insert({conditions:[abil, C.BREASTS], ait:[ait.tLick, ait.aBreasts], sound:'squish', text:":ATTACKER: slides :AHIS: tongue across :TARGET:'s :TBREASTS:!"});
                         
-                        Text.insert({conditions:[abil], sound:'tickle', text:":ATTACKER: gently tickles :TARGET: between :THIS: legs!"});
-                        Text.insert({conditions:[abil, C.BREASTS, C.HAS_TOP], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s :TBREASTS:!"});
-                        Text.insert({conditions:[abil, C.BREASTS, C.NO_TOP], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s nipples!"});
+                        Text.insert({conditions:[abil], ait:[ait.tTickle, ait.aGroin], sound:'tickle', text:":ATTACKER: gently tickles :TARGET: between :THIS: legs!"});
+                        Text.insert({conditions:[abil, C.BREASTS, C.HAS_TOP], ait:[ait.tTickle, ait.aBreasts], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s :TBREASTS:!"});
+                        Text.insert({conditions:[abil, C.BREASTS, C.NO_TOP], ait:[ait.tTickle, ait.aBreasts], sound:'tickle', text:":ATTACKER: gently tickles :TARGET:'s nipples!"});
                         
                         abil = C(CO.ABILITY, 'SHIVV_VIOLATE');
-                        Text.insert({conditions:[abil], sound:'squish', text:":ATTACKER: violates :TARGET:!"});
-
+                        Text.insert({conditions:[abil, C.HAS_BOTTOM], ait:[ait.aButt, ait.tCumInside, ait.tPin], sound:'squish', text:":ATTACKER: pins :TARGET: down and slides his thick, yet flexible spade tail between his smooth legs, sliding it up :TARGET:'s leg and into the :TGROIN: of :THIS: :TCLOTHES:. :ATTACKER: keeps the :TRACE: pinned down and lets :AHIS: tail slide easily into :TARGET:'s :BUTT:! With a few wriggling thrusts, :ATTACKER: cums hard, dumping a fat, devilish load deep inside :TARGET:!"});
+                        Text.insert({conditions:[abil, C.VAG, C.HAS_BOTTOM], ait:[ait.aGroin, ait.tCumInside, ait.tPin], sound:'squish', text:":ATTACKER: pins :TARGET: down and slides his thick, yet flexible spade tail between his smooth legs, sliding it up :TARGET:'s leg and into the :TGROIN: of :THIS: :TCLOTHES:. :ATTACKER: keeps the :TRACE: pinned down and lets :AHIS: tail slide into :TARGET:'s :VAGINA:! With a few wriggling thrusts of the spade, :ATTACKER: cums hard, dumping a fat, devilish load deep inside :TARGET:'s womb!"});
+                        Text.insert({conditions:[abil, C.NO_BOTTOM], ait:[ait.aButt, ait.tCumInside, ait.tPin], sound:'squish', text:":ATTACKER: pins :TARGET: down and slides his thick, yet flexible spade tail between his smooth legs and lets :AHIS: tail slide easily into :TARGET:'s :BUTT:! With a few wriggling thrusts, :ATTACKER: cums hard, dumping a fat, devilish load deep inside :TARGET:!"});
+                        Text.insert({conditions:[abil, C.VAG, C.NO_BOTTOM], ait:[ait.aGroin, ait.tCumInside, ait.tPin], sound:'squish', text:":ATTACKER: pins :TARGET: down and slides his thick, yet flexible spade tail between his smooth legs and lets :AHIS: tail slide into :TARGET:'s :VAGINA:! With a few wriggling thrusts of the spade, :ATTACKER: cums hard, dumping a fat, devilish load deep inside :TARGET:'s womb!"});
+                        
                         
                         
 
@@ -4215,7 +4402,27 @@ class DB{
 
 
 					// BOSS J (Satinan)
+                        abil = C(CO.ABILITY, 'SATINAN_SHACKLES');
+                        Text.insert({conditions:[abil], ait:[], sound:'chain', text:":ATTACKER: binds :TARGET: with demonic shackles!"});
 
+                        abil = C(CO.ABILITY, 'SATINAN_VOLATILE_IMP');
+                        Text.insert({conditions:[abil], ait:[], sound:'dark_cast', text:":ATTACKER: summons a volatile imp!"});
+
+                        abil = C(CO.ABILITY, 'SATINAN_PC_POWER_CHORD');
+                        Text.insert({conditions:[abil], ait:[], sound:'power_chord', text:":ATTACKER: plays a powerful chord!"});
+
+                        abil = C(CO.ABILITY, 'SATINAN_PC_SWEET_SHRED');
+                        Text.insert({conditions:[abil], ait:[], sound:'sweet_shred', text:":ATTACKER: plays a sweet shred!"});
+
+                        abil = C(CO.ABILITY, 'SATINAN_PC_SMOOTH_LICK');
+                        Text.insert({conditions:[abil], ait:[], sound:'smooth_lick', text:":ATTACKER: plays a smooth lick!"});
+                        
+                        
+                        abil = C(CO.ABILITY, 'SATINAN_START_DANCE_OFF');
+                        Text.insert({conditions:[abil], ait:[], sound:'smooth_lick', text:":ATTACKER: challenges Satinan to a rock-off!"});
+                        
+                        
+                                                
 
 					// 
 
