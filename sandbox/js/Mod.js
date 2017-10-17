@@ -56,7 +56,12 @@ class Mod extends Asset{
         for(let i in lib){
             libout[i] = [];
             for(let asset of lib[i]){
-                libout[i].push(asset.export(true));
+                
+                if(asset.constructor === Character){
+                    libout[i].push(asset.hostExportFull(true));
+                }else{
+                    libout[i].push(asset.export(true));
+                }
             }
         }
         return {

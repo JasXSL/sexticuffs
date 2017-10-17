@@ -2232,7 +2232,8 @@ class DB{
                                             id : 'shivvEnrage',
                                             name : 'Enrage',
                                             duration : Infinity,
-                                            description : 'Damage increased by 200% per stack',
+                                            no_dispel : true,
+                                            description : 'Damage increased by 200% per stack. Cannot be dispelled.',
                                             icon : 'media/effects/swallow.svg',
                                             detrimental : false,
                                             target : [[C(CO.CHARACTER_ID, "shivv")]],
@@ -2351,77 +2352,13 @@ class DB{
                             }), 3], 
                         ],
                     });
-				/*
-                // QUEEN_SUBMIT - Removes kiss and your red gems
-                    Ability.insert({
-                        id : 'QUEEN_SUBMIT',   // Should be unique
-                        name : 'Submit',
-                        description : 'Submit to the queen, removing the kiss effect but also consuming all your red gems.',
-                        icon : 'media/effects/weaken.svg',
-                        manacost : {support:2},
-                        cooldown: 0,
-                        detrimental : false,
-                        conditions : [C(CO.SELF)],
-                        effects:[
-                            new Effect({
-                                id : 'QUEEN_SUBMIT',
-                                detrimental : false,
-                                events : [
-                                    new EffectData({
-                                        triggers : [EffectData.Triggers.apply],
-                                        effects : [
-                                            [EffectData.Types.manaDamage, {offensive:10}],
-                                            [EffectData.Types.remByID, 'QUEEN_KISS']
-                                        ]
-                                    })
-                                ]
-                            }), 
-                        ],
-                    });
-				
-				
-                // QUEEN_KISS - DoT and grant an ability to remove it
-                    Ability.insert({
-                        id : 'QUEEN_KISS',   // Should be unique
-                        name : 'Kiss',
-                        description : 'Kiss a player, infecting them with an aphrodisiac which deals 2 damage each turn for 5 turns and grants the Submit ability.',
-                        icon : 'media/effects/lips.svg',
-                        manacost : {offensive:4},
-                        cooldown: 3,
-                        detrimental : true,
-                        ranged: true,
-                        conditions : [],
-                        ai_tags : [],
-                        effects:[
-                            new Effect({
-                                id : 'QUEEN_KISS',
-								name : 'Kiss',
-								description : 'Deals 2 damage each turn.',
-								icon : 'media/effects/lips.svg',
-                                detrimental : true,
-                                duration : 5,
-                                events : [
-                                    new EffectData({
-                                        triggers : [EffectData.Triggers.turnStart],
-                                        effects : [[EffectData.Types.damage, 2]]
-                                    }),
-                                    new EffectData({
-                                        triggers : [],
-                                        effects : [[EffectData.Types.addAbility, 'QUEEN_SUBMIT']]
-                                    }),
-                                ]
-                            }), 
-                        ],
-                    });
-				*/
-
 				
 
 				// QUEEN_INFUSION - Allows players to attack when stunned
 					Ability.insert({
                         id : 'QUEEN_INFUSION',   // Should be unique
                         name : 'Demonic Strike',
-                        description : 'Damages Brutus for 10% of his max CP.',
+                        description : 'Damages Brutus for 10% of his max CP. Usable while stunned!',
                         icon : 'media/effects/swallow.svg',
                         manacost : {},
                         cooldown: 0,
@@ -2504,7 +2441,7 @@ class DB{
                                     new EffectData({
                                         triggers: [EffectData.Triggers.apply],
                                         effects:[
-                                            [EffectData.Types.text, "The ritual fails, empowering :TARGET: instead!", 'dark_cast'],
+                                            [EffectData.Types.text, "The ritual fails, granting :TARGET: a demonic strike charge instead!", 'dark_cast'],
                                         ]
                                     }),
 									new EffectData({
@@ -2844,7 +2781,7 @@ class DB{
                         id : 'SATINAN_PC_SWEET_SHRED',   // Should be unique
                         icon : 'media/effects/anthem.svg',
                         name : 'Sweet Shred',
-                        description : 'Counters smooth lick and deals 3 damage to satinan.',
+                        description : 'Counters power chord and deals 3 damage to satinan.',
                         manacost : {defensive:2},
                         detrimental : true,
                         ranged : true,
@@ -2883,7 +2820,7 @@ class DB{
                         id : 'SATINAN_PC_SMOOTH_LICK',   // Should be unique
                         icon : 'media/effects/love-song.svg',
                         name : 'Smooth Lick',
-                        description : 'Counters power chord and deals 5 damage to satinan.',
+                        description : 'Counters sweet shred and deals 5 damage to satinan.',
                         manacost : {support:2},
                         detrimental : true,
                         ranged : true,
@@ -4442,6 +4379,7 @@ class DB{
                 // Sub
                     abil = C(CO.ABILITY, '__PUNISHMENT_SUB__');
                     Text.insert({conditions:[humanoid,a_humanoid, abil], sound:'squish', text:"This is a SUBMISSIVE punishment placeholder"});
+                    Text.insert({conditions:[humanoid,a_humanoid, abil, C.VAG], sound:'squish', text:":ANAME: crawls up to :AHIS: defeated opponent, jaws parting to lavish the :TRACE:\'s :TVAG: with :AHIS: tongue! :TNAME: arches :THIS: back, closing :THIS: legs around the :ARACE:'s head as :THE: is vigorously eaten out. :TNAME: bucks under :ANAME:'s smooching, suckling advances until sweet feminine juices erupt from :THIS: :TVAG:, drenching :ANAME:'s grinning face. :TNAME: lay limp from orgasmic exhaustion while :ANAME: rises triumphantly, licking :AHIS: lips clean of :AHIS: fallen adversary's pussy juice as :AHE: leaves."});
                     
                 // Sadistic
                     abil = C(CO.ABILITY, '__PUNISHMENT_SAD__');

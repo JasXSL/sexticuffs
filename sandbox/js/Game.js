@@ -19,21 +19,6 @@ class Game{
 		// Consts
         Game.version = 4;   
 
-		Game.Consts = {
-
-			// Used for conditions
-			TARG_VICTIM : 'VICTIM',
-			TARG_ATTACKER : 'ATTACKER',
-			TARG_RAISER : 'RAISER',                             // Used only in applyEffect effects, person who raised the event
-			TARG_VICTIM_PARENT : 'VICTIM_PARENT',               // Used only in applyEffect effects on summoned character. Ex: Summoned character takes damage.
-			TARG_ATTACKER_PARENT : 'ATTACKER_PARENT',           // == || ==. Ex: Summoned character deals damage
-			TARG_AOE : 'AOE',                                   // Run against everyone. Currently only supported in Effect
-
-
-		};
-		
-        
-        
 
 
         // SET UP STATIC VARS //
@@ -63,6 +48,8 @@ class Game{
 				Game.updateMenu();
 				// Update multiplayer icons
 				Game.rebuildMultiplayerIcons();
+
+				Game.charsIntoLibrary();
 
 			});
 
@@ -279,6 +266,19 @@ class Game{
 			});
 		}
 
+		// Loads your character into library to do battle with
+		static charsIntoLibrary(){
+			
+			// No active char exists. Get the last modified one
+			IDB.getAll('characters').then(function(data){
+
+				for(let char of data){
+					char.is_pc = false;
+					Character.insert(char);
+				}
+			});
+
+		}
 
 
 	// Battle & Nav
@@ -390,6 +390,19 @@ class Game{
 
 
 }
+
+Game.Consts = {
+
+	// Used for conditions
+	TARG_VICTIM : 'VICTIM',
+	TARG_ATTACKER : 'ATTACKER',
+	TARG_RAISER : 'RAISER',                             // Used only in applyEffect effects, person who raised the event
+	TARG_VICTIM_PARENT : 'VICTIM_PARENT',               // Used only in applyEffect effects on summoned character. Ex: Summoned character takes damage.
+	TARG_ATTACKER_PARENT : 'ATTACKER_PARENT',           // == || ==. Ex: Summoned character deals damage
+	TARG_AOE : 'AOE',                                   // Run against everyone. Currently only supported in Effect
+
+
+};
 
 
 

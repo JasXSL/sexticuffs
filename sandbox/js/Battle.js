@@ -652,7 +652,7 @@ class Battle{
             $("#abilities div.ability").on('click', function(){
                 GameAudio.playSound('shake');
                 if($(this).hasClass('rematch')){
-                    Jasmop.Page.set('battle');
+                    Jasmop.Page.set('battle', [th.campaign, th.stage]);
                 }
                 else{
                     if(this.campaign){

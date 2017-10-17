@@ -156,8 +156,13 @@
             GameAudio.clickSound();
         });
 
+        $("input[name=image]").on('keypress', function(e){
+            if(e.keyCode == '13') {
+                e.stopPropagation();
+            }
+        });
+
         $("input[name=image]").on('change', function(){
-            console.log("Image changed");
             var img = $(this).val().trim();
             if(!img)
                 return;
